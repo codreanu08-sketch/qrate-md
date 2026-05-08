@@ -1,17 +1,25 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Star, Camera, Video, Send, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+
+// Definim o interfață clară pentru locație
+interface LocationData {
+  id: string;
+  name: string;
+  address: string | null;
+}
 
 export default function ReviewPage() {
-  const { id, locale } = useParams<{ id: string; locale: string }>();
+  const params = useParams();
+  const id = params?.id as string;
+  const locale = params?.locale as string || 'ro';
   const router = useRouter();
 
-  const [location, setLocation] = useState<any>(null);
-  const [rating, setRating] = useState(0);
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState('');
   const [phone, setPhone] = useState('');
   const [image, setImage] = useState<File | null>(null);
@@ -23,17 +31,19 @@ export default function ReviewPage() {
   const [hoverRating, setHoverRating] = useState(0);
 
   useEffect(() => {
-    fetchLocation();
+    if (id) fetchLocation();
   }, [id]);
 
   async function fetchLocation() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('locations')
       .select('id, name, address')
       .eq('id', id)
       .single();
 
-    setLocation(data);
+    if (!error && data) {
+      setLocation(data as LocationData);
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,43 +58,48 @@ export default function ReviewPage() {
     let imageUrl = null;
     let videoUrl = null;
 
-    // Upload imagine
-    if (image) {
-      const imageName = `${Date.now()}-${image.name}`;
-      const { data: imgData } = await supabase.storage
-        .from('reviews')
-        .upload(`images/${imageName}`, image);
-      if (imgData) imageUrl = imgData.path;
-    }
+    try {
+      // Upload imagine
+      if (image) {
+        const imageName = `${Date.now()}-${image.name}`;
+        const { data: imgData } = await supabase.storage
+          .from('reviews')
+          .upload(`images/${imageName}`, image);
+        if (imgData) imageUrl = imgData.path;
+      }
 
-    // Upload video (max 1 minut)
-    if (video) {
-      const videoName = `${Date.now()}-${video.name}`;
-      const { data: vidData } = await supabase.storage
-        .from('reviews')
-        .upload(`videos/${videoName}`, video);
-      if (vidData) videoUrl = vidData.path;
-    }
+      // Upload video
+      if (video) {
+        const videoName = `${Date.now()}-${video.name}`;
+        const { data: vidData } = await supabase.storage
+          .from('reviews')
+          .upload(`videos/${videoName}`, video);
+        if (vidData) videoUrl = vidData.path;
+      }
 
-    const { error } = await supabase.from('reviews').insert({
-      location_id: id,
-      rating,
-      comment,
-      phone: phone || null,
-      image_url: imageUrl,
-      video_url: videoUrl,
-    });
+      const { error } = await supabase.from('reviews').insert({
+        location_id: id,
+        rating,
+        comment,
+        phone: phone || null,
+        image_url: imageUrl,
+        video_url: videoUrl,
+      });
 
-    if (!error) {
-      setSuccess(true);
-      setTimeout(() => {
-        router.push(`/${locale}/thank-you`);
-      }, 2000);
-    } else {
+      if (!error) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push(`/${locale}/thank-you`);
+        }, 2000);
+      } else {
+        throw error;
+      }
+    } catch (err) {
+      console.error(err);
       alert('A apărut o eroare. Te rugăm încearcă din nou.');
+    } finally {
+      setSubmitting(false);
     }
-
-    setSubmitting(false);
   };
 
   if (!location) return <div className="min-h-screen flex items-center justify-center">Se încarcă...</div>;
@@ -144,7 +159,7 @@ export default function ReviewPage() {
               </p>
             </div>
 
-            {/* Telefon (opțional) */}
+            {/* Telefon */}
             <div>
               <label className="block text-sm font-medium mb-2">Număr de telefon (opțional)</label>
               <input
@@ -185,7 +200,7 @@ export default function ReviewPage() {
               </label>
             </div>
 
-            {/* Upload Video (max 60 secunde) */}
+            {/* Upload Video */}
             <div>
               <label className="block text-sm font-medium mb-3">Adaugă video (max 1 minut)</label>
               <label className="border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:border-blue-400 transition">
