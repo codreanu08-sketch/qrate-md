@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { Plus, Printer, User, Eye, Trash2, Download } from 'lucide-react';
+// @ts-ignore
 import QRCode from 'qrcode';
 import Sidebar from '../../../components/Sidebar';
 
@@ -20,12 +21,10 @@ export default function Employees() {
   const [photo, setPhoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // QR Codes - versiune stabilă
   const [qrData, setQrData] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadData();
-    // Încarcă QR-urile salvate
     const saved = localStorage.getItem('qrate_employee_qrcodes_final2');
     if (saved) {
       setQrData(JSON.parse(saved));
