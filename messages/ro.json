@@ -1,0 +1,10 @@
+{
+  "common": {
+    "login": "Autentificare",
+    "register": "Înregistrare",
+    "dashboard": "Dashboard",
+    "reviews": "Recenzii",
+    "employees": "Angajați",
+    "qr_codes": "Coduri QR"
+  }
+}

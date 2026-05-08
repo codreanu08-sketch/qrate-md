@@ -1,0 +1,10 @@
+{
+  "common": {
+    "login": "Вход",
+    "register": "Регистрация",
+    "dashboard": "Панель управления",
+    "reviews": "Отзывы",
+    "employees": "Сотрудники",
+    "qr_codes": "QR-коды"
+  }
+}
