@@ -5,11 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { Plus, Printer, User, Eye, Trash2, Download } from 'lucide-react';
 
-// @ts-ignore - Această linie forțează TypeScript să ignore lipsa declarațiilor pentru qrcode pe Vercel
-import QRCode from 'qrcode';
+// Importul static a fost șters pentru a evita erorile de tipuri la build
 import Sidebar from '../../../components/Sidebar';
 
-// Definim tipurile local pentru a nu depinde de module externe
 interface Employee {
   id: string;
   name: string;
@@ -64,15 +62,18 @@ export default function Employees() {
     setLocations(locRes.data || []);
   }
 
+  // FUNCȚIA MODIFICATĂ: Folosește import dinamic pentru a păcăli TypeScript
   const generateQR = async (employee: Employee) => {
-    // Ne asigurăm că window este definit (evităm erori de SSR)
     if (typeof window === 'undefined') return;
 
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const reviewUrl = `${baseUrl}/${locale}/review/employee/${employee.id}`;
 
     try {
-      const qr = await QRCode.toDataURL(reviewUrl, { 
+      // Încărcăm librăria doar la execuție
+      const QRCodeLib = await import('qrcode');
+      
+      const qr = await QRCodeLib.toDataURL(reviewUrl, { 
         width: 512, 
         margin: 2,
         color: { dark: '#000000', light: '#ffffff' }
@@ -101,7 +102,7 @@ export default function Employees() {
         photoPath = data.path;
       }
 
-      const { data: newEmp, error } = await supabase
+      const { data, error } = await supabase
         .from('employees')
         .insert({
           name: newName,
@@ -166,7 +167,6 @@ export default function Employees() {
            <h1 className="text-4xl font-bold text-gray-800">Gestionare Angajați</h1>
         </div>
 
-        {/* Formular adăugare */}
         <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-12">
           <h2 className="text-xl font-semibold mb-6">Adaugă angajat nou</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -210,7 +210,6 @@ export default function Employees() {
           </div>
         </div>
 
-        {/* Listă */}
         {employees.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed">
             <p className="text-gray-500">Nu există angajați în listă.</p>
