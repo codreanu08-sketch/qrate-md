@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Star, Camera, Video, Send, ArrowLeft } from 'lucide-react';
 
-// Definim o interfață clară pentru locație
+// Interfață pentru datele locației
 interface LocationData {
   id: string;
   name: string;
@@ -14,8 +14,9 @@ interface LocationData {
 
 export default function ReviewPage() {
   const params = useParams();
+  // Asigurăm tiparea parametrilor pentru a evita erori de tip "undefined"
   const id = params?.id as string;
-  const locale = params?.locale as string || 'ro';
+  const locale = (params?.locale as string) || 'ro';
   const router = useRouter();
 
   const [location, setLocation] = useState<LocationData | null>(null);
@@ -31,18 +32,24 @@ export default function ReviewPage() {
   const [hoverRating, setHoverRating] = useState(0);
 
   useEffect(() => {
-    if (id) fetchLocation();
+    if (id) {
+      fetchLocation();
+    }
   }, [id]);
 
   async function fetchLocation() {
-    const { data, error } = await supabase
-      .from('locations')
-      .select('id, name, address')
-      .eq('id', id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('locations')
+        .select('id, name, address')
+        .eq('id', id)
+        .single();
 
-    if (!error && data) {
-      setLocation(data as LocationData);
+      if (!error && data) {
+        setLocation(data as LocationData);
+      }
+    } catch (err) {
+      console.error("Error fetching location:", err);
     }
   }
 
@@ -55,29 +62,33 @@ export default function ReviewPage() {
 
     setSubmitting(true);
 
-    let imageUrl = null;
-    let videoUrl = null;
+    let imageUrl: string | null = null;
+    let videoUrl: string | null = null;
 
     try {
       // Upload imagine
       if (image) {
-        const imageName = `${Date.now()}-${image.name}`;
-        const { data: imgData } = await supabase.storage
+        const imageName = `${Date.now()}-${image.name.replace(/\s+/g, '_')}`;
+        const { data: imgData, error: imgErr } = await supabase.storage
           .from('reviews')
           .upload(`images/${imageName}`, image);
+        
+        if (imgErr) throw imgErr;
         if (imgData) imageUrl = imgData.path;
       }
 
       // Upload video
       if (video) {
-        const videoName = `${Date.now()}-${video.name}`;
-        const { data: vidData } = await supabase.storage
+        const videoName = `${Date.now()}-${video.name.replace(/\s+/g, '_')}`;
+        const { data: vidData, error: vidErr } = await supabase.storage
           .from('reviews')
           .upload(`videos/${videoName}`, video);
+        
+        if (vidErr) throw vidErr;
         if (vidData) videoUrl = vidData.path;
       }
 
-      const { error } = await supabase.from('reviews').insert({
+      const { error: insertError } = await supabase.from('reviews').insert({
         location_id: id,
         rating,
         comment,
@@ -86,23 +97,25 @@ export default function ReviewPage() {
         video_url: videoUrl,
       });
 
-      if (!error) {
+      if (!insertError) {
         setSuccess(true);
         setTimeout(() => {
           router.push(`/${locale}/thank-you`);
         }, 2000);
       } else {
-        throw error;
+        throw insertError;
       }
     } catch (err) {
-      console.error(err);
-      alert('A apărut o eroare. Te rugăm încearcă din nou.');
+      console.error("Submission error:", err);
+      alert('A apărut o eroare la trimitere. Te rugăm încearcă din nou.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (!location) return <div className="min-h-screen flex items-center justify-center">Se încarcă...</div>;
+  if (!location) {
+    return <div className="min-h-screen flex items-center justify-center">Se încarcă...</div>;
+  }
 
   if (success) {
     return (
@@ -121,9 +134,9 @@ export default function ReviewPage() {
       <div className="max-w-2xl mx-auto">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 mb-8 hover:text-black"
+          className="flex items-center gap-2 text-gray-600 mb-8 hover:text-black transition-colors"
         >
-          <ArrowLeft /> Înapoi
+          <ArrowLeft size={20} /> Înapoi
         </button>
 
         <div className="bg-white rounded-3xl shadow-2xl p-10">
@@ -142,14 +155,15 @@ export default function ReviewPage() {
                     onClick={() => setRating(star)}
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(0)}
-                    className="transition-transform hover:scale-110"
+                    className="transition-transform hover:scale-110 active:scale-95"
                   >
                     <Star
+                      size={48}
                       className={`${
                         star <= (hoverRating || rating)
                           ? 'fill-yellow-400 text-yellow-400'
                           : 'text-gray-300'
-                      }`}
+                      } transition-colors`}
                     />
                   </button>
                 ))}
@@ -161,33 +175,33 @@ export default function ReviewPage() {
 
             {/* Telefon */}
             <div>
-              <label className="block text-sm font-medium mb-2">Număr de telefon (opțional)</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Număr de telefon (opțional)</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="07xx xxx xxx"
-                className="w-full px-5 py-4 border rounded-2xl focus:outline-none focus:border-blue-500"
+                className="w-full px-5 py-4 border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
               />
             </div>
 
             {/* Comentariu */}
             <div>
-              <label className="block text-sm font-medium mb-2">Comentariul tău</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">Comentariul tău</label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 placeholder="Ce ți-a plăcut? Ce am putea îmbunătăți?"
                 rows={5}
-                className="w-full px-5 py-4 border rounded-3xl focus:outline-none focus:border-blue-500 resize-none"
+                className="w-full px-5 py-4 border border-gray-200 rounded-3xl focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none transition-all"
                 required
               />
             </div>
 
             {/* Upload Poză */}
             <div>
-              <label className="block text-sm font-medium mb-3">Adaugă poză (opțional)</label>
-              <label className="border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:border-blue-400 transition">
+              <label className="block text-sm font-medium mb-3 text-gray-700">Adaugă poză (opțional)</label>
+              <label className="border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
                 <Camera className="w-10 h-10 text-gray-400 mb-2" />
                 <span className="text-sm text-gray-600">Click pentru a alege o poză</span>
                 <input
@@ -196,14 +210,14 @@ export default function ReviewPage() {
                   onChange={(e) => setImage(e.target.files?.[0] || null)}
                   className="hidden"
                 />
-                {image && <p className="mt-3 text-sm text-green-600">✓ {image.name}</p>}
+                {image && <p className="mt-3 text-sm text-green-600 font-medium font-sans">✓ {image.name}</p>}
               </label>
             </div>
 
             {/* Upload Video */}
             <div>
-              <label className="block text-sm font-medium mb-3">Adaugă video (max 1 minut)</label>
-              <label className="border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:border-blue-400 transition">
+              <label className="block text-sm font-medium mb-3 text-gray-700">Adaugă video (max 1 minut)</label>
+              <label className="border-2 border-dashed border-gray-300 rounded-2xl p-8 flex flex-col items-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all">
                 <Video className="w-10 h-10 text-gray-400 mb-2" />
                 <span className="text-sm text-gray-600">Click pentru a alege un video</span>
                 <input
@@ -213,7 +227,7 @@ export default function ReviewPage() {
                   className="hidden"
                 />
                 {video && (
-                  <p className="mt-3 text-sm text-green-600">
+                  <p className="mt-3 text-sm text-green-600 font-medium">
                     ✓ {video.name} ({Math.round(video.size / 1024 / 1024)} MB)
                   </p>
                 )}
@@ -223,9 +237,9 @@ export default function ReviewPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-black hover:bg-gray-800 text-white py-5 rounded-2xl text-lg font-semibold flex items-center justify-center gap-3 disabled:opacity-70 transition"
+              className="w-full bg-black hover:bg-gray-800 text-white py-5 rounded-2xl text-lg font-semibold flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed transition-all"
             >
-              {submitting ? 'Se trimite...' : 'Trimite Recenzia'} <Send />
+              {submitting ? 'Se trimite...' : 'Trimite Recenzia'} <Send size={20} />
             </button>
           </form>
         </div>
