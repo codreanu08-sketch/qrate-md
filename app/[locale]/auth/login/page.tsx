@@ -64,7 +64,7 @@ export default function Login() {
       setLoading(false);
     } else {
       // useRouter din '@/i18n/routing' știe singur să meargă la /[locale]/dashboard
-      router.push('/dashboard');
+      router.push('/dashboard' as any);
     }
   };
 
