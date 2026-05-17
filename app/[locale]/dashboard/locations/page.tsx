@@ -1,0 +1,586 @@
+'use client';
+
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { useTranslations } from 'next-intl';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { 
+  Plus, Trash2, Download, 
+  Star, AlertTriangle, Loader2,
+  Building2, Image as ImageIcon, MessageSquare, Upload, CheckCircle2,
+  Filter, X
+} from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+
+// Componentă internă pentru a preveni erorile de tip "Hydration Mismatch" la formatarea datelor pe server vs client
+function ClientFriendlyDate({ dateString, locale }: { dateString: string; locale: string }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return <span className="text-[10px] text-slate-300">...</span>;
+  
+  try {
+    const formatted = new Date(dateString).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'ro-RO');
+    return <span className="text-[10px] font-black text-slate-300 italic whitespace-nowrap">{formatted}</span>;
+  } catch (e) {
+    return <span className="text-[10px] font-black text-slate-300 italic whitespace-nowrap">{dateString.split('T')[0]}</span>;
+  }
+}
+
+export default function LocationsPage() {
+  const t = useTranslations('Locations');
+  const params = useParams();
+  const locale = (params?.locale as string) || 'ro';
+
+  const [locations, setLocations] = useState<any[]>([]);
+  const [lastReviews, setLastReviews] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  
+  // Stări pentru crearea unei companii noi (Onboarding)
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [creatingCompany, setCreatingCompany] = useState(false);
+
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [newName, setNewName] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [type, setType] = useState('Physical');
+  const [logoUrl, setLogoUrl] = useState(''); 
+  const [welcomeMessage, setWelcomeMessage] = useState('Ajută-ne să fim mai buni!'); 
+  const [showDeleteModal, setShowDeleteModal] = useState<{id: string, name: string} | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchData = useCallback(async (cId: string) => {
+    try {
+      const [locsRes, revsRes] = await Promise.all([
+        supabase.from('locations').select('*').eq('company_id', cId).order('created_at', { ascending: false }),
+        supabase.from('reviews').select('*, locations(name)').eq('company_id', cId).order('created_at', { ascending: false })
+      ]);
+      if (locsRes.data) setLocations(locsRes.data);
+      if (revsRes.data) setLastReviews(revsRes.data);
+    } catch (err) {
+      console.error("Eroare fetch date:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    async function getInitialData() {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) {
+          setLoading(false);
+          return;
+        }
+        
+        const { data: company, error: compError } = await supabase
+          .from('companies')
+          .select('id, logo_url')
+          .eq('owner_id', user.id)
+          .maybeSingle();
+          
+        if (compError) throw compError;
+
+        if (company) {
+          setCompanyId(company.id);
+          if (company.logo_url) setLogoUrl(company.logo_url);
+          await fetchData(company.id);
+        } else {
+          setLoading(false);
+        }
+      } catch (err: any) {
+        console.error("Eroare inițializare pagină:", err);
+        setErrorMessage(err.message || "Nu s-a putut încărca compania.");
+        setLoading(false);
+      }
+    }
+    getInitialData();
+  }, [fetchData]);
+
+  const handleCreateCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompanyName.trim()) return;
+
+    try {
+      setCreatingCompany(true);
+      setErrorMessage(null);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("Utilizator neautentificat.");
+
+      const generatedSlug = newCompanyName
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") 
+        .replace(/[^a-z0-9\s-]/g, "")    
+        .replace(/\s+/g, "-")            
+        .replace(/-+/g, "-");            
+
+      const finalSlug = `${generatedSlug}-${Math.random().toString(36).substring(2, 6)}`;
+
+      const { data, error } = await supabase
+        .from('companies')
+        .insert([{ 
+          owner_id: user.id, 
+          name: newCompanyName.trim(),
+          slug: finalSlug
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setCompanyId(data.id);
+        setSuccessMessage("Compania a fost înregistrată cu succes!");
+        setTimeout(() => setSuccessMessage(null), 4000);
+        await fetchData(data.id);
+      }
+    } catch (err: any) {
+      console.error("Eroare la crearea companiei:", err);
+      setErrorMessage(err.message || "Nu s-a putut crea compania.");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
+
+  const downloadQR = (id: string, name: string, locLogo: string) => {
+    const qrCanvas = document.getElementById(`qr-${id}`) as HTMLCanvasElement;
+    if (!qrCanvas) {
+      alert("Eroare la generarea codului QR. Asigurați-vă că elementul este randat pe ecran.");
+      return;
+    }
+
+    const masterCanvas = document.createElement("canvas");
+    const ctx = masterCanvas.getContext("2d");
+    if (!ctx) return;
+
+    masterCanvas.width = 1200;
+    masterCanvas.height = 1800;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, masterCanvas.width, masterCanvas.height);
+
+    const logoImg = new Image();
+    logoImg.crossOrigin = "anonymous";
+    logoImg.src = locLogo || "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"; 
+
+    const buildCanvas = () => {
+      try {
+        if (locLogo && locLogo !== "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7") {
+          const logoSize = 450; 
+          ctx.drawImage(logoImg, (masterCanvas.width - logoSize) / 2, 80, logoSize, logoSize);
+        }
+        
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#1e293b"; 
+        ctx.font = "bold 70px sans-serif";
+        ctx.fillText(name.toUpperCase(), masterCanvas.width / 2, 650);
+        
+        ctx.fillStyle = "#64748b";
+        ctx.font = "italic 40px sans-serif";
+        const shortMsg = welcomeMessage.length > 60 ? welcomeMessage.substring(0, 60) + "..." : welcomeMessage;
+        ctx.fillText(shortMsg, masterCanvas.width / 2, 730);
+        
+        ctx.strokeStyle = "#f1f5f9";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(250, 800); ctx.lineTo(950, 800); ctx.stroke();
+        
+        const qrSize = 750;
+        ctx.drawImage(qrCanvas, (masterCanvas.width - qrSize) / 2, 880, qrSize, qrSize);
+        
+        ctx.fillStyle = "#cbd5e1";
+        ctx.font = "bold 35px sans-serif";
+        ctx.fillText("QRate.md", masterCanvas.width / 2, 1720);
+
+        const finalImage = masterCanvas.toDataURL("image/png", 1.0);
+        const link = document.createElement("a");
+        link.href = finalImage;
+        link.download = `QR-${name.replace(/\s+/g, '-')}.png`;
+        link.click();
+      } catch (canvasErr) {
+        console.error("Eroare generare canvas din cauza CORS:", canvasErr);
+        alert("Eroare de securitate la adăugarea logo-ului pe imagine. Se descarcă codul QR simplu.");
+        const link = document.createElement("a");
+        link.href = qrCanvas.toDataURL("image/png");
+        link.download = `QR-Simplu-${name.replace(/\s+/g, '-')}.png`;
+        link.click();
+      }
+    };
+
+    logoImg.onload = buildCanvas;
+    logoImg.onerror = () => {
+      logoImg.src = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+      buildCanvas();
+    };
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      setUploading(true);
+      setErrorMessage(null);
+      const file = event.target.files?.[0];
+      if (!file || !companyId) return;
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${companyId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage.from('logos').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(fileName);
+      setLogoUrl(publicUrl);
+      
+      await supabase.from('companies').update({ logo_url: publicUrl }).eq('id', companyId);
+    } catch (error: any) { 
+      setErrorMessage("Eroare la upload logo: " + error.message); 
+    } finally { 
+      setUploading(false); 
+    }
+  };
+
+  const handleAddLocation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!newName) {
+      setErrorMessage("Numele locației este obligatoriu.");
+      return;
+    }
+    if (!companyId) {
+      setErrorMessage("Eroare: ID-ul companiei lipsește. Reîmprospătați pagina.");
+      return;
+    }
+    
+    const { error } = await supabase.from('locations').insert([{ 
+      name: newName, 
+      address: newAddress, 
+      company_id: companyId,
+      type: type, 
+      logo_url: logoUrl || null, 
+      welcome_message: welcomeMessage
+    }]);
+
+    if (!error) {
+      setNewName(''); 
+      setNewAddress('');
+      setSuccessMessage(t.has('success_added') ? t('success_added') : "Locația a fost adăugată cu succes!");
+      setTimeout(() => setSuccessMessage(null), 4000);
+      await fetchData(companyId);
+    } else {
+      console.error("Supabase Insert Error:", error);
+      setErrorMessage(`Eroare la salvare: ${error.message} (${error.code})`);
+    }
+  };
+
+  const deleteLocation = async (id: string) => {
+    if (!companyId) return;
+    const { error } = await supabase.from('locations').delete().eq('id', id);
+    if (!error) {
+      setShowDeleteModal(null);
+      if (selectedLocationId === id) setSelectedLocationId(null);
+      await fetchData(companyId);
+    } else {
+      setErrorMessage("Nu s-a putut șterge locația: " + error.message);
+    }
+  };
+
+  const filteredReviews = selectedLocationId 
+    ? lastReviews.filter(r => r.location_id === selectedLocationId)
+    : lastReviews;
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+      <Loader2 className="animate-spin text-blue-600" size={40} />
+    </div>
+  );
+
+  // ECRAN ONBOARDING: Se activează automat când utilizatorul nu are încă o companie definită în DB
+  if (!companyId) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl max-w-md w-full text-center border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-100">
+            <Building2 size={30} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Configurează Compania</h2>
+          <p className="text-slate-500 mb-6 text-sm leading-relaxed">
+            Pentru a accesa panoul de administrare, a genera coduri QR și a monitoriza recenziile, introdu numele companiei tale.
+          </p>
+
+          {errorMessage && (
+            <div className="bg-rose-50 text-rose-600 px-4 py-2.5 rounded-xl text-xs font-bold mb-4 border border-rose-100 text-left">
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleCreateCompany} className="space-y-4">
+            <input 
+              type="text"
+              placeholder="Ex: Restaurantul Meu SRL"
+              value={newCompanyName}
+              onChange={(e) => setNewCompanyName(e.target.value)}
+              className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent transition-all"
+              required
+              disabled={creatingCompany}
+            />
+            <button 
+              type="submit"
+              disabled={creatingCompany || !newCompanyName.trim()}
+              className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl uppercase tracking-wider hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {creatingCompany ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Se salvează...
+                </>
+              ) : (
+                "Creează Companie"
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // INTERFAȚA PRINCIPALĂ
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* Header Secțiune */}
+        <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-4xl font-black text-slate-900">{t('title')}</h1>
+            <p className="text-slate-500">{t('description')}</p>
+          </div>
+          
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+            {successMessage && (
+              <div className="bg-emerald-500 text-white px-6 py-2.5 rounded-2xl font-bold shadow-md shadow-emerald-100 text-center text-sm">
+                {successMessage}
+              </div>
+            )}
+            {errorMessage && (
+              <div className="bg-rose-500 text-white px-6 py-2.5 rounded-2xl font-bold shadow-md shadow-rose-100 text-center text-sm">
+                {errorMessage}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Formular Adăugare Locație */}
+        <form onSubmit={handleAddLocation} className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 mb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="space-y-4">
+              <input 
+                placeholder={t('form.placeholder_name')} 
+                value={newName} 
+                onChange={(e) => setNewName(e.target.value)} 
+                className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 transition-all border border-transparent" 
+                required 
+              />
+              <div className="flex gap-4">
+                <select 
+                  value={type} 
+                  onChange={(e) => setType(e.target.value)} 
+                  className="bg-slate-50 rounded-2xl py-4 px-6 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent"
+                >
+                  <option value="Physical">{t('form.type_physical')}</option>
+                  <option value="Delivery">{t('form.type_delivery')}</option>
+                </select>
+                <input 
+                  placeholder={t('form.placeholder_address')} 
+                  value={newAddress} 
+                  onChange={(e) => setNewAddress(e.target.value)} 
+                  className="flex-1 bg-slate-50 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent" 
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
+                <div className="w-16 h-16 rounded-full bg-white overflow-hidden flex items-center justify-center border shadow-sm shrink-0">
+                  {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
+                <button 
+                  type="button" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                  disabled={uploading}
+                >
+                  {uploading ? t('loading') : t('form.change_logo')}
+                </button>
+              </div>
+              <textarea 
+                placeholder="Mesaj întâmpinare QR (Ex: Cum a fost mâncarea?)"
+                value={welcomeMessage} 
+                onChange={(e) => setWelcomeMessage(e.target.value)} 
+                className="w-full bg-slate-50 rounded-2xl p-4 font-bold text-slate-800 outline-none resize-none focus:ring-2 focus:ring-blue-500 border border-transparent" 
+                rows={2} 
+              />
+            </div>
+          </div>
+          <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 active:scale-[0.98]">
+            {t('form.submit_btn')}
+          </button>
+        </form>
+
+        {/* Grid Locații */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          {locations.map((loc) => {
+            const locReviews = lastReviews.filter(r => r.location_id === loc.id);
+            const isSelected = selectedLocationId === loc.id;
+            const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review/${loc.id}` : '';
+
+            return (
+              <div 
+                key={loc.id} 
+                onClick={() => setSelectedLocationId(isSelected ? null : loc.id)}
+                className={`bg-white p-6 rounded-[2.5rem] shadow-sm border-2 transition-all cursor-pointer relative flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 bg-blue-50/10' : 'border-slate-100 hover:border-blue-200'}`}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs ${locReviews.length > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                    <Star size={12} fill="currentColor" /> {locReviews.length > 0 ? t('card.status_active') : t('card.status_new')}
+                  </div>
+                  {isSelected && <div className="bg-blue-500 text-white p-1 rounded-full"><Filter size={12} /></div>}
+                </div>
+
+                {/* Canvas ascuns pentru download de înaltă calitate */}
+                <div className="hidden">
+                  {qrUrl && (
+                    <QRCodeCanvas 
+                      id={`qr-${loc.id}`} 
+                      value={qrUrl} 
+                      size={1024} 
+                      level="H" 
+                    />
+                  )}
+                </div>
+
+                <div className="bg-slate-50 p-6 rounded-[2.5rem] mb-6 self-center border border-transparent shadow-inner">
+                  {qrUrl && (
+                    <QRCodeCanvas 
+                      value={qrUrl} 
+                      size={140}
+                      level="H"
+                      imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavate: true } : undefined}
+                    />
+                  )}
+                </div>
+
+                <div className="text-center mb-6">
+                  <h3 className="font-black text-slate-800 text-xl uppercase truncate px-2">{loc.name}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                    {t('card.reviews_count', { count: locReviews.length })}
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => downloadQR(loc.id, loc.name, loc.logo_url)} 
+                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors shadow-md"
+                  >
+                    <Download size={18} /> {t('card.download_qr')}
+                  </button>
+                  <button 
+                    onClick={() => setShowDeleteModal({id: loc.id, name: loc.name})} 
+                    className="text-slate-300 text-[10px] font-black uppercase hover:text-red-500 transition-colors py-2"
+                  >
+                    {t('card.delete_loc')}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Secțiune Feed Recenzii */}
+        <div className="bg-white rounded-[3rem] p-8 shadow-sm border border-slate-100 mb-20">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+              <MessageSquare className="text-blue-500" /> 
+              {selectedLocationId 
+                ? t('reviews_section.title_filtered', { name: locations.find(l => l.id === selectedLocationId)?.name }) 
+                : t('reviews_section.title_all')}
+            </h2>
+            {selectedLocationId && (
+              <button 
+                onClick={() => setSelectedLocationId(null)} 
+                className="flex items-center gap-2 text-xs font-black uppercase text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-full transition-all"
+              >
+                <X size={14} /> {t('reviews_section.view_all')}
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {filteredReviews.length > 0 ? filteredReviews.map((rev) => (
+              <div key={rev.id} className="p-6 bg-slate-50 rounded-3xl flex flex-col md:flex-row justify-between items-start gap-4 border border-transparent hover:border-slate-200 transition-all">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={14} fill={i < rev.rating ? "#f59e0b" : "none"} color={i < rev.rating ? "#f59e0b" : "#cbd5e1"} />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-black text-slate-400 bg-white px-2 py-1 rounded-lg border uppercase ml-2">
+                      {rev.locations?.name}
+                    </span>
+                  </div>
+                  <p className="text-slate-700 font-medium leading-relaxed">
+                    {rev.comment || <span className="text-slate-400 italic">{t('reviews_section.no_comment')}</span>}
+                  </p>
+                </div>
+                <ClientFriendlyDate dateString={rev.created_at} locale={locale} />
+              </div>
+            )) : (
+              <div className="text-center py-20 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+                <div className="text-slate-300 mb-2 flex justify-center"><MessageSquare size={40} /></div>
+                <p className="text-slate-400 font-bold italic">{t('reviews_section.empty')}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Ștergere */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-6 animate-in fade-in duration-200">
+          <div className="bg-white p-10 rounded-[3rem] max-w-md w-full text-center shadow-2xl">
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle size={40} />
+            </div>
+            <h2 className="text-2xl font-black mb-2 text-slate-900">
+              {t('delete_modal.title', { name: showDeleteModal.name })}
+            </h2>
+            <p className="text-slate-500 mb-8 font-medium">
+              {t('delete_modal.subtitle')}
+            </p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setShowDeleteModal(null)} 
+                className="flex-1 bg-slate-100 py-4 rounded-2xl font-black uppercase text-xs text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                {t('delete_modal.cancel')}
+              </button>
+              <button 
+                onClick={() => deleteLocation(showDeleteModal.id)} 
+                className="flex-1 bg-red-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg shadow-red-200 hover:bg-red-700 transition-all"
+              >
+                {t('delete_modal.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

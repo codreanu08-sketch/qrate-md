@@ -1,17 +1,17 @@
 import { getRequestConfig } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { routing } from './routing';
 
-// Poți defini aici limbile suportate pentru extra siguranță
-const locales = ['ro', 'en'];
+export default getRequestConfig(async ({ requestLocale }) => {
+  // Așteptăm parametrul locale
+  let locale = await requestLocale;
 
-export default getRequestConfig(async ({ locale }) => {
-  // Validăm dacă locale-ul primit este suportat
-  if (!locale || !locales.includes(locale as string)) {
-    notFound();
+  // Dacă locale este invalid sau lipsește, folosim limba default din routing
+  if (!locale || !routing.locales.includes(locale as any)) {
+    locale = routing.defaultLocale;
   }
 
   return {
-    locale: locale as string,
+    locale,
     messages: (await import(`../messages/${locale}.json`)).default
   };
 });

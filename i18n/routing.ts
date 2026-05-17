@@ -4,10 +4,9 @@ import { defineRouting } from 'next-intl/routing';
 export const routing = defineRouting({
   locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  // Păstrăm as-needed pentru ca RO să nu aibă prefix în URL
   localePrefix: 'as-needed', 
   
-  // Am eliminat secțiunea pathnames pentru a păstra link-urile originale (/auth/login, /auth/register)
+  // Eliminăm traducerile de rute pentru a folosi căile standard
   pathnames: {
     '/': '/',
     '/auth/login': '/auth/login',

@@ -1,0 +1,14 @@
+import { MetadataRoute } from 'next';
+
+export default function robots(): MetadataRoute.Robots {
+  return {
+    rules: [
+      {
+        userAgent: '*',
+        allow: ['/', '/p/*', '/ro', '/ru', '/ro/pricing', '/ru/pricing'],
+        disallow: ['/admin/*', '/api/*', '/auth/*', '/login', '/register'],
+      },
+    ],
+    sitemap: 'https://qrate.md/sitemap.xml',
+  };
+}

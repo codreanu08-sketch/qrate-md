@@ -1,10 +1,469 @@
 {
-  "common": {
-    "login": "Autentificare",
-    "register": "Înregistrare",
-    "dashboard": "Dashboard",
-    "reviews": "Recenzii",
-    "employees": "Angajați",
-    "qr_codes": "Coduri QR"
+  "Auth": {
+    "login_title": "Bine ai revenit",
+    "login_subtitle": "Introdu datele pentru acces",
+    "register_title": "Creează un cont",
+    "register_subtitle": "Completează datele pentru a înregistra afacerea ta",
+    "labels": {
+      "name": "Numele Tău",
+      "company_name": "Numele companiei",
+      "email": "Email Business",
+      "password": "Parolă",
+      "confirm_password": "Confirmă parola"
+    },
+    "placeholders": {
+      "name": "Andrei Ionescu",
+      "company_name": "S.R.L. My Business",
+      "email": "name@mail.com",
+      "password": "••••••••"
+    },
+    "forgot_password": "Ai uitat parola?",
+    "submit_button": "Abonare / Conectare",
+    "submit_register_button": "Înregistrează-te",
+    "no_account": "Nu ai cont?",
+    "has_account": "Ai deja un cont?",
+    "register_link": "Înregistrează-te",
+    "login_link": "Autentifică-te",
+    "errors": {
+      "invalid_credentials": "Email sau parolă incorectă.",
+      "email_required": "Introdu adresa de email.",
+      "password_mismatch": "Parolele nu coincid.",
+      "password_too_short": "Parola trebuie să aibă cel puțin 6 caractere.",
+      "reset_failed": "Eroare la trimiterea link-ului.",
+      "register_failed": "Eroare la înregistrare. Încearcă din nou."
+    },
+    "messages": {
+      "reset_sent": "Link-ul pentru resetare a fost trimis.",
+      "register_success": "Înregistrare reușită! Verifică poșta pentru confirmare."
+    }
+  },
+  "Dashboard": {
+    "admin_panel": "Panou Administrator",
+    "view_profile": "Profil",
+    "live_on": "Mod Live",
+    "title": "Panou",
+    "subtitle": "Analizează recenziile și eficiența în timp real",
+    "periods": {
+      "7d": "7 zile",
+      "1m": "1 lună",
+      "all": "Toată perioada"
+    },
+    "stats": {
+      "avg_rating": "Rating mediu",
+      "hero_day": "Eroul zilei",
+      "peak_hour": "Vârf de activitate",
+      "new_reviews": "Recenzii noi",
+      "team": "Echipă"
+    },
+    "ai_report": {
+      "title": "Raport AI",
+      "high": "Raport AI: Performanță excelentă",
+      "mid": "Raport AI: Performanță medie",
+      "urgent": "Atenție: {count, plural, one {# recenzie critică necesită} few {# recenzii critice necesită} other {# de recenzii critice necesită}} răspuns!",
+      "optimal": "Toți indicatorii sunt în normă. Calitatea deservirii este la nivel înalt.",
+      "satisfaction": "Satisfacție",
+      "momentum": "Dinamică"
+    },
+    "charts": {
+      "distribution": "Distribuția notelor"
+    },
+    "feed": {
+      "title": "Flux Recenzii",
+      "all_locations": "Toate locațiile",
+      "all_employees": "Toți angajații",
+      "loading": "Se încarcă recenziile...",
+      "empty": "Momentan nu există recenzii",
+      "no_comment": "Clientul nu a lăsat un comentariu",
+      "score": "Rating: {score}★",
+      "central_location": "Oficiul Central"
+    },
+    "sidebar": {
+      "menu": {
+        "dashboard": "Panou de control",
+        "locations": "Locații",
+        "employees": "Angajați",
+        "reviews": "Recenzii",
+        "settings": "Setări",
+        "billing": "Plată"
+      },
+      "trial": {
+        "title": "Perioadă de probă",
+        "days_left": "{days, plural, =1 {A rămas 1 zi} one {A mai rămas # zi} few {Au mai rămas # zile} other {Au mai rămas # de zile}}",
+        "upgrade_btn": "Actualizează planul"
+      }
+    }
+  },
+  "Settings": {
+    "title": "Setări cont",
+    "subtitle": "Gestionează profilul, notificările și datele fiscale.",
+    "save_btn": "Salvează modificările",
+    "telegram": {
+      "title": "Notificări Telegram",
+      "desc": "Primește alerte instantanee despre recenziile noi.",
+      "bot_info": "Află Chat ID-ul tău trimitând un mesaj botului"
+    },
+    "billing": {
+      "title": "Date de plată",
+      "desc": "Aceste date vor fi incluse în invoncurile tale.",
+      "legal_toggle": "Persoană juridică",
+      "individual": "Persoană fizică",
+      "send_test": "Trimite factură test",
+      "download_latest": "Descarcă ultima chitanță (PDF)",
+      "download_refund": "Descarcă chitanța de retur (PDF)",
+      "labels": {
+        "company": "Numele companiei",
+        "idno": "IDNO / Cod fiscal",
+        "vat": "Cod TVA",
+        "iban": "Cont bancar (IBAN)",
+        "billing_email": "Email pentru contabilitate / facturi",
+        "bank_name": "Numele băncii",
+        "address": "Adresă juridică"
+      }
+    },
+    "security": {
+      "title": "Securitate",
+      "reset_btn": "Resetează parola"
+    },
+    "alerts": {
+      "saved_success": "Datele au fost salvate cu succes!",
+      "reset_sent": "Link-ul pentru resetarea parolei a fost trimis!",
+      "save_error": "Eroare la salvare: "
+    },
+    "errors": {
+      "save": "Eroare de salvare: "
+    }
+  },
+  "Subscription": {
+    "title": "LICENȚĂ LUNARĂ",
+    "subtitle": "CONFIGURATOR QRATE",
+    "configurator": {
+      "locations_label": "NUMĂR LOCAȚII",
+      "extra_employees_label": "ANGAJAȚI SUPLIMENTARI",
+      "enterprise_mode": "PLANUL PRO ESTE ACTIVAT"
+    },
+    "plans": {
+      "standard": {
+        "name": "START",
+        "price_label": "LICENȚĂ LUNARĂ",
+        "desc": "{count, plural, =1 {locație} one {locație} few {locații} other {locații}}",
+        "features": {
+          "employees": "Maximum 4 angajați incluși",
+          "notifications": "Notificări instantanee în Telegram",
+          "qr_profile": "Profil QR personal pentru fiecare angajat",
+          "dashboard": "Panou de administrare",
+          "reports": "Rapoarte de bază și statistici"
+        }
+      },
+      "enterprise": {
+        "name": "PRO",
+        "price_label": "LICENȚĂ LUNARĂ",
+        "features": {
+          "notifications": "Sistem avansat de notificări push",
+          "centralization": "Număr nelimitat de angajați",
+          "management": "Panou avansat de gestionare multi-locație",
+          "support": "Suport prioritar 24/7"
+        }
+      }
+    },
+    "stickers": {
+      "title": "STICKERE ȘI SUPORTURI QR",
+      "subtitle": "MATERIALE FIZICE PENTRU LOCAȚII",
+      "quantity": "CANTITATE",
+      "total_pay": "TOTAL SPRE PLATĂ"
+    },
+    "summary": {
+      "title": "DETALII COMANDĂ",
+      "subscription_item": "Licență lunară {plan}",
+      "locations_active": "{count, plural, =1 {1 locație} one {{count} locație} few {{count} locații} other {{count} locații}}",
+      "extra_emps_item": "Angajați suplimentari",
+      "stickers_item": "Stickere QR",
+      "stickers_desc": "{count, plural, one {# bucată} few {# bucăți} other {# de bucăți}} incluse în comandă",
+      "total_today": "TOTAL SPRE PLATĂ ASTĂZI",
+      "refunded_total": "TOTAL RETURNAT",
+      "confirm_btn": "CONFIRMĂ COMANDA",
+      "footer_brand": "QRATE.MD — TOATE DREPTURILE REZERVATE"
+    }
+  },
+  "Refund": {
+    "title": "Solicitare de returnare a fondurilor",
+    "subtitle": "Te rugăm să specifici motivul returului pentru a procesa cererea ta.",
+    "status": {
+      "label": "Status retur",
+      "pending": "În procesare",
+      "approved": "Aprobat",
+      "rejected": "Respins",
+      "credited": "Fonduri returnate"
+    },
+    "form": {
+      "reason_label": "Motivul returului",
+      "reason_placeholder": "Descrie în detaliu motivul pentru care soliciți returnarea banilor...",
+      "amount_to_refund": "Suma spre returnare",
+      "submit_btn": "Trimite solicitarea",
+      "cancel_btn": "Anulează"
+    },
+    "alerts": {
+      "success": "Solicitarea de retur a fost trimisă cu succes! Te vom contacta în cel mai scurt timp.",
+      "failed": "Eroare la trimiterea solicitării. Te rugăm să contactezi serviciul suport.",
+      "policy_note": "Returnarea materialelor fizice (stickere QR) este posibilă doar înainte de începerea procesului de tipărire."
+    }
+  },
+  "LandingPage": {
+    "seo": {
+      "h1": "QRate.md — Sistem de recenzii prin QR și evaluare angajați în Moldova"
+    },
+    "nav": {
+      "services": "Servicii",
+      "demo": "Demo",
+      "pricing": "Prețuri",
+      "login": "Autentificare",
+      "signup": "Înregistrare",
+      "dashboard": "Panou de control",
+      "logout_title": "Ieșire"
+    },
+    "hero": {
+      "badge": "Securizat prin Supabase",
+      "title_part1": "Sistem Inteligent de Recenzii",
+      "title_part2": "pentru Afacerea Ta",
+      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților în timp real și crește ratingul în Google.",
+      "btn_start": "Începe acum",
+      "btn_go_dashboard": "Mergi la panou"
+    },
+    "services_section": {
+      "badge": "Expertiza Noastră",
+      "title": "Cum ajutăm afacerea ta să crească"
+    },
+    "services": {
+      "qr_employee": {
+        "title": "QR pentru Angajat",
+        "desc": "Coduri unice pentru fiecare punct sau angajat pentru urmărirea eficienței în timp real."
+      },
+      "telegram": {
+        "title": "Alerte Telegram",
+        "desc": "Clienții lasă recenzii în două click-uri, iar managerii primesc notificări instantaneu."
+      },
+      "management": {
+        "title": "Management Centralizat",
+        "desc": "Rapoarte detaliate despre activitatea afacerii tale în timp real."
+      }
+    },
+    "demo": {
+      "title_1": "Cum funcționează",
+      "title_2": "sistemul nostru",
+      "feature_1_t": "Coduri QR inteligente",
+      "feature_1_d": "Coduri unice pentru fiecare locație sau angajat individual.",
+      "feature_2_t": "Recenzii Instantanee",
+      "feature_2_d": "Clienții lasă feedback în doar două click-uri.",
+      "feature_3_t": "Analize",
+      "feature_3_d": "Rapoarte detaliate despre activitatea business-ului în timp real.",
+      "notification_badge": "Alertă Recenzie",
+      "notification_text": "Notificare instantanee pe Telegram.",
+      "phone_title": "Lasă o recenzie",
+      "phone_placeholder": "Mesajul tău...",
+      "phone_btn": "Trimite recenzia"
+    },
+    "sectors_section": {
+      "badge": "Sectoare de activitate",
+      "title": "Se potrivește perfect pentru afacerea ta"
+    },
+    "sectors": {
+      "restaurants": {
+        "title": "Restaurante",
+        "desc": "Îmbunătățește serviciul pe baza recenziilor reale și controlează activitatea ospătarilor."
+      },
+      "retail": {
+        "title": "Retail / Comerț cu amănuntul",
+        "desc": "Controlează calitatea deservirii în fiecare punct de vânzare."
+      },
+      "delivery": {
+        "title": "Livrare",
+        "desc": "Obține feedback rapid după livrare cu ajutorul stickerelor pe ambalaj."
+      }
+    },
+    "pricing": {
+      "badge": "Tarife",
+      "title_part1": "Configurația",
+      "title_part2": "QRate.md",
+      "btn_choose": "Alege planul",
+      "btn_contact": "Contactează-ne",
+      "configurator": {
+        "locations": "Număr de Locații",
+        "extra_employees": "Angajați suplimentari",
+        "enterprise_activated": "Modul Pro este Activat"
+      },
+      "stickers": {
+        "title": "Comandă Stickere QR Fizice",
+        "subtitle": "Tipărire coduri unice de la 500 bucăți (0.33 MDL / sticker)",
+        "quantity": "Cantitate",
+        "cost_production": "Cost de Producție"
+      },
+      "plans": {
+        "license_monthly": "Licență lunară",
+        "one_location": "Locație",
+        "more_locations": "Locații",
+        "month": "lună",
+        "btn_activate_dashboard": "Activează în Panou",
+        "btn_send_request": "Trimite solicitare pentru planul Pro",
+        "start_name": "Plan Start",
+        "start_feat_1": "1 Locație unică",
+        "start_feat_2": "Maximum 4 angajați activi în sistem",
+        "start_feat_3": "Colectare simplă de recenzii prin cod QR",
+        "start_feat_4": "Notificări instantanee în Telegram la fiecare recenzie",
+        "start_feat_5": "Panou de control de bază pentru vizualizarea datelor",
+        "start_feat_6": "Profil administrator securizat (Supabase Auth)",
+        "start_feat_7": "Suport tehnic prin email",
+        "pro_name": "Plan Pro",
+        "pro_feat_1": "Toate funcțiile planului Start sunt incluse",
+        "pro_feat_2": "Gestionarea filialelor (Adăugarea și controlul mai multor locații)",
+        "pro_feat_3": "Număr complet nelimitat de angajați",
+        "pro_feat_4": "Statistici în timp real și grafice inteligente de eficiență",
+        "pro_feat_5": "Filtrare inteligentă a recenziilor negative (Scut de protecție a reputației)",
+        "pro_feat_6": "Suport prioritar din partea echipei + integrare rapidă în locații",
+        "enterprise_per_loc": "600 MDL",
+        "enterprise_auto_unlock": "Toate avantajele planului Pro se deblochează automat",
+        "enterprise_feat_1": "Gestionare avansată a filialelor inclusă",
+        "enterprise_feat_2": "Urmărire live a eficienței (Angajați nelimitați)",
+        "enterprise_feat_3": "Filtrare inteligentă a recenziilor primite"
+      },
+      "total": {
+        "estimated_total": "Sumă estimată spre plată",
+        "breakdown_part1": "(Abonament:",
+        "breakdown_part2": "+ Tipar:",
+        "only_software": "(Include doar licența periodică de software)"
+      }
+    },
+    "footer": {
+      "company_name": "S.R.L. \"QR SOLUTIONS GROUP\"",
+      "location": "Republica Moldova, Chișinău",
+      "docs_title": "Documente",
+      "terms": "Termeni de utilizare",
+      "privacy": "Confidențialitate",
+      "refund_policy": "Politica de retur",
+      "support_title": "Suport",
+      "payments_title": "Plăți Securizate",
+      "rights": "Toate drepturile rezervate"
+    },
+    "cookies": {
+      "title": "Politica de utilizare Cookie",
+      "description": "QRate.md folosește fișiere cookie tehnice obligatorii pentru protecția sesiunii tale și funcționarea corectă a panoului de administrator.",
+      "btn_accept": "Acceptă"
+    }
+  },
+  "Locations": {
+    "title": "Locații și QR",
+    "description": "Selectează o locație pentru a vedea recenziile sau pentru a descărca codul QR.",
+    "success_added": "Locația a fost adăugată cu succes!",
+    "form": {
+      "placeholder_name": "Numele locației",
+      "placeholder_address": "Adresă",
+      "type_physical": "📍 Fizică",
+      "type_delivery": "🛵 Livrare / Delivery",
+      "change_logo": "Schimbă Logo-ul",
+      "submit_btn": "Adaugă locația"
+    },
+    "card": {
+      "status_active": "Activă",
+      "status_new": "Nouă",
+      "reviews_count": "Recenzii: {count}",
+      "download_qr": "DESCARCĂ COD QR",
+      "delete_loc": "Șterge locația"
+    },
+    "reviews_section": {
+      "title_all": "Toate recenziile",
+      "title_filtered": "Recenzii pentru {name}",
+      "view_all": "Vezi toate",
+      "empty": "Nu s-au găsit recenzii pentru selecția curentă.",
+      "no_comment": "Fără comentariu"
+    },
+    "delete_modal": {
+      "title": "Ștergi {name}?",
+      "subtitle": "Această acțiune este ireversibilă.",
+      "cancel": "Anulează",
+      "confirm": "Șterge"
+    }
+  },
+  "Employees": {
+    "title": "Echipa Ta",
+    "subtitle": "Gestionarea eficienței angajaților în timp real.",
+    "loading": "Sincronizarea datelor echipei...",
+    "empty": "Lista angajaților este goală.",
+    "form": {
+      "header": "Înregistrare Nouă",
+      "subheader": "Completează datele pentru generarea unui cod QR unic.",
+      "label_name": "Nume Complet",
+      "placeholder_name": "Exemplu: Andrei Ionescu",
+      "label_position": "Rol / Funcție",
+      "placeholder_position": "Exemplu: Ospătar Senior",
+      "label_location": "Locație alocată",
+      "mobile_option": "Locație mobilă (Toate)",
+      "upload_photo": "Încarcă foto de profil",
+      "submit_btn": "Finalizează înregistrarea"
+    },
+    "card": {
+      "mobile_location": "Locație mobilă",
+      "default_position": "Profesionist",
+      "btn_profile": "Profil",
+      "download_qr": "Descarcă QR",
+      "delete_btn": "Șterge"
+    },
+    "delete_modal": {
+      "title": "Șterge profilul",
+      "subtitle": "Ești sigur că vrei să ștergi",
+      "cancel": "Anulează",
+      "confirm": "Șterge"
+    }
+  },
+  "EmployeeStats": {
+    "nav_back": "Înapoi la echipă",
+    "export_btn": "Export PDF",
+    "loading": "Sincronizarea datelor...",
+    "badge_elite": "Active Elite",
+    "no_name": "Nume indisponibil",
+    "default_pos": "Specialist",
+    "no_loc": "Locație nespecificată",
+    "reviews_title": "Ultima activitate",
+    "no_reviews": "Nu au fost înregistrate recenzii.",
+    "default_comment": "Clientul a apreciat înalt serviciile, fără a lăsa un comentariu text.",
+    "your_reply": "Răspunsul tău",
+    "reply_btn": "Răspunde acestui client",
+    "reply_placeholder": "Scrie un răspuns...",
+    "send_btn": "Trimite",
+    "distribution_title": "Distribuția notelor",
+    "stars": "Stele",
+    "performance_status": "Status eficiență",
+    "periods": {
+      "7d": "7 Zile",
+      "1m": "1 Lună",
+      "custom": "Filtru date"
+    },
+    "stats": {
+      "volume": "Volum recenzii",
+      "positive": "Scor pozitiv",
+      "last_vote": "Ultimul vot"
+    }
+  },
+  "AdminReviews": {
+    "title": "Recenziile Clienților",
+    "subtitle": "Gestionarea eficienței în timp real.",
+    "export_btn": "Export date",
+    "filter_title": "Filtrează",
+    "loading": "Se caută în baza de date...",
+    "loading_db": "Se caută în baza de date...",
+    "no_results": "Nu s-au găsit recenzii conform filtrelor selectate.",
+    "page_label": "Pagina",
+    "general_tag": "Generale",
+    "labels": {
+      "location": "Locație",
+      "employee": "Angajat",
+      "period": "Interval de timp"
+    },
+    "options": {
+      "all": "Toată perioada",
+      "all_locs": "Toate locațiile",
+      "all_emps": "Toți angajații",
+      "7d": "Ultimele 7 zile",
+      "1m": "Ultima lună",
+      "3m": "Ultimele 3 luni",
+      "custom": "Dată specifică"
+    }
   }
 }
