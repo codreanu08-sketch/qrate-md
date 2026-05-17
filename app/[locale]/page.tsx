@@ -342,7 +342,23 @@ export default function LandingPage() {
                     <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_7')}</li>
                   </ul>
                 </div>
-                <Link href={isLoggedIn ? `/dashboard?setup=start&locs=1&stickers=${isStickersAdded ? stickerCount : 0}` : '/auth/register'} className="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] shadow-lg shadow-blue-200 hover:bg-slate-950 transition-all text-center">
+                <Link 
+  href={
+    isLoggedIn 
+      ? { 
+          pathname: '/dashboard', 
+          query: { 
+            setup: 'start', 
+            locs: '1', 
+            stickers: isStickersAdded ? stickerCount : 0 
+          } 
+        } 
+      : '/auth/register'
+  } 
+  className="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] shadow-lg shadow-blue-200 hover:bg-slate-950 transition-all text-center"
+>
+  {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_register')}
+</Link>
                   {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_choose')}
                 </Link>
               </article>
