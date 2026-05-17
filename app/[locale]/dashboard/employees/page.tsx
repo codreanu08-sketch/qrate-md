@@ -74,12 +74,12 @@ export default function EmployeesPage() {
         const uniqueEmpIds = new Set();
         
         const formatted = emps
-          .filter((emp: any) => { // <--- CORECTAT: Adăugat tip explicit pentru a preveni eroarea 'implicitly has an any type'
+          .filter((emp: any) => { // <--- Adăugat tipul explicit 'any' pentru filter
             if (uniqueEmpIds.has(emp.id)) return false;
             uniqueEmpIds.add(emp.id);
             return true;
           })
-          .map(emp => {
+          .map((emp: any) => { // <--- Adăugat tipul explicit 'any' pentru map
             const totalReviews = emp.reviews?.length || 0;
             const avg = totalReviews > 0 
               ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
@@ -280,7 +280,6 @@ export default function EmployeesPage() {
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
-            // Aici rutează corect array-ul deja filtrat și curățat de erori
             employees.map(emp => {
               const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review?employee=${emp.id}` : '';
               
