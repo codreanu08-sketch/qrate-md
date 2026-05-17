@@ -74,7 +74,7 @@ export default function EmployeesPage() {
         const uniqueEmpIds = new Set();
         
         const formatted = emps
-          .filter(emp => {
+          .filter((emp: any) => { // <--- CORECTAT: Adăugat tip explicit pentru a preveni eroarea 'implicitly has an any type'
             if (uniqueEmpIds.has(emp.id)) return false;
             uniqueEmpIds.add(emp.id);
             return true;
@@ -159,7 +159,6 @@ export default function EmployeesPage() {
   };
 
   const downloadQR = (id: string, name: string) => {
-    // Extrage imaginea din canvas-ul setat fix la rezoluția cerută de 70x70px
     const canvas = document.getElementById(`qr-download-${id}`) as HTMLCanvasElement;
     if (canvas) {
       const pngUrl = canvas.toDataURL("image/png");
@@ -281,6 +280,7 @@ export default function EmployeesPage() {
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
+            // Aici rutează corect array-ul deja filtrat și curățat de erori
             employees.map(emp => {
               const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review?employee=${emp.id}` : '';
               
@@ -342,7 +342,6 @@ export default function EmployeesPage() {
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {emp.id.slice(0,8)}</p>
                     </div>
                     
-                    {/* Interfața vizuală din card păstrează dimensiunea optimă din UI (76px) */}
                     <div className="bg-white p-2.5 rounded-xl shadow-sm shrink-0 border border-slate-100">
                       {qrUrl && (
                         <QRCodeCanvas 
