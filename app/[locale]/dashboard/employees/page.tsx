@@ -74,18 +74,19 @@ export default function EmployeesPage() {
         const uniqueEmpIds = new Set();
         
         const formatted = emps
-          .filter((emp: any) => { // <--- Adăugat tipul explicit 'any' pentru filter
+          .filter((emp: any) => { 
             if (uniqueEmpIds.has(emp.id)) return false;
             uniqueEmpIds.add(emp.id);
             return true;
           })
-          .map((emp: any) => { // <--- Adăugat tipul explicit 'any' pentru map
+          .map((emp: any) => { 
             const totalReviews = emp.reviews?.length || 0;
             const avg = totalReviews > 0 
               ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
               : 0;
             
-            const locationData = emp.location_id ? currentLocs.find(l => l.id === emp.location_id) : null;
+            // CORECTAT: l are acum tip explicit (l: any) pentru a trece de verificarea TypeScript 🚀
+            const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
 
             return { 
               ...emp, 
