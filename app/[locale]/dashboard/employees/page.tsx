@@ -85,7 +85,7 @@ export default function EmployeesPage() {
               ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
               : 0;
             
-            // CORECTAT: l are acum tip explicit (l: any) pentru a trece de verificarea TypeScript 🚀
+            // Tipizat explicit (l: any) pentru a preveni erorile stricte de compilare
             const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
 
             return { 
