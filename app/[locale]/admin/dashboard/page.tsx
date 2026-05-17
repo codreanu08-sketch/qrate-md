@@ -59,7 +59,7 @@ export default function SuperAdminDashboard() {
     // sau dintr-un tabel separat numit 'payments' dacă îl ai creat în DB.
     const resPayments = await supabase.from('payments').select('*').order('paid_at', { ascending: false });
 
-    const targetCompanies = (resCompanies.data || []).filter(c => 
+    const targetCompanies = (resCompanies.data || []).filter((c: any) 
       ['fff', 'Sultan Doner', 'gg', 'g'].includes(c.name)
     );
     
