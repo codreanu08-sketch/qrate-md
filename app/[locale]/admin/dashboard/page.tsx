@@ -180,7 +180,7 @@ export default function SuperAdminDashboard() {
         if (resPayments.data) setPaymentHistory(resPayments.data);
       } catch (err: any) {
         setDebugErrors([`Eroare inițială: ${err.message}`]);
-      } verify {
+      } finally { // <--- CORECTAT: Schimbat din 'verify' în 'finally' pentru sintaxă validă în JS/TS
         setLoading(false);
       }
     }
