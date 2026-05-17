@@ -42,7 +42,7 @@ export default function SuperAdminDashboard() {
   const [companiesData, setCompaniesData] = useState<any[]>([]);
   const [allReviews, setAllReviews] = useState<any[]>([]);
   const [allLocations, setAllLocations] = useState<any[]>([]);
-  const [paymentHistory, setPaymentHistory] = useState<any[]>([]); // Istoricul brut de facturare
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]); 
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -54,12 +54,10 @@ export default function SuperAdminDashboard() {
     const resCompanies = await supabase.from('companies').select('*').order('created_at', { ascending: false });
     const resLocations = await supabase.from('locations').select('*');
     const resReviews = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
-    
-    // În lipsa unui tabel dedicat de loguri de plată, simulăm istoricul din metadatele sau JSON-ul companiei, 
-    // sau dintr-un tabel separat numit 'payments' dacă îl ai creat în DB.
     const resPayments = await supabase.from('payments').select('*').order('paid_at', { ascending: false });
 
-    const targetCompanies = (resCompanies.data || []).filter((c: any) 
+    // CORECȚIE SYNTAXĂ: Adăugat arrow function corect pentru filtrare
+    const targetCompanies = (resCompanies.data || []).filter((c: any) => 
       ['fff', 'Sultan Doner', 'gg', 'g'].includes(c.name)
     );
     
@@ -103,14 +101,12 @@ export default function SuperAdminDashboard() {
     return { text: 'Fără date financiare', color: 'text-slate-400 bg-slate-100 border-slate-200', urgent: false };
   };
 
-  // --- ACȚIUNI CORE SUPERADMIN (BUTOANE DIRECTE ÎN DB) ---
-  
   // 1. Suspendare / Activare Instantă
   const toggleCompanyStatus = async (company: any) => {
     const nextStatus = company.is_active === false;
     const { error } = await supabase
       .from('companies')
-      .update({ is_active: nextStatus })
+      .update({ is_active: nextStatus } as any)
       .eq('id', company.id);
 
     if (!error) refreshData();
@@ -129,7 +125,7 @@ export default function SuperAdminDashboard() {
       .update({ 
         trial_started_at: extendedDate,
         is_active: true 
-      })
+      } as any)
       .eq('id', company.id);
 
     if (!error) refreshData();
@@ -142,24 +138,22 @@ export default function SuperAdminDashboard() {
     const now = new Date();
     const newExpiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Actualizăm starea companiei
     const { error: companyUpdateError } = await supabase
       .from('companies')
       .update({
         is_subscribed: true,
         subscription_expires_at: newExpiryDate,
         is_active: true
-      })
+      } as any)
       .eq('id', paymentCompany.id);
 
     if (!companyUpdateError) {
-      // Salvăm plata în tabelul de plăți / istoric brut (dacă există, altfel ignoră eroarea)
       await supabase.from('payments').insert({
         company_id: paymentCompany.id,
         amount: parseFloat(paymentAmount),
         invoice_number: invoiceNumber || `FACT-${Date.now().toString().slice(-4)}`,
         paid_at: now.toISOString()
-      });
+      } as any);
 
       setPaymentCompany(null);
       setInvoiceNumber('');
@@ -175,7 +169,8 @@ export default function SuperAdminDashboard() {
         const resReviews = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
         const resPayments = await supabase.from('payments').select('*').order('paid_at', { ascending: false });
 
-        const targetCompanies = (resCompanies.data || []).filter(c => 
+        // CORECȚIE SYNTAXĂ: Adăugat arrow function corect pentru filtrare locală
+        const targetCompanies = (resCompanies.data || []).filter((c: any) => 
           ['fff', 'Sultan Doner', 'gg', 'g'].includes(c.name)
         );
 
@@ -185,7 +180,7 @@ export default function SuperAdminDashboard() {
         if (resPayments.data) setPaymentHistory(resPayments.data);
       } catch (err: any) {
         setDebugErrors([`Eroare inițială: ${err.message}`]);
-      } finally {
+      } verify {
         setLoading(false);
       }
     }
@@ -200,13 +195,12 @@ export default function SuperAdminDashboard() {
     );
   }
 
-  // Watchdog: Companii care expiră în 48 de ore sau sunt blocate
   const urgentCompanies = companiesData.filter(c => calculateSubscriptionStatus(c).urgent);
 
   return (
     <div className="p-8 bg-[#f8fafc] min-h-screen font-sans text-slate-900 antialiased">
       
-      {/* 🚨 URGENȚE WATCHDOG (COMPANII ÎN PERICOL) */}
+      {/* 🚨 URGENȚE WATCHDOG */}
       {urgentCompanies.length > 0 && (
         <div className="mb-8 p-5 bg-red-50 border-2 border-red-200 rounded-3xl text-red-900 shadow-xs">
           <div className="font-black uppercase text-xs tracking-wider flex items-center gap-2 text-red-700 mb-3">
@@ -271,7 +265,7 @@ export default function SuperAdminDashboard() {
         </button>
       </div>
 
-      {/* STRUCTURĂ DATE - FILTRE ȘI ACTIONARe */}
+      {/* STRUCTURĂ DATE */}
       <div className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden">
         
         {/* TAB 1: COMPANII */}
@@ -299,7 +293,6 @@ export default function SuperAdminDashboard() {
 
                   return (
                     <tr key={company.id} className={`hover:bg-slate-50/40 transition-colors ${company.is_active === false ? 'bg-red-50/30' : ''}`}>
-                      {/* Nume Companie + Senzor de Conversie */}
                       <td className="px-6 py-5">
                         <div className="font-black text-slate-900 text-sm flex items-center gap-2">
                           {company.name}
@@ -312,14 +305,12 @@ export default function SuperAdminDashboard() {
                         <div className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {company.id.substring(0, 8)}...</div>
                       </td>
 
-                      {/* Locații */}
                       <td className="px-6 py-5">
                         <button onClick={() => { setSelectedCompanyId(company.id); setActiveTab('locations'); }} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl hover:bg-indigo-100 transition inline-flex items-center gap-1">
                           <MapPin size={12}/> {compLocs.length} Locații
                         </button>
                       </td>
 
-                      {/* Recenzii */}
                       <td className="px-6 py-5">
                         <button onClick={() => { setSelectedCompanyId(company.id); setActiveTab('reviews'); }} className="text-left group block">
                           <div className="flex items-center gap-0.5 text-amber-500 font-black text-xs group-hover:underline">
@@ -329,17 +320,14 @@ export default function SuperAdminDashboard() {
                         </button>
                       </td>
 
-                      {/* Zile rămase */}
                       <td className="px-6 py-5">
                         <div className={`text-xs px-2.5 py-1.5 rounded-xl inline-flex items-center gap-1 border ${finance.color}`}>
                           <Clock size={12}/> {finance.text}
                         </div>
                       </td>
 
-                      {/* Control Direct - Panou de Acțiune rapidă */}
                       <td className="px-6 py-5">
                         <div className="flex items-center justify-center gap-2">
-                          {/* Suspendare / Activare Instantă */}
                           <button 
                             onClick={() => toggleCompanyStatus(company)}
                             className={`p-2 rounded-xl border transition shadow-xs flex items-center justify-center ${company.is_active === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}
@@ -348,7 +336,6 @@ export default function SuperAdminDashboard() {
                             {company.is_active === false ? <UserCheck size={14}/> : <UserMinus size={14}/>}
                           </button>
 
-                          {/* +7 Zile Trial */}
                           <button 
                             onClick={() => addExtensionTrial(company)}
                             className="p-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl hover:bg-blue-100 transition shadow-xs flex items-center justify-center"
@@ -357,7 +344,6 @@ export default function SuperAdminDashboard() {
                             <CalendarPlus size={14}/>
                           </button>
 
-                          {/* Înregistrează Plată Manuală (Bancă-Bancă) */}
                           <button 
                             onClick={() => setPaymentCompany(company)}
                             className="p-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl hover:bg-amber-100 transition shadow-xs flex items-center justify-center"
@@ -368,7 +354,6 @@ export default function SuperAdminDashboard() {
                         </div>
                       </td>
 
-                      {/* Detalii Persoană Juridică */}
                       <td className="px-6 py-5 text-center">
                         <button onClick={() => setSelectedCompanyForDetails(company)} className="p-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-950 hover:text-white transition">
                           <FileText size={14}/>
@@ -402,7 +387,7 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
-        {/* TAB 3: NOTIFICATOR DE RECENZII DE GROAZĂ (1-2 STELE WATCHDOG) */}
+        {/* TAB 3: RECENZII */}
         {activeTab === 'reviews' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -433,7 +418,7 @@ export default function SuperAdminDashboard() {
 
       </div>
 
-      {/* --- POP-UP MODAL 1: ÎNREGISTREAZĂ PLATĂ MANUAlĂ (BANCĂ-BANCĂ) --- */}
+      {/* --- POP-UP MODAL 1: ÎNREGISTREAZĂ PLATĂ MANUAlĂ --- */}
       {paymentCompany && (
         <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-100">
@@ -475,7 +460,7 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      {/* --- POP-UP MODAL 2: DATE COMPANIE + ISTORIC BRUT DE FACTURARE --- */}
+      {/* --- POP-UP MODAL 2: DATE COMPANIE --- */}
       {selectedCompanyForDetails && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-100">
@@ -487,7 +472,6 @@ export default function SuperAdminDashboard() {
               <button onClick={() => setSelectedCompanyForDetails(null)} className="p-1.5 bg-slate-800 rounded-lg text-slate-300"><X size={14}/></button>
             </div>
 
-            {/* Corp Informații Fiscale */}
             <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
@@ -522,7 +506,6 @@ export default function SuperAdminDashboard() {
                 </div>
               </div>
 
-              {/* --- MANAGEMENTUL FACTURĂRII: ISTORIC DE FACTURARE BRUT --- */}
               <div className="pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1 mb-3"><Receipt size={14} className="text-slate-500" /> Istoric Plăți și Facturi Fiscale înregistrate</h4>
                 
