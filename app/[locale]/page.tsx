@@ -64,7 +64,7 @@ export default function LandingPage() {
     };
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+   const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (isMounted) setIsLoggedIn(!!session);
     });
 
