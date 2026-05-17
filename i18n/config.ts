@@ -7,11 +7,14 @@ export const routing = defineRouting({
   // Păstrăm as-needed pentru ca RO să nu aibă prefix în URL
   localePrefix: 'as-needed', 
   
-  // Am eliminat secțiunea pathnames pentru a păstra link-urile originale (/auth/login, /auth/register)
+  // Am adăugat rutele permise pentru ca TypeScript să nu mai blocheze build-ul pe Vercel
   pathnames: {
     '/': '/',
     '/auth/login': '/auth/login',
-    '/auth/register': '/auth/register'
+    '/auth/register': '/auth/register',
+    '/dashboard': '/dashboard',
+    // Dacă pe viitor ai pagini ca /dashboard/locatii, le adaugi tot aici:
+    // '/dashboard/locatii': '/dashboard/locatii'
   }
 });
 
