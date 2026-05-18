@@ -436,12 +436,24 @@ export default function LandingPage() {
             <div className="space-y-8">
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.docs_title')}</h4>
               <nav aria-label="Documente Legale">
-                <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest">
-                  <li><Link href="/legal/terms" className="hover:text-blue-600 transition-colors">{t('footer.terms')}</Link></li>
-                  <li><Link href="/legal/privacy" className="hover:text-blue-600 transition-colors">{t('footer.privacy')}</Link></li>
-                  <li><Link href="/legal/refund" className="hover:text-blue-600 transition-colors">{t('footer.refund_policy')}</Link></li>
-                </ul>
-              </nav>
+  <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest">
+    <li>
+      <a href={`/${locale}/legal/terms`} className="hover:text-blue-600 transition-colors">
+        {t('footer.terms')}
+      </a>
+    </li>
+    <li>
+      <a href={`/${locale}/legal/privacy`} className="hover:text-blue-600 transition-colors">
+        {t('footer.privacy')}
+      </a>
+    </li>
+    <li>
+      <a href={`/${locale}/legal/refund`} className="hover:text-blue-600 transition-colors">
+        {t('footer.refund_policy')}
+      </a>
+    </li>
+  </ul>
+</nav>
             </div>
             <div className="space-y-8">
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.support_title')}</h4>
