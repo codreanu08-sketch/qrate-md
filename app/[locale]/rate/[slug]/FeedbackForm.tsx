@@ -18,7 +18,7 @@ export default function FeedbackForm({ slug, locale }: FeedbackFormProps) {
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
   
   // Fallback-uri inteligente
-  const t = messages?.PublicFeedback || {
+const t = (messages as any)?.PublicFeedback || {
     step: locale === 'ro' ? 'Pasul 1/1' : 'Шаг 1/1',
     heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв pentru',
     title_line1: locale === 'ro' ? 'Părerea Ta' : 'Ваше Мнение',
