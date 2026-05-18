@@ -1,7 +1,4 @@
-// app/page.tsx (Direct în folderul app)
-import { redirect } from 'next/navigation';
-
+// app/page.tsx (direct în folderul app)
 export default function RootPage() {
-  // Trimitem utilizatorul direct pe varianta în română
-  redirect('/ro');
+  return null;
 }
