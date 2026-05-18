@@ -9,16 +9,17 @@ import ro from '@/messages/ro.json';
 interface FeedbackFormProps {
   slug: string;
   locale: 'ro' | 'ru';
+  employeeId?: string; // <-- Corecție: Adăugat aici pentru a elimina eroarea de tip din build
 }
 
-export default function FeedbackForm({ slug, locale }: FeedbackFormProps) {
+export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Invocăm traducerile din fișierele JSON locale
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
   
-  // Fallback-uri inteligente
-const t = (messages as any)?.PublicFeedback || {
+  // Fallback-uri inteligente cu forțare de tip pe 'messages' pentru a asigura stabilitatea build-ului
+  const t = (messages as any)?.PublicFeedback || {
     step: locale === 'ro' ? 'Pasul 1/1' : 'Шаг 1/1',
     heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв pentru',
     title_line1: locale === 'ro' ? 'Părerea Ta' : 'Ваше Мнение',
@@ -38,7 +39,7 @@ const t = (messages as any)?.PublicFeedback || {
     alert_stars: locale === 'ro' ? 'Te rugăm să alegi o notă (pasul 1)' : 'Пожалуйста, выберите оценку (шаг 1)',
     success_title: locale === 'ro' ? 'Super!' : 'Супер!',
     success_text: locale === 'ro' ? 'Feedback-ul tău a fost trimis cu succes. Apreciem implicarea ta!' : 'Ваш отзыв успешно отправлен. Мы ценим ваше участие!',
-    no_comment: messages?.Dashboard?.feed?.no_comment || (locale === 'ro' ? 'Clientul nu a lăsat un comentariu' : 'Клиент не оставил комментария')
+    no_comment: (messages as any)?.Dashboard?.feed?.no_comment || (locale === 'ro' ? 'Clientul nu a lăsat un comentariu' : 'Клиент не оставил комментария')
   };
 
   const [rating, setRating] = useState<number>(0);
@@ -109,10 +110,12 @@ const t = (messages as any)?.PublicFeedback || {
         phone: formData.phone,
         email: formData.email,
         comment: formData.comment || t.no_comment,
-        photo_url: finalPhotoUrl
+        photo_url: finalPhotoUrl,
+        // Dacă în baza de date ai nevoie și de salvat ID-ul angajatului, îl poți include opțional aici:
+        // employee_id: employeeId || null
       };
 
-      // 1. Salvăm recenzia în baza de date și cerem înapoi rândul inserat pentru a-i afla ID-ul (UUID-ul)
+      // 1. Salvăm recenzia în baza de date și cerem înapoi rândul inserat
       const { data: insertedReview, error: dbError } = await supabase
         .from('reviews')
         .insert([reviewData])
@@ -121,8 +124,7 @@ const t = (messages as any)?.PublicFeedback || {
 
       if (dbError) throw dbError;
 
-      // 2. Coadă Asincronă: Dacă nota este critică (1-3 stele), trimitem ID-ul recenziei în coadă.
-      // Serverul (API Route) va prelua acest ID și va extrage dinamic Chat ID-ul (pentru locație sau angajat).
+      // 2. Coadă Asincronă pentru recenzii negative (1-3 stele)
       if (rating <= 3 && insertedReview) {
         const { error: queueError } = await supabase
           .from('telegram_messages_queue')
@@ -245,7 +247,7 @@ const t = (messages as any)?.PublicFeedback || {
               <div className="relative group">
                 <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={20} />
                 <input
-                  type="tel"
+                  type="text"
                   placeholder={t.placeholder_phone}
                   className="w-full pl-14 pr-6 py-5 bg-white border border-slate-100 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all shadow-sm text-lg font-medium placeholder:text-slate-300"
                   value={formData.phone}
