@@ -30,7 +30,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const { data: companies } = await supabase.from('companies').select('id, updated_at');
     
-    const companyPages = (companies || []).map((company) => ({
+    // Corecție: S-a adăugat tipul explicit (company: any) pentru a trece de verificarea strictă a build-ului
+    const companyPages = (companies || []).map((company: any) => ({
       url: `${baseUrl}/p/${company.id}`,
       lastModified: company.updated_at ? new Date(company.updated_at) : new Date(),
       changeFrequency: 'weekly' as const,
