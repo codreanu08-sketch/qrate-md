@@ -1,27 +1,19 @@
-import type { NextConfig } from "next";
-import createNextIntlPlugin from 'next-intl/plugin';
-
-/**
- * Plugin-ul next-intl creează un wrapper peste configurația Next.js.
- * Calea trebuie să fie către 'i18n/request.ts' deoarece acesta este 
- * punctul de intrare pentru configurarea mesajelor pe server.
- */
-const withNextIntl = createNextIntlPlugin(
-  './i18n/request.ts' 
-);
-
-const nextConfig: NextConfig = {
-  /* Opțiuni de configurare standard Next.js */
-  reactStrictMode: true,
-  // Dacă ai imagini externe (ex: de la Supabase storage), adaugă domeniile aici
-  images: {
-    remotePatterns: [
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Forțăm Vercel să redirecționeze automat utilizatorii de pe rutele goale pe limba implicită
+  async redirects() {
+    return [
       {
-        protocol: 'https',
-        hostname: '**',
+        source: '/',
+        destination: '/ro',
+        permanent: false, // Îl lăsăm fals pentru a nu bloca cache-ul browserului în timpul testelor
       },
-    ],
+    ];
   },
 };
 
-export default withNextIntl(nextConfig);
+// Dacă folosești next-intl cu un wrapper (ex: withNextIntl), codul tău ar trebui să arate așa:
+// const withNextIntl = require('next-intl/plugin')();
+// module.exports = withNextIntl(nextConfig);
+
+module.exports = nextConfig;
