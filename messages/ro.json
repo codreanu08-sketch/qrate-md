@@ -139,30 +139,41 @@
     "configurator": {
       "locations_label": "NUMĂR LOCAȚII",
       "extra_employees_label": "ANGAJAȚI SUPLIMENTARI",
-      "enterprise_mode": "PLANUL PRO ESTE ACTIVAT"
+      "enterprise_mode": "MODUL PRO ESTE ACTIVAT"
     },
     "plans": {
       "standard": {
-        "name": "START",
+        "name": "Plan Start",
         "price_label": "LICENȚĂ LUNARĂ",
         "desc": "{count, plural, =1 {locație} one {locație} few {locații} other {locații}}",
         "features": {
-          "employees": "Maximum 4 angajați incluși",
-          "notifications": "Notificări instantanee în Telegram",
-          "qr_profile": "Profil QR personal pentru fiecare angajat",
-          "dashboard": "Panou de administrare",
-          "reports": "Rapoarte de bază și statistici"
+          "locations": "1 Locație unică",
+          "employees": "Maximum 4 angajați activi în sistem",
+          "qr_collection": "Colectare simplă de recenzii prin cod QR",
+          "telegram_alerts": "Notificări instantanee în Telegram la fiecare recenzie",
+          "dashboard": "Panou de control de bază pentru vizualizarea datelor",
+          "secure_auth": "Profil administrator securizat (Supabase Auth)",
+          "email_support": "Suport tehnic prin email"
         }
       },
       "enterprise": {
-        "name": "PRO",
+        "name": "Plan Pro",
         "price_label": "LICENȚĂ LUNARĂ",
         "features": {
-          "notifications": "Sistem avansat de notificări push",
-          "centralization": "Număr nelimitat de angajați",
-          "management": "Panou avansat de gestionare multi-locație",
-          "support": "Suport prioritar 24/7"
+          "all_start": "Toate funcțiile planului Start sunt incluse",
+          "management": "Gestionarea filialelor (Adăugarea și controlul mai multor locații)",
+          "unlimited_employees": "Număr complet nelimitat de angajați",
+          "realtime_stats": "Statistici în timp real și grafice inteligente de eficiență",
+          "negative_filter": "Filtrare inteligentă a recenziilor negative (Scut de protecție a reputației)",
+          "priority_support": "Suport prioritar din partea echipei + integrare rapidă în locații"
         }
+      }
+    },
+    "pricing": {
+      "plans": {
+        "month": "lună",
+        "one_location": "Locație",
+        "license_monthly": "Licență lunară"
       }
     },
     "stickers": {
@@ -182,6 +193,40 @@
       "refunded_total": "TOTAL RETURNAT",
       "confirm_btn": "CONFIRMĂ COMANDA",
       "footer_brand": "QRATE.MD — TOATE DREPTURILE REZERVATE"
+    },
+    "ConfiguratorUI": {
+      "page_main_title": "Abonament QRate",
+      "page_main_subtitle": "Gestionare Configurație și Billing",
+      "status_banner_title": "Status Cont",
+      "status_expired_no_card": "Cont Blocat (Perioada de probă a expirat)",
+      "status_expired_desc": "Selectează locația pe care dorești să o păstrezi activă pentru deblocare imediată.",
+      "status_active_desc": "Următoarea plată automată de pe card va fi retrasă peste: {days} zile.",
+      "sync_banner_title": "Sincronizare Date Filtru Securizat",
+      "sync_banner_desc": "În contul tău sunt înregistrate: {locsCount} locații și {empsCount} angajați în baza de date.",
+      "locations_block_title": "1. Distribuirea Licențelor Active pentru Locații",
+      "locations_block_subtitle": "Selectează locațiile care vor rămâne active în limita pachetului: {limit}.",
+      "locations_selected_badge": "Selectat: {selected} / {total}",
+      "employees_block_title": "2. Control Suspendare Personal",
+      "employees_block_subtitle": "Gestionarea personalului în locațiile active.",
+      "employees_active_badge": "Activi: {count}",
+      "employee_inactive_parent": "Locație inactivă (Auto-suspendare)",
+      "employee_no_location": "Locație nespecificată",
+      "employee_badge_active": "Activ",
+      "employee_badge_suspended": "Suspendat",
+      "stickers_block_title": "Comandă Materiale Fizice",
+      "stickers_block_subtitle": "Livrăm seturi gata pregătite de coduri QR autoadezive direct la locație",
+      "stickers_logo_label": "Design Logo QR (Opțional)",
+      "stickers_logo_select": "Selectează fișierul logo",
+      "stickers_logo_delete": "Șterge imaginea",
+      "stickers_notes_label": "Date pentru Facturare și Adresă de Livrare",
+      "stickers_notes_placeholder": "Introdu adresa completă pentru livrarea stickerelor prin curier...",
+      "invoice_title": "Raport Detaliat Total",
+      "invoice_next_cost": "Costul noului abonament (auto-retragere din luna următoare):",
+      "invoice_software_pack": "Pachet Software QRate",
+      "invoice_total_today": "TOTAL SPRE PLATĂ ASTĂZI",
+      "btn_pay_difference": "Plătește diferența",
+      "btn_go_to_payment": "Mergi la plată",
+      "btn_save_changes": "Salvează modificările"
     }
   },
   "Refund": {
@@ -235,7 +280,7 @@
     "services": {
       "qr_employee": {
         "title": "QR pentru Angajat",
-        "desc": "Coduri unice pentru fiecare punct sau angajat pentru urmărirea eficienței în timp real."
+        "desc": "Coduri unice pentru fiecare punto sau angajat pentru urmărirea eficienței în timp real."
       },
       "telegram": {
         "title": "Alerte Telegram",
@@ -285,6 +330,7 @@
       "title_part2": "QRate.md",
       "btn_choose": "Alege planul",
       "btn_contact": "Contactează-ne",
+      "btn_register": "Înregistrare",
       "configurator": {
         "locations": "Număr de Locații",
         "extra_employees": "Angajați suplimentari",

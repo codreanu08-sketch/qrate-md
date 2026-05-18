@@ -1,20 +1,19 @@
+import { notFound } from 'next/navigation';
 import { getRequestConfig } from 'next-intl/server';
-import { routing } from './routing';
 
-export default getRequestConfig(async (params: any) => {
-  // Extragem dinamic oricare dintre cele două proprietăți folosite de next-intl în funcție de versiune
-  const requestLocale = params?.requestLocale || params?.locale;
-  
-  // Așteptăm parametrul locale (deoarece poate fi un Promise în Next.js 15+)
-  let locale = await requestLocale;
+const locales = ['ro', 'ru'];
 
-  // Dacă locale este invalid sau lipsește, folosim limba default din routing
-  if (!locale || !routing.locales.includes(locale as any)) {
-    locale = routing.defaultLocale;
+export default getRequestConfig(async (request) => {
+  // Așteptăm rezolvarea request-ului și extragem proprietatea locale ca string garantat
+  const currentLocale = (await request).locale as string;
+
+  // Dacă limba detectată nu se află în lista noastră, aruncăm 404
+  if (!locales.includes(currentLocale)) {
+    notFound();
   }
 
   return {
-    locale, // Obligatoriu pentru compatibilitate
-    messages: (await import(`../messages/${locale}.json`)).default
+    locale: currentLocale,
+    messages: (await import(`../messages/${currentLocale}.json`)).default
   };
 });

@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Inițializăm Supabase cu Service Role Key (pentru a putea face UPDATE securizat pe tabelă)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Recomandat Service Role pentru operațiuni de tip Worker/Cron
-);
+// 1. Forțăm Next.js să trateze această rută exclusiv ca dinamică la build
+export const dynamic = 'force-dynamic';
+
+// 2. Inițializare securizată cu fallback pentru a preveni eroarea "supabaseKey is required" la npm run build
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -13,8 +16,7 @@ const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function GET(request: Request) {
-  // Opțional: Poți adăuga un sistem de securitate (un Token Secret în Header) 
-  // ca să fii sigur că doar sistemul tău de Cron poate apela acest API.
+  // Sistem de securitate (un Token Secret în Header / Query)
   const { searchParams } = new URL(request.url);
   const cronSecret = searchParams.get('secret');
   
@@ -22,9 +24,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verificare de siguranță la runtime pentru token-ul Telegram
+  if (!TELEGRAM_BOT_TOKEN) {
+    return NextResponse.json({ error: 'TELEGRAM_BOT_TOKEN is not configured' }, { status: 500 });
+  }
+
   try {
-    // 1. Extragem mesajele blocate în starea 'pending' sau 'failed' (pentru reîncercare)
-    // Limităm la un lot rezonabil (ex: 50 de mesaje per rulare) ca să nu depășim timpul maxim de execuție al funcției serverless
+    // 1. Extragem mesajele blocate în starea 'pending' sau 'failed'
     const { data: queueItems, error: fetchError } = await supabase
       .from('telegram_messages_queue')
       .select('*')
@@ -52,7 +58,7 @@ export async function GET(request: Request) {
           body: JSON.stringify({
             chat_id: item.chat_id,
             text: item.message_text,
-            parse_mode: 'Markdown', // Permite formatarea cu *bold* sau _italic_ trimisă din formular
+            parse_mode: 'Markdown', // Permite formatarea cu *bold* sau _italic_
           }),
         });
 
@@ -70,11 +76,10 @@ export async function GET(request: Request) {
         succesCount++;
 
         // 3. Introducem o pauză inteligentă de 150ms între mesaje
-        // Asta garantează că dacă avem 200 de mesaje, trimitem cam 6-7 pe secundă, fiind mult sub limita critică Telegram (30/sec)
         await delay(150);
 
       } catch (msgError: any) {
-        console.error(`Eroare la trimiterea mesajului ID ${item.id}:`, msgError);
+        console.error(`❌ Eroare la trimiterea mesajului ID ${item.id}:`, msgError);
         
         // Dacă a eșuat, incrementăm încercările și punem status 'failed'
         await supabase
@@ -82,7 +87,7 @@ export async function GET(request: Request) {
           .update({ 
             status: 'failed', 
             attempts: (item.attempts || 0) + 1,
-            error_message: msgError.message 
+            error_message: msgError?.message || String(msgError)
           })
           .eq('id', item.id);
 
@@ -96,7 +101,10 @@ export async function GET(request: Request) {
     });
 
   } catch (globalError: any) {
-    console.error('Global Worker Error:', globalError);
-    return NextResponse.json({ error: globalError.message }, { status: 500 });
+    console.error('💥 Global Worker Error:', globalError);
+    return NextResponse.json(
+      { error: 'Internal Server Error', message: globalError?.message || String(globalError) }, 
+      { status: 500 }
+    );
   }
 }

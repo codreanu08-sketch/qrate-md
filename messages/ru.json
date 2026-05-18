@@ -88,8 +88,7 @@
       },
       "trial": {
         "title": "Пробный период",
-        "days_left": "{days, plural, =1 {Остался 1 день} one {Остался # день} few {Осталось # дня} other {Осталось # дней}}",
-        "upgrade_btn": "Обновить план"
+        "days_left": "{days, plural, =1 {Остался 1 день} one {Остался # день} few {Осталось # дня} other {Осталось # дней}}"
       }
     }
   },
@@ -143,26 +142,37 @@
     },
     "plans": {
       "standard": {
-        "name": "START",
+        "name": "План Start",
         "price_label": "ЕЖЕМЕСЯЧНАЯ ЛИЦЕНЗИЯ",
         "desc": "{count, plural, =1 {локация} one {локация} few {локации} other {локаций}}",
         "features": {
-          "employees": "Максимум 4 сотрудника включено",
-          "notifications": "Мгновенные уведомления в Telegram",
-          "qr_profile": "Персональный QR-профиль для каждого сотрудника",
-          "dashboard": "Административная панель управления",
-          "reports": "Базовые отчеты и статистика"
+          "locations": "1 Уникальная локация",
+          "employees": "Максимум 4 активных сотрудника в системе",
+          "qr_collection": "Простой сбор отзывов через QR-код",
+          "telegram_alerts": "Мгновенные уведомления в Telegram при каждом отзыве",
+          "dashboard": "Базовая панель управления для визуализации данных",
+          "secure_auth": "Безопасный профиль администратора (Supabase Auth)",
+          "email_support": "Техническая поддержка по электронной почте"
         }
       },
       "enterprise": {
-        "name": "PRO",
+        "name": "План Pro",
         "price_label": "ЕЖЕМЕСЯЧНАЯ ЛИЦЕНЗИЯ",
         "features": {
-          "notifications": "Продвинутая система push-уведомлений",
-          "centralization": "Безлимитное количество сотрудников",
-          "management": "Продвинутая панель управления мульти-локациями",
-          "support": "Приоритетная поддержка 24/7"
+          "all_start": "Все функции плана Start включены",
+          "management": "Управление филиалами (Добавление и контроль нескольких локаций)",
+          "unlimited_employees": "Абсолютно безлимитное количество сотрудников",
+          "realtime_stats": "Статистика в реальном времени и умные графики эффективности",
+          "negative_filter": "Умная фильтрация негативных отзывов (Щит защиты репутации)",
+          "priority_support": "Приоритетная поддержка команды + быстрая интеграция на локациях"
         }
+      }
+    },
+    "pricing": {
+      "plans": {
+        "month": "мес",
+        "one_location": "локация",
+        "license_monthly": "Ежемесячная лицензия"
       }
     },
     "stickers": {
@@ -182,6 +192,40 @@
       "refunded_total": "СУММА ВОЗВРАТА",
       "confirm_btn": "ПОДТВЕРДИТЬ ЗАКАЗ",
       "footer_brand": "QRATE.MD — ВСЕ ПРАВА ЗАЩИЩЕНЫ"
+    },
+    "ConfiguratorUI": {
+      "page_main_title": "Абонемент QRate",
+      "page_main_subtitle": "Управление Конфигурацией и Биллингом",
+      "status_banner_title": "Статус Аккаунта",
+      "status_expired_no_card": "Аккаунт Заблокирован (Пробный период завершен)",
+      "status_expired_desc": "Выберите локацию, которую хотите оставить активной, для мгновенной разблокировки.",
+      "status_active_desc": "Следующий автоматический платеж с карты будет списан через: {days} дней.",
+      "sync_banner_title": "Синхронизация Данных Безопасного Фильтра",
+      "sync_banner_desc": "В вашем аккаунте зарегистрировано: {locsCount} локаций и {empsCount} сотрудников в базе данных.",
+      "locations_block_title": "1. Распределение Активных Лицензий Локаций",
+      "locations_block_subtitle": "Выберите локации, которые останутся активными в пределах пакета: {limit}.",
+      "locations_selected_badge": "Выбрано: {selected} / {total}",
+      "employees_block_title": "2. yard Контроль Приостановки Персонала",
+      "employees_block_subtitle": "Управление персоналом в активных локациях.",
+      "employees_active_badge": "Активных: {count}",
+      "employee_inactive_parent": "Локация неактивна (Авто-приостановка)",
+      "employee_no_location": "Локация не указана",
+      "employee_badge_active": "Активен",
+      "employee_badge_suspended": "Приостановлен",
+      "stickers_block_title": "Заказ Физических Материалов",
+      "stickers_block_subtitle": "Доставляем готовые комплекты самоклеящихся QR-кодов прямо на локацию",
+      "stickers_logo_label": "Дизайн Логотипа QR (Опционально)",
+      "stickers_logo_select": "Выберите файл логотипа",
+      "stickers_logo_delete": "Удалить изображение",
+      "stickers_notes_label": "Данные для Выставления Счета и Адрес Доставки",
+      "stickers_notes_placeholder": "Введите полный адрес для курьерской доставки стикеров...",
+      "invoice_title": "Детальный Суммарный Отчет",
+      "invoice_next_cost": "Стоимость новой подписки (автосписание со следующего месяца):",
+      "invoice_software_pack": "Пакет Программного Обеспечения QRate",
+      "invoice_total_today": "ИТОГО К ОПЛАТЕ СЕГОДНЯ",
+      "btn_pay_difference": "Оплатить разницу",
+      "btn_go_to_payment": "Перейти к оплате",
+      "btn_save_changes": "Сохранить изменения"
     }
   },
   "Refund": {
@@ -285,6 +329,7 @@
       "title_part2": "QRate.md",
       "btn_choose": "Выбрать план",
       "btn_contact": "Связаться с нами",
+      "btn_register": "Регистрация",
       "configurator": {
         "locations": "Количество Локаций",
         "extra_employees": "Доп. сотрудники",
@@ -422,7 +467,7 @@
     "no_loc": "Локация не указана",
     "reviews_title": "Последняя активность",
     "no_reviews": "Отзывов не зарегистрировано.",
-    "default_comment": "Клиент высоко оценил услуги, не оставив текстового комментария.",
+    "default_comment": "Клиент высоко оценил услуги, не оставив тексточеского комментария.",
     "your_reply": "Ваш ответ",
     "reply_btn": "Ответить этому клиенту",
     "reply_placeholder": "Напишите ответ...",

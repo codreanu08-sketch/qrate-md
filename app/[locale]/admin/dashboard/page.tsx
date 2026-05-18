@@ -1,363 +1,328 @@
-'use client'; 
+'use client';
 
 import { useEffect, useState } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 import { Database } from '@/types/supabase';
 import { 
   Building2, 
+  MapPin, 
   Star, 
-  AlertCircle,
-  MapPin,
-  FileText,
-  X,
-  Clock,
-  ShieldAlert,
-  UserCheck,
-  UserMinus,
-  CalendarPlus,
-  Wallet,
-  CheckCircle2,
-  BadgeCheck,
-  Receipt,
-  Coins
+  Receipt, 
+  Check, 
+  X, 
+  AlertTriangle,
+  Play,
+  Square,
+  PlusCircle,
+  Eye,
+  Trash2,
+  DollarSign
 } from 'lucide-react';
 
 export default function SuperAdminDashboard() {
   const [loading, setLoading] = useState(true);
-  const [debugErrors, setDebugErrors] = useState<string[]>([]);
-
-  // Tab-uri executive
-  const [activeTab, setActiveTab] = useState<'companies' | 'locations' | 'reviews'>('companies');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'companies' | 'locations' | 'reviews' | 'payments'>('companies');
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
-  
-  // State-uri pentru Modale (Pop-up-uri)
-  const [selectedCompanyForDetails, setSelectedCompanyForDetails] = useState<any | null>(null);
-  const [paymentCompany, setPaymentCompany] = useState<any | null>(null);
-  
-  // Câmpuri introducere plată manuală persoană juridică
-  const [paymentAmount, setPaymentAmount] = useState<string>('500'); 
-  const [invoiceNumber, setInvoiceNumber] = useState<string>('');
 
-  // Date din Supabase
+  // State-uri pentru date
   const [companiesData, setCompaniesData] = useState<any[]>([]);
-  const [allReviews, setAllReviews] = useState<any[]>([]);
   const [allLocations, setAllLocations] = useState<any[]>([]);
-  const [paymentHistory, setPaymentHistory] = useState<any[]>([]); 
+  const [allReviews, setAllReviews] = useState<any[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+
+  // State-uri Modale
+  const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
+  const [paymentModalCompany, setPaymentModalCompany] = useState<any | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<string>('500');
+  const [invoiceNumber, setInvoiceNumber] = useState<string>('');
 
   const supabase = createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  // Funcție de reîncărcare live a datelor după acțiuni administrative
-  async function refreshData() {
-    const resCompanies = await supabase.from('companies').select('*').order('created_at', { ascending: false });
-    const resLocations = await supabase.from('locations').select('*');
-    const resReviews = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
-    const resPayments = await supabase.from('payments').select('*').order('paid_at', { ascending: false });
+  // Încărcare și sincronizare date
+  async function loadDashboardData() {
+    try {
+      const resCompanies = await supabase.from('companies').select('*').order('name', { ascending: true });
+      const resLocations = await supabase.from('locations').select('*');
+      const resReviews = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
+      const resPayments = await supabase.from('payments').select('*').order('paid_at', { ascending: false });
 
-    // CORECȚIE SYNTAXĂ: Adăugat arrow function corect pentru filtrare
-    const targetCompanies = (resCompanies.data || []).filter((c: any) => 
-      ['fff', 'Sultan Doner', 'gg', 'g'].includes(c.name)
-    );
-    
-    setCompaniesData(targetCompanies);
-    if (resLocations.data) setAllLocations(resLocations.data);
-    if (resReviews.data) setAllReviews(resReviews.data);
-    if (resPayments.data) setPaymentHistory(resPayments.data);
+      if (resCompanies.data) setCompaniesData(resCompanies.data);
+      if (resLocations.data) setAllLocations(resLocations.data);
+      if (resReviews.data) setAllReviews(resReviews.data);
+      if (resPayments.data) setPaymentHistory(resPayments.data);
+    } catch (error) {
+      console.error("Eroare la încărcarea datelor:", error);
+    }
   }
 
-  // Calculează starea financiară exactă (Trial sau Abonament cumpărat)
-  const calculateSubscriptionStatus = (company: any) => {
+  useEffect(() => {
+    loadDashboardData().finally(() => setLoading(false));
+  }, []);
+
+  // Funcție stabilă pentru calcularea stării abonamentului
+  const getSubscriptionDetails = (company: any) => {
     const now = new Date();
-    
+
     if (company.is_active === false) {
-      return { text: 'SUSPENDAT MANUAl', color: 'text-red-700 bg-red-100 border-red-300 font-black', urgent: false };
+      return { label: 'Dezactivat / Suspendat', color: 'bg-red-100 text-red-800' };
     }
-    
-    // 1. Cazul în care are ABONAMENT cumpărat (Paid)
+
     if (company.is_subscribed && company.subscription_expires_at) {
       const expiry = new Date(company.subscription_expires_at);
-      const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 0) {
-        return { text: `Abonament expirat (${Math.abs(diffDays)} zile)`, color: 'text-red-700 bg-red-50 border-red-200', urgent: true };
+      if (expiry > now) {
+        const days = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return { label: `Abonament Activ (${days} zile)`, color: 'bg-green-100 text-green-800' };
       }
-      return { text: `${diffDays} zile până la plată`, color: 'text-emerald-700 bg-emerald-50 border-emerald-200 font-bold', urgent: diffDays <= 2 };
+      return { label: 'Abonament Expirat', color: 'bg-red-100 text-red-800' };
     }
-    
-    // 2. Cazul în care este în perioada de TRIAL (7 zile)
+
     if (company.trial_started_at) {
       const trialStart = new Date(company.trial_started_at);
       const trialExpiry = new Date(trialStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const diffDays = Math.ceil((trialExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
-      if (diffDays < 0) {
-        return { text: 'Trial Expirat', color: 'text-amber-700 bg-amber-50 border-amber-200', urgent: true };
+      if (trialExpiry > now) {
+        const days = Math.ceil((trialExpiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return { label: `Trial Activ (${days} zile)`, color: 'bg-blue-100 text-blue-800' };
       }
-      return { text: `${diffDays} zile în Trial`, color: 'text-blue-700 bg-blue-50 border-blue-200 font-semibold', urgent: diffDays <= 2 };
+      return { label: 'Trial Expirat', color: 'bg-amber-100 text-amber-800' };
     }
 
-    return { text: 'Fără date financiare', color: 'text-slate-400 bg-slate-100 border-slate-200', urgent: false };
+    return { label: 'Fără Status', color: 'bg-gray-100 text-gray-800' };
   };
 
-  // 1. Suspendare / Activare Instantă
-  const toggleCompanyStatus = async (company: any) => {
-    const nextStatus = company.is_active === false;
+  // 1. FUNCȚIONAL: Activează Compania Complet
+  const handleActivateCompany = async (companyId: string) => {
     const { error } = await supabase
       .from('companies')
-      .update({ is_active: nextStatus } as any)
-      .eq('id', company.id);
+      .update({ is_active: true } as any)
+      .eq('id', companyId);
 
-    if (!error) refreshData();
-  };
-
-  // 2. Adaugă +7 Zile de Trial
-  const addExtensionTrial = async (company: any) => {
-    let baseDate = new Date();
-    if (company.trial_started_at) {
-      baseDate = new Date(company.trial_started_at);
+    if (error) {
+      alert("Eroare la activare: " + error.message);
+    } else {
+      await loadDashboardData();
     }
-    const extendedDate = new Date(baseDate.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    
+  };
+
+  // Suspendă Compania Complet
+  const handleSuspendCompany = async (companyId: string) => {
     const { error } = await supabase
       .from('companies')
-      .update({ 
-        trial_started_at: extendedDate,
-        is_active: true 
+      .update({ is_active: false } as any)
+      .eq('id', companyId);
+
+    if (error) {
+      alert("Eroare la suspendare: " + error.message);
+    } else {
+      await loadDashboardData();
+    }
+  };
+
+  // 2. FUNCȚIONAL: Prelungește Trial (+7 zile din momentul curent)
+  const handleExtendTrial = async (companyId: string) => {
+    const { error } = await supabase
+      .from('companies')
+      .update({
+        trial_started_at: new Date().toISOString(),
+        is_subscribed: false,
+        subscription_expires_at: null,
+        is_active: true
       } as any)
-      .eq('id', company.id);
+      .eq('id', companyId);
 
-    if (!error) refreshData();
+    if (error) {
+      alert("Eroare la prelungirea trialului: " + error.message);
+    } else {
+      await loadDashboardData();
+    }
   };
 
-  // 3. Înregistrare plată manuală persoană juridică (Abonament 30 zile) + Scriere în Istoric Plăți
-  const handleRegisterPayment = async () => {
-    if (!paymentCompany) return;
-    
-    const now = new Date();
-    const newExpiryDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  // 3. FUNCȚIONAL: Dezactivează Trial Instant (Forțează expirarea în trecut)
+  const handleTerminateTrial = async (companyId: string) => {
+    const pastDate = new Date(0).toISOString(); // Setează data la 1970 pentru a expira instant
+    const { error } = await supabase
+      .from('companies')
+      .update({
+        trial_started_at: pastDate,
+        is_subscribed: false,
+        subscription_expires_at: null
+      } as any)
+      .eq('id', companyId);
 
-    const { error: companyUpdateError } = await supabase
+    if (error) {
+      alert("Eroare la dezactivarea trialului: " + error.message);
+    } else {
+      await loadDashboardData();
+    }
+  };
+
+  // 4. FUNCȚIONAL: Înregistrare plată manuală (+30 zile abonament)
+  const handleSavePayment = async () => {
+    if (!paymentModalCompany) return;
+
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const { error: companyError } = await supabase
       .from('companies')
       .update({
         is_subscribed: true,
-        subscription_expires_at: newExpiryDate,
+        subscription_expires_at: expiresAt,
         is_active: true
       } as any)
-      .eq('id', paymentCompany.id);
+      .eq('id', paymentModalCompany.id);
 
-    if (!companyUpdateError) {
+    if (!companyError) {
       await supabase.from('payments').insert({
-        company_id: paymentCompany.id,
+        company_id: paymentModalCompany.id,
         amount: parseFloat(paymentAmount),
         invoice_number: invoiceNumber || `FACT-${Date.now().toString().slice(-4)}`,
         paid_at: now.toISOString()
       } as any);
 
-      setPaymentCompany(null);
+      setPaymentModalCompany(null);
       setInvoiceNumber('');
-      refreshData();
+      await loadDashboardData();
+    } else {
+      alert("Eroare la procesarea plății: " + companyError.message);
     }
   };
 
-  useEffect(() => {
-    async function loadAdminData() {
-      try {
-        const resCompanies = await supabase.from('companies').select('*').order('created_at', { ascending: false });
-        const resLocations = await supabase.from('locations').select('*');
-        const resReviews = await supabase.from('reviews').select('*').order('created_at', { ascending: false });
-        const resPayments = await supabase.from('payments').select('*').order('paid_at', { ascending: false });
-
-        // CORECȚIE SYNTAXĂ: Adăugat arrow function corect pentru filtrare locală
-        const targetCompanies = (resCompanies.data || []).filter((c: any) => 
-          ['fff', 'Sultan Doner', 'gg', 'g'].includes(c.name)
-        );
-
-        setCompaniesData(targetCompanies);
-        if (resLocations.data) setAllLocations(resLocations.data);
-        if (resReviews.data) setAllReviews(resReviews.data);
-        if (resPayments.data) setPaymentHistory(resPayments.data);
-      } catch (err: any) {
-        setDebugErrors([`Eroare inițială: ${err.message}`]);
-      } finally { // <--- CORECTAT: Schimbat din 'verify' în 'finally' pentru sintaxă validă în JS/TS
-        setLoading(false);
+  // 5. Ștergere companie
+  const handleDeleteCompany = async (id: string, name: string) => {
+    if (confirm(`Ești sigur că vrei să ștergi definitiv compania "${name}"?`)) {
+      const { error } = await supabase.from('companies').delete().eq('id', id);
+      if (!error) {
+        await loadDashboardData();
+      } else {
+        alert("Eroare la ștergere: " + error.message);
       }
     }
-    loadAdminData();
-  }, []);
+  };
+
+  const filteredCompanies = companiesData.filter(c => 
+    c.name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.idno?.includes(searchTerm)
+  );
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900 text-slate-200">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <div className="p-8 text-center text-gray-600 font-medium">Se încarcă datele panoului de control...</div>;
   }
 
-  const urgentCompanies = companiesData.filter(c => calculateSubscriptionStatus(c).urgent);
-
   return (
-    <div className="p-8 bg-[#f8fafc] min-h-screen font-sans text-slate-900 antialiased">
+    <div className="p-6 max-w-7xl mx-auto font-sans text-gray-900 bg-gray-50 min-h-screen">
       
-      {/* 🚨 URGENȚE WATCHDOG */}
-      {urgentCompanies.length > 0 && (
-        <div className="mb-8 p-5 bg-red-50 border-2 border-red-200 rounded-3xl text-red-900 shadow-xs">
-          <div className="font-black uppercase text-xs tracking-wider flex items-center gap-2 text-red-700 mb-3">
-            <ShieldAlert size={18} /> Companii În Pericol de Expirare (Contactează Urgent):
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {urgentCompanies.map(c => (
-              <div key={c.id} className="bg-white p-4 rounded-2xl border border-red-100 flex justify-between items-center shadow-xs">
-                <div>
-                  <p className="font-black text-sm text-slate-900">{c.name}</p>
-                  <p className="text-[11px] font-bold text-red-600 mt-0.5">{calculateSubscriptionStatus(c).text}</p>
-                </div>
-                <button 
-                  onClick={() => setPaymentCompany(c)}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase rounded-xl transition"
-                >
-                  Încasează Plată
-                </button>
-              </div>
-            ))}
-          </div>
+      {/* HEADER CLASIC */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-200 pb-5 mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">QRate.MD — Panou SuperAdmin</h1>
+          <p className="text-sm text-gray-500 mt-1">Managementul tehnic al firmelor, punctelor de lucru și abonamentelor.</p>
+        </div>
+        
+        {/* FILTRU CĂUTARE */}
+        <div className="w-full md:w-80">
+          <input 
+            type="text"
+            placeholder="Caută după nume firmă sau IDNO..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm shadow-sm focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </div>
+      </div>
+
+      {/* BLOCURI DE METRICI SIMPLE */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <button onClick={() => { setActiveTab('companies'); setSelectedCompanyId(null); }} className={`p-4 rounded-md border text-left transition ${activeTab === 'companies' ? 'bg-white border-blue-500 ring-1 ring-blue-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+          <div className="text-xs font-semibold text-gray-500 uppercase">Companii</div>
+          <div className="text-xl font-bold text-gray-900 mt-1">{companiesData.length}</div>
+        </button>
+        <button onClick={() => { setActiveTab('locations'); setSelectedCompanyId(null); }} className={`p-4 rounded-md border text-left transition ${activeTab === 'locations' ? 'bg-white border-blue-500 ring-1 ring-blue-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+          <div className="text-xs font-semibold text-gray-500 uppercase">Puncte de Lucru</div>
+          <div className="text-xl font-bold text-gray-900 mt-1">{allLocations.length}</div>
+        </button>
+        <button onClick={() => { setActiveTab('reviews'); setSelectedCompanyId(null); }} className={`p-4 rounded-md border text-left transition ${activeTab === 'reviews' ? 'bg-white border-blue-500 ring-1 ring-blue-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+          <div className="text-xs font-semibold text-gray-500 uppercase">Recenzii Colectate</div>
+          <div className="text-xl font-bold text-gray-900 mt-1">{allReviews.length}</div>
+        </button>
+        <button onClick={() => { setActiveTab('payments'); setSelectedCompanyId(null); }} className={`p-4 rounded-md border text-left transition ${activeTab === 'payments' ? 'bg-white border-blue-500 ring-1 ring-blue-500' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+          <div className="text-xs font-semibold text-gray-500 uppercase">Istoric Încasări</div>
+          <div className="text-xl font-bold text-gray-900 mt-1">{paymentHistory.length}</div>
+        </button>
+      </div>
+
+      {/* NOTIFICARE FILTRU ACTIV */}
+      {selectedCompanyId && (
+        <div className="mb-4 p-2 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs rounded-md flex justify-between items-center">
+          <span>Se afișează exclusiv datele filtrate pentru ID-ul de companie selectat.</span>
+          <button onClick={() => setSelectedCompanyId(null)} className="font-bold underline uppercase text-[10px]">Resetează filtrul</button>
         </div>
       )}
 
-      {/* Header Panou principal */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900">QRate.MD <span className="text-indigo-600">SuperAdmin</span></h1>
-          <p className="text-slate-500 text-xs mt-1 uppercase font-black tracking-widest">Panou Administrativ Centralizat v3</p>
-        </div>
-        {selectedCompanyId && (
-          <button onClick={() => setSelectedCompanyId(null)} className="px-4 py-2 bg-slate-950 text-white text-xs font-bold rounded-xl hover:bg-slate-800 transition">
-            Resetează Filtrele Curente
-          </button>
-        )}
-      </div>
-
-      {/* Carduri Modul Control Tab-uri */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <button onClick={() => setActiveTab('companies')} className={`p-6 rounded-3xl border transition-all flex items-center gap-5 text-left bg-white ${activeTab === 'companies' ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-xs' : 'border-slate-100'}`}>
-          <div className="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shadow-indigo-100"><Building2 size={20}/></div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono mb-1">Companii Înregistrate</p>
-            <p className="text-2xl font-black text-slate-900">{companiesData.length}</p>
-          </div>
-        </button>
-
-        <button onClick={() => setActiveTab('locations')} className={`p-6 rounded-3xl border transition-all flex items-center gap-5 text-left bg-white ${activeTab === 'locations' ? 'border-indigo-600 ring-4 ring-indigo-50 shadow-xs' : 'border-slate-100'}`}>
-          <div className="bg-indigo-600 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shadow-indigo-100"><MapPin size={20}/></div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono mb-1">Puncte de Lucru Active</p>
-            <p className="text-2xl font-black text-slate-900">{allLocations.length}</p>
-          </div>
-        </button>
-
-        <button onClick={() => setActiveTab('reviews')} className={`p-6 rounded-3xl border transition-all flex items-center gap-5 text-left bg-white ${activeTab === 'reviews' ? 'border-amber-500 ring-4 ring-amber-50 shadow-xs' : 'border-slate-100'}`}>
-          <div className="bg-amber-500 w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md shadow-amber-100"><Star size={20}/></div>
-          <div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono mb-1">Recenzii (Feed de Alertă)</p>
-            <p className="text-2xl font-black text-slate-900">{allReviews.length}</p>
-          </div>
-        </button>
-      </div>
-
-      {/* STRUCTURĂ DATE */}
-      <div className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden">
+      {/* STRUCTURĂ CLASICĂ DE TABEL */}
+      <div className="bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden">
         
-        {/* TAB 1: COMPANII */}
+        {/* TAB 1: TABEL COMPANII */}
         {activeTab === 'companies' && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/70 text-slate-400 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
-                  <th className="px-6 py-4">Denumire Firmă & Senzor Conversie</th>
-                  <th className="px-6 py-4">Locații</th>
-                  <th className="px-6 py-4">Recenzii Total</th>
-                  <th className="px-6 py-4">Valabilitate Abonament</th>
-                  <th className="px-6 py-4 text-center">Acțiuni Rapide SuperAdmin</th>
-                  <th className="px-6 py-4 text-center">Date Fiscale & Plăți</th>
+                <tr className="bg-gray-100 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-[10px]">
+                  <th className="p-3">Nume Companie / IDNO</th>
+                  <th className="p-3">Status Cont</th>
+                  <th className="p-3">Relații</th>
+                  <th className="p-3">Link QR</th>
+                  <th className="p-3 text-right">Acțiuni Manageriale</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {companiesData.map((company) => {
-                  const finance = calculateSubscriptionStatus(company);
-                  const compLocs = allLocations.filter(l => l.company_id === company.id);
-                  const compRevs = allReviews.filter(r => r.company_id === company.id);
-                  const avgRating = compRevs.length > 0 
-                    ? (compRevs.reduce((acc, curr) => acc + (curr.rating || 0), 0) / compRevs.length).toFixed(1)
-                    : '0.0';
+              <tbody className="divide-y divide-gray-200">
+                {filteredCompanies.map((company) => {
+                  const status = getSubscriptionDetails(company);
+                  const countLocs = allLocations.filter(l => l.company_id === company.id).length;
+                  const countRevs = allReviews.filter(r => r.company_id === company.id).length;
 
                   return (
-                    <tr key={company.id} className={`hover:bg-slate-50/40 transition-colors ${company.is_active === false ? 'bg-red-50/30' : ''}`}>
-                      <td className="px-6 py-5">
-                        <div className="font-black text-slate-900 text-sm flex items-center gap-2">
-                          {company.name}
-                          {company.is_subscribed ? (
-                            <span className="bg-emerald-100 text-emerald-800 text-[9px] px-2 py-0.5 rounded-full font-black flex items-center gap-0.5"><BadgeCheck size={10}/> Client Verificat (Paid)</span>
-                          ) : (
-                            <span className="bg-blue-100 text-blue-800 text-[9px] px-2 py-0.5 rounded-full font-black">În Perioadă de Trial</span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {company.id.substring(0, 8)}...</div>
+                    <tr key={company.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="p-3">
+                        <div className="font-bold text-gray-900">{company.name}</div>
+                        <div className="text-gray-500 font-mono text-[11px] mt-0.5">IDNO: {company.idno || 'Nespecificat'}</div>
                       </td>
-
-                      <td className="px-6 py-5">
-                        <button onClick={() => { setSelectedCompanyId(company.id); setActiveTab('locations'); }} className="px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl hover:bg-indigo-100 transition inline-flex items-center gap-1">
-                          <MapPin size={12}/> {compLocs.length} Locații
-                        </button>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded-full font-medium text-[11px] ${status.color}`}>
+                          {status.label}
+                        </span>
                       </td>
-
-                      <td className="px-6 py-5">
-                        <button onClick={() => { setSelectedCompanyId(company.id); setActiveTab('reviews'); }} className="text-left group block">
-                          <div className="flex items-center gap-0.5 text-amber-500 font-black text-xs group-hover:underline">
-                            <Star size={12} fill="currentColor"/> {avgRating} Global
-                          </div>
-                          <div className="text-[10px] text-slate-400 mt-0.5">Total: {compRevs.length} feedback-uri</div>
-                        </button>
+                      <td className="p-3 space-x-2">
+                        <button onClick={() => { setSelectedCompanyId(company.id); setActiveTab('locations'); }} className="text-blue-600 hover:underline font-medium">📍 {countLocs} Locații</button>
+                        <span className="text-gray-300">|</span>
+                        <button onClick={() => { setSelectedCompanyId(company.id); setActiveTab('reviews'); }} className="text-blue-600 hover:underline font-medium">⭐ {countRevs} Recenzii</button>
                       </td>
-
-                      <td className="px-6 py-5">
-                        <div className={`text-xs px-2.5 py-1.5 rounded-xl inline-flex items-center gap-1 border ${finance.color}`}>
-                          <Clock size={12}/> {finance.text}
-                        </div>
+                      <td className="p-3">
+                        {company.qr_image_url ? (
+                          <a href={company.qr_image_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">Vezi cod QR</a>
+                        ) : (
+                          <span className="text-gray-400 italic">Fără cod</span>
+                        )}
                       </td>
+                      <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
+                        {/* Butoane Activare / Suspendare */}
+                        {company.is_active === false ? (
+                          <button onClick={() => handleActivateCompany(company.id)} className="px-2 py-1 bg-green-600 text-white font-semibold rounded-sm hover:bg-green-700" title="Activează Cont">Activează</button>
+                        ) : (
+                          <button onClick={() => handleSuspendCompany(company.id)} className="px-2 py-1 bg-yellow-600 text-white font-semibold rounded-sm hover:bg-yellow-700" title="Suspendă Cont">Suspendă</button>
+                        )}
 
-                      <td className="px-6 py-5">
-                        <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => toggleCompanyStatus(company)}
-                            className={`p-2 rounded-xl border transition shadow-xs flex items-center justify-center ${company.is_active === false ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'}`}
-                            title={company.is_active === false ? "Activează Contul" : "Suspendă Contul Instant"}
-                          >
-                            {company.is_active === false ? <UserCheck size={14}/> : <UserMinus size={14}/>}
-                          </button>
-
-                          <button 
-                            onClick={() => addExtensionTrial(company)}
-                            className="p-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl hover:bg-blue-100 transition shadow-xs flex items-center justify-center"
-                            title="Oferă +7 Zile de Trial Gratuit"
-                          >
-                            <CalendarPlus size={14}/>
-                          </button>
-
-                          <button 
-                            onClick={() => setPaymentCompany(company)}
-                            className="p-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl hover:bg-amber-100 transition shadow-xs flex items-center justify-center"
-                            title="Înregistrează Plată Manuală (Prelungire 30 zile)"
-                          >
-                            <Wallet size={14}/>
-                          </button>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-5 text-center">
-                        <button onClick={() => setSelectedCompanyForDetails(company)} className="p-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-950 hover:text-white transition">
-                          <FileText size={14}/>
-                        </button>
+                        {/* Butoane Trial */}
+                        <button onClick={() => handleExtendTrial(company.id)} className="px-2 py-1 bg-blue-500 text-white font-semibold rounded-sm hover:bg-blue-600" title="Prelungește Trial cu 7 Zile de azi">Prelungește Trial</button>
+                        <button onClick={() => handleTerminateTrial(company.id)} className="px-2 py-1 bg-amber-500 text-white font-semibold rounded-sm hover:bg-amber-600" title="Expiră Trialul Instant">Oprește Trial</button>
+                        
+                        {/* Facturare & Detalii */}
+                        <button onClick={() => setPaymentModalCompany(company)} className="px-2 py-1 bg-emerald-600 text-white font-semibold rounded-sm hover:bg-emerald-700" title="Înregistrează plată lunară (+30 zile)">Încasează</button>
+                        <button onClick={() => setSelectedCompany(company)} className="px-2 py-1 bg-gray-200 text-gray-700 font-semibold rounded-sm hover:bg-gray-300">Fișă</button>
+                        <button onClick={() => handleDeleteCompany(company.id, company.name)} className="px-2 py-1 bg-red-100 text-red-700 font-semibold rounded-sm hover:bg-red-200"><Trash2 size={13} className="inline"/></button>
                       </td>
                     </tr>
                   );
@@ -367,19 +332,23 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
-        {/* TAB 2: DETALII LOCAȚII */}
+        {/* TAB 2: TABEL LOCAȚII */}
         {activeTab === 'locations' && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/70 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th className="px-6 py-4">Denumire Locație</th><th className="px-6 py-4">Compania Mamă</th><th className="px-6 py-4">ID Unic</th></tr>
+                <tr className="bg-gray-100 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-[10px]">
+                  <th className="p-3">Denumire Punct de Lucru</th>
+                  <th className="p-3">Compania Atribuită</th>
+                  <th className="p-3">ID Unic în Sistem</th>
+                </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-200">
                 {allLocations.filter(l => !selectedCompanyId || l.company_id === selectedCompanyId).map((loc) => (
-                  <tr key={loc.id} className="hover:bg-slate-50/40 transition-colors">
-                    <td className="px-6 py-5 font-bold text-slate-900 text-sm flex items-center gap-2"><MapPin size={14} className="text-indigo-500"/> {loc.name || 'Nespecificat'}</td>
-                    <td className="px-6 py-5 text-xs text-slate-600 font-bold">🏢 {companiesData.find(c => c.id === loc.company_id)?.name || 'Extern'}</td>
-                    <td className="px-6 py-5 text-xs font-mono text-slate-400">{loc.id}</td>
+                  <tr key={loc.id} className="hover:bg-gray-50">
+                    <td className="p-3 font-bold text-gray-900">📍 {loc.name || 'Nespecificat'}</td>
+                    <td className="p-3 text-gray-600">🏢 {companiesData.find(c => c.id === loc.company_id)?.name || 'Nespecificată'}</td>
+                    <td className="p-3 font-mono text-gray-400">{loc.id}</td>
                   </tr>
                 ))}
               </tbody>
@@ -387,30 +356,56 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
-        {/* TAB 3: RECENZII */}
+        {/* TAB 3: TABEL RECENZII */}
         {activeTab === 'reviews' && (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/70 text-slate-400 text-[10px] uppercase font-black tracking-widest"><th className="px-6 py-4">Scor & Comentariu</th><th className="px-6 py-4">Companie</th><th className="px-6 py-4">Data înregistrării</th></tr>
+                <tr className="bg-gray-100 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-[10px]">
+                  <th className="p-3">Rating & Comentariu Text</th>
+                  <th className="p-3">Companie</th>
+                  <th className="p-3">Dată înregistrare</th>
+                </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {allReviews.filter(r => !selectedCompanyId || r.company_id === selectedCompanyId).map((rev) => {
-                  const isCritical = rev.rating && rev.rating <= 2;
-                  return (
-                    <tr key={rev.id} className={`hover:bg-slate-50/40 transition-colors ${isCritical ? 'bg-red-50/40 font-semibold' : ''}`}>
-                      <td className="px-6 py-5 max-w-md">
-                        <div className="flex items-center gap-0.5 text-amber-500 mb-1">
-                          {Array.from({ length: rev.rating || 5 }).map((_, i) => <Star key={i} size={11} fill="currentColor"/>)}
-                          {isCritical && <span className="ml-2 bg-red-600 text-white text-[8px] font-black uppercase px-1.5 py-0.5 rounded tracking-wide flex items-center gap-0.5"><AlertCircle size={9}/> Recenzie Proastă</span>}
-                        </div>
-                        <p className="text-xs text-slate-700 italic">"{rev.comment || 'Fără text introdus.'}"</p>
-                      </td>
-                      <td className="px-6 py-5 text-xs font-bold text-slate-900">🏢 {companiesData.find(c => c.id === rev.company_id)?.name || 'Extern'}</td>
-                      <td className="px-6 py-5 text-xs text-slate-400 font-mono">{rev.created_at ? new Date(rev.created_at).toLocaleDateString('ro-RO') : 'N/A'}</td>
-                    </tr>
-                  );
-                })}
+              <tbody className="divide-y divide-gray-200">
+                {allReviews.filter(r => !selectedCompanyId || r.company_id === selectedCompanyId).map((rev) => (
+                  <tr key={rev.id} className={`hover:bg-gray-50 ${rev.rating && rev.rating <= 2 ? 'bg-red-50/50' : ''}`}>
+                    <td className="p-3 max-w-lg">
+                      <div className="flex text-amber-500 mb-1">
+                        {Array.from({ length: rev.rating || 5 }).map((_, i) => <Star key={i} size={12} fill="currentColor"/>)}
+                      </div>
+                      <p className="text-gray-700 italic">"{rev.comment || 'Fără comentariu text.'}"</p>
+                    </td>
+                    <td className="p-3 font-medium text-gray-600">🏢 {companiesData.find(c => c.id === rev.company_id)?.name || 'Nespecificată'}</td>
+                    <td className="p-3 text-gray-400 font-mono">{rev.created_at ? new Date(rev.created_at).toLocaleDateString('ro-RO') : 'N/A'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* TAB 4: TABEL ISTORIC PLĂȚI */}
+        {activeTab === 'payments' && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-gray-100 text-gray-600 font-semibold border-b border-gray-200 uppercase tracking-wider text-[10px]">
+                  <th className="p-3">Număr Factură / Serie</th>
+                  <th className="p-3">Companie Plătitoare</th>
+                  <th className="p-3">Sumă Achitată</th>
+                  <th className="p-3">Dată Încasare</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {paymentHistory.map((p, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="p-3 font-mono font-bold text-blue-600">{p.invoice_number}</td>
+                    <td className="p-3 text-gray-700">🏢 {companiesData.find(c => c.id === p.company_id)?.name || 'Client Șters'}</td>
+                    <td className="p-3 font-bold text-green-700">{p.amount} MDL</td>
+                    <td className="p-3 text-gray-400 font-mono">{p.paid_at ? new Date(p.paid_at).toLocaleString('ro-RO') : 'N/A'}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -418,120 +413,65 @@ export default function SuperAdminDashboard() {
 
       </div>
 
-      {/* --- POP-UP MODAL 1: ÎNREGISTREAZĂ PLATĂ MANUAlĂ --- */}
-      {paymentCompany && (
-        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-100">
-            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Wallet className="text-amber-400" size={20}/>
-                <div>
-                  <h3 className="text-sm font-black">Înregistrare Plată Persoană Juridică</h3>
-                  <p className="text-[11px] text-slate-400">IDNO: {paymentCompany.idno || 'Nespecificat'}</p>
-                </div>
-              </div>
-              <button onClick={() => setPaymentCompany(null)} className="p-1.5 bg-slate-800 rounded-lg text-slate-300"><X size={14}/></button>
+      {/* MODAL CLASIC 1: INREGISTRARE PLATA (INCASEAZA) */}
+      {paymentModalCompany && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-md max-w-md w-full shadow-lg border border-gray-300 overflow-hidden">
+            <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 font-bold text-sm text-gray-800 flex justify-between items-center">
+              <span>Înregistrare Factură Manuală & Activare 30 Zile</span>
+              <button onClick={() => setPaymentModalCompany(null)} className="text-gray-500 hover:text-gray-800"><X size={16}/></button>
             </div>
-            
-            <div className="p-6 space-y-4">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600">
-                Compania: <span className="font-bold text-slate-900">{paymentCompany.name}</span><br/>
-                IBAN: <span className="font-mono font-bold text-indigo-600">{paymentCompany.iban || 'Fără cont salvat'}</span>
+            <div className="p-4 space-y-3 text-xs">
+              <p className="text-gray-600">Se vor adăuga direct <strong>30 de zile</strong> de abonament activ pentru firma: <strong className="text-gray-900">{paymentModalCompany.name}</strong></p>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Sumă Încasată (MDL)</label>
+                <input type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="w-full p-2 border border-gray-300 rounded-sm font-mono font-bold" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Sumă Transfer (MDL)</label>
-                  <input type="text" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold font-mono text-slate-900" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Număr Factură Fiscală</label>
-                  <input type="text" placeholder="Ex: #102" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold font-mono text-slate-900" />
-                </div>
+              <div>
+                <label className="block font-semibold text-gray-700 mb-1">Număr Document / Factură</label>
+                <input type="text" placeholder="Ex: FACT-8902" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className="w-full p-2 border border-gray-300 rounded-sm" />
               </div>
             </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-              <button onClick={() => setPaymentCompany(null)} className="px-3 py-2 text-xs font-bold text-slate-500">Anulează</button>
-              <button onClick={handleRegisterPayment} className="px-4 py-2 bg-emerald-600 text-white text-xs font-black uppercase rounded-xl tracking-wider flex items-center gap-1">
-                <CheckCircle2 size={13}/> Activează 30 Zile & Salvează Factura
-              </button>
+            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-end gap-2 text-xs font-bold">
+              <button onClick={() => setPaymentModalCompany(null)} className="px-3 py-1.5 text-gray-500 hover:underline">Anulează</button>
+              <button onClick={handleSavePayment} className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-sm">Confirmă Încasarea & Activează</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* --- POP-UP MODAL 2: DATE COMPANIE --- */}
-      {selectedCompanyForDetails && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-100">
-            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+      {/* MODAL CLASIC 2: FIȘĂ DATE COMPANIE */}
+      {selectedCompany && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-md max-w-md w-full shadow-lg border border-gray-300 overflow-hidden">
+            <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 font-bold text-sm text-gray-800 flex justify-between items-center">
+              <span>Date de Identificare Legală</span>
+              <button onClick={() => setSelectedCompany(null)} className="text-gray-500 hover:text-gray-800"><X size={16}/></button>
+            </div>
+            <div className="p-4 space-y-3 text-xs">
               <div>
-                <h3 className="text-base font-black">{selectedCompanyForDetails.name}</h3>
-                <p className="text-[11px] text-slate-400 font-medium">Setări complete, IDNO și Istoric Încasări</p>
+                <span className="text-gray-400 block uppercase font-semibold text-[10px]">Denumire Oficială:</span>
+                <span className="font-bold text-gray-900 text-sm">{selectedCompany.name}</span>
               </div>
-              <button onClick={() => setSelectedCompanyForDetails(null)} className="p-1.5 bg-slate-800 rounded-lg text-slate-300"><X size={14}/></button>
+              <div>
+                <span className="text-gray-400 block uppercase font-semibold text-[10px]">IDNO (Cod Fiscal):</span>
+                <span className="font-mono text-gray-950 font-semibold">{selectedCompany.idno || 'Nespecificat'}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase font-semibold text-[10px]">Cont de Decontare (IBAN):</span>
+                <span className="font-mono text-gray-950 font-semibold">{selectedCompany.iban || 'Nespecificat'}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase font-semibold text-[10px]">Administrator Executiv:</span>
+                <span className="text-gray-950 font-semibold">{selectedCompany.administrator || 'Nespecificat'}</span>
+              </div>
+              <div>
+                <span className="text-gray-400 block uppercase font-semibold text-[10px]">Adresă Sediu Social:</span>
+                <span className="text-gray-700">{selectedCompany.legal_address || 'Nespecificată'}</span>
+              </div>
             </div>
-
-            <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">IDNO / Cod Fiscal</p>
-                  <p className="text-xs font-mono font-bold text-slate-900 mt-1">{selectedCompanyForDetails.idno || selectedCompanyForDetails.fiscal_code || 'Nespecificat'}</p>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Administrator</p>
-                  <p className="text-xs font-bold text-slate-900 mt-1">{selectedCompanyForDetails.administrator || selectedCompanyForDetails.owner_name || 'Nespecificat'}</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Adresă Juridică</p>
-                <p className="text-xs font-semibold text-slate-800 mt-1">{selectedCompanyForDetails.legal_address || selectedCompanyForDetails.address || 'Nespecificat'}</p>
-              </div>
-
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 space-y-2">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cont Bancar (IBAN)</p>
-                  <p className="text-xs font-mono font-bold text-indigo-600 tracking-wide">{selectedCompanyForDetails.iban || 'Nespecificat'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 border-t border-slate-200/60 pt-2">
-                  <div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase">Bancă</p>
-                    <p className="text-xs font-bold text-slate-800">{selectedCompanyForDetails.bank_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase">Telefon Contact</p>
-                    <p className="text-xs font-bold text-slate-800">{selectedCompanyForDetails.phone || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-200">
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1 mb-3"><Receipt size={14} className="text-slate-500" /> Istoric Plăți și Facturi Fiscale înregistrate</h4>
-                
-                <div className="space-y-2">
-                  {paymentHistory.filter(p => p.company_id === selectedCompanyForDetails.id).length === 0 ? (
-                    <p className="text-xs font-medium text-slate-400 italic bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">Nicio plată prin transfer înregistrată până acum pentru acest client juridic.</p>
-                  ) : (
-                    paymentHistory.filter(p => p.company_id === selectedCompanyForDetails.id).map((payment, idx) => (
-                      <div key={idx} className="p-3 bg-emerald-50/40 border border-emerald-100 rounded-xl flex justify-between items-center text-xs">
-                        <div>
-                          <p className="font-bold text-slate-900 flex items-center gap-1"><Coins size={11} className="text-emerald-600"/> {payment.amount} MDL</p>
-                          <p className="text-[10px] font-mono text-slate-400 mt-0.5">Factura: <span className="text-slate-700 font-bold">{payment.invoice_number}</span></p>
-                        </div>
-                        <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-100/60 px-2 py-0.5 rounded-md">
-                          {payment.paid_at ? new Date(payment.paid_at).toLocaleDateString('ro-RO') : 'N/A'}
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-            </div>
-
-            <div className="p-4 bg-slate-50 border-t border-slate-100 text-right">
-              <button onClick={() => setSelectedCompanyForDetails(null)} className="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl">Închide Fereastra</button>
+            <div className="bg-gray-50 px-4 py-3 border-t border-gray-200 text-right">
+              <button onClick={() => setSelectedCompany(null)} className="px-4 py-1.5 bg-gray-800 hover:bg-gray-900 text-white font-bold text-xs rounded-sm">Închide Fișa</button>
             </div>
           </div>
         </div>

@@ -6,6 +6,12 @@ export const generateInvoicePDF = (userData: any, billingData: any) => {
   const date = new Date().toLocaleDateString('ro-RO');
   const invoiceNumber = `QR-${Math.floor(1000 + Math.random() * 9000)}`;
 
+  // LOGICA CORECTATĂ: Start = 650 MDL, Pro = 600 MDL
+  const isStart = userData?.plan === 'START';
+  const planName = billingData?.planName || (isStart ? 'Abonament QRate Start (1 Lună)' : 'Abonament QRate Pro (1 Lună)');
+  const planPrice = billingData?.totalAmount || (isStart ? '650.00' : '600.00');
+  const formattedPrice = `${planPrice} MDL`;
+
   // 1. Header - Numele Platformei
   doc.setFontSize(20);
   doc.setTextColor(15, 23, 42); // Slate 900
@@ -31,14 +37,14 @@ export const generateInvoicePDF = (userData: any, billingData: any) => {
   doc.text("CLIENT:", rightColumn, 45);
   doc.setFont("helvetica", "normal");
   
-  if (userData.is_legal_entity) {
+  if (userData?.is_legal_entity) {
     doc.text(userData.company_name || "Nume Companie", rightColumn, 50);
     doc.text(`IDNO: ${userData.idno || "-"}`, rightColumn, 55);
     doc.text(`Adresă: ${userData.company_address || "-"}`, rightColumn, 60);
     doc.text(`IBAN: ${userData.company_bank_account || "-"}`, rightColumn, 65);
   } else {
-    doc.text(userData.full_name || "Client Persoană Fizică", rightColumn, 50);
-    doc.text(userData.email || "", rightColumn, 55);
+    doc.text(userData?.full_name || "Client Persoană Fizică", rightColumn, 50);
+    doc.text(userData?.email || "", rightColumn, 55);
   }
 
   // 4. Detalii Factură (Număr, Dată)
@@ -47,22 +53,22 @@ export const generateInvoicePDF = (userData: any, billingData: any) => {
   doc.text(`Nr. Factură: ${invoiceNumber}`, 14, 85);
   doc.text(`Data: ${date}`, rightColumn, 85);
 
-  // 5. Tabel Servicii
+  // 5. Tabel Servicii (Configurat corect cu noile prețuri)
   autoTable(doc, {
     startY: 95,
     head: [['Serviciu', 'Cantitate', 'Preț Unitar', 'Total']],
     body: [
-      ['Abonament QRate Pro (1 Lună)', '1', '499.00 MDL', '499.00 MDL'],
+      [planName, '1', formattedPrice, formattedPrice],
     ],
-    headStyles: { fillStyle: 'fill', fillColor: [15, 23, 42], textColor: [255, 255, 255] },
+    headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255] },
     alternateRowStyles: { fillColor: [250, 250, 250] },
   });
 
-  // 6. Total
+  // 6. Total Dinamic
   const finalY = (doc as any).lastAutoTable.finalY + 10;
   doc.setFontSize(12);
   doc.setFont("helvetica", "bold");
-  doc.text(`TOTAL DE PLATĂ: 499.00 MDL`, 140, finalY);
+  doc.text(`TOTAL DE PLATĂ: ${formattedPrice}`, 140, finalY);
 
   // 7. Footer / Notă
   doc.setFontSize(8);
