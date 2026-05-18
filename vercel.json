@@ -1,16 +1,1 @@
-{
-  "cleanUrls": true,
-  "framework": "nextjs",
-  "routes": [
-    {
-      "src": "/_next/(.*)",
-      "dest": "/_next/$1",
-      "check": true
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1",
-      "check": true
-    }
-  ]
-}
+{}
