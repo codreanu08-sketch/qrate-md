@@ -1,8 +1,12 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 
-// Inițializăm Resend cu cheia din .env
-const resend = new Resend(process.env.RESEND_API_KEY);
+// 1. Împiedicăm Next.js să pre-randeze această rută la build
+export const dynamic = 'force-dynamic';
+
+// 2. Safe-guard pentru inițializare: dacă cheia nu există la build, punem un string placeholder temporar
+const apiKey = process.env.RESEND_API_KEY || 're_placeholder_key';
+const resend = new Resend(apiKey);
 
 export async function POST(request: Request) {
   try {
@@ -12,14 +16,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Emailul și conținutul PDF sunt obligatorii.' }, { status: 400 });
     }
 
-    // Curățăm stringul Base64 dacă conține prefixul de tip Data URL (ex: data:application/pdf;base64,)
-    const cleanBase64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64;
+    // Verificare la runtime pentru producție
+    if (!process.env.RESEND_API_KEY) {
+      console.error("❌ RESEND_API_KEY lipsește din variabilele de mediu!");
+      return NextResponse.json({ error: 'Configurare server incompletă.' }, { status: 500 });
+    }
 
-    // Convertim string-ul base64 într-un Buffer pentru stabilitatea atașamentului
+    // Curățăm stringul Base64 dacă conține prefixul de tip Data URL
+    const cleanBase64 = pdfBase64.includes(',') ? pdfBase64.split(',')[1] : pdfBase64;
     const pdfBuffer = Buffer.from(cleanBase64, 'base64');
 
     const data = await resend.emails.send({
-      from: 'QRate <onboarding@resend.dev>', // Până verifici domeniul qrate.md, lasă așa
+      from: 'QRate <onboarding@resend.dev>', // Modifică după ce verifici domeniul qrate.md
       to: [email],
       subject: `Factură Fiscală ${invoiceNumber || ''} - QRate.md`,
       html: `
@@ -35,7 +43,7 @@ export async function POST(request: Request) {
       attachments: [
         {
           filename: `Factura_${invoiceNumber || 'Noua'}.pdf`,
-          content: pdfBuffer, // Folosirea unui Buffer previne coruperea fișierului PDF la recepție
+          content: pdfBuffer,
         },
       ],
     });
