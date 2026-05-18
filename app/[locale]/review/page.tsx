@@ -1,9 +1,9 @@
 'use client';
 
-// 1. Importăm useParams pentru a citi limba din URL (/ru/ sau /ro/)
+import * as React from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase'; // Asigură-te că exportul din acest fișier folosește createBrowserClient sau clientul standard de browser
 
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
@@ -14,23 +14,43 @@ import {
 } from 'lucide-react';
 
 export default function AdminReviewsPage() {
-  const params = useParams();
+  const unwrappedParams = useParams();
   const router = useRouter();
   const pathname = usePathname();
   
-  // 2. Determină limba direct din URL. Dacă URL-ul e /ru/..., lang va fi 'ru'
-  const lang = (params?.locale as 'ro' | 'ru') || 'ru';
+  // Determinăm limba curentă în siguranță
+  const lang = (unwrappedParams?.locale as 'ro' | 'ru') || 'ro';
   
-  // 3. Selectăm mesajele. t va deveni automat obiectul din ru.json dacă ești pe /ru/
+  // Selectăm traducerile corespunzătoare limbii active
   const messages = useMemo(() => (lang === 'ro' ? ro : ru), [lang]);
-  const t = messages.AdminReviews;
   
-  // FUNCȚIE PENTRU SCHIMBAREA LIMBII (Navigare reală)
+  // Adăugăm fallback-uri de siguranță pentru a preveni erorile de tip undefined la build
+  const t = messages?.AdminReviews || {
+    title: 'Recenzii',
+    subtitle: 'Administrare',
+    export_btn: 'Export',
+    filter_title: 'Filtre',
+    general_tag: 'General',
+    loading_db: 'Se încarcă...',
+    no_results: 'Nu s-au găsit rezultate',
+    page_label: 'Pagina',
+    labels: { location: 'Locație', employee: 'Angajat', period: 'Perioadă' },
+    options: { all_locs: 'Toate locațiile', all_emps: 'Toți angajații', '7d': 'Ultimele 7 zile', '1m': 'Ultima lună', '3m': 'Ultimele 3 luni', custom: 'Personalizat' }
+  };
+
+  const dashboardFeedMessages = messages?.Dashboard?.feed || { no_comment: 'Fără comentariu' };
+  
+  // FUNCȚIE REPARATĂ PENTRU SCHIMBAREA LIMBII (Schimbă doar primul segment din URL)
   const toggleLanguage = () => {
     const newLang = lang === 'ro' ? 'ru' : 'ro';
-    // Înlocuiește /ro/ cu /ru/ în URL-ul curent
-    const newPath = pathname.replace(`/${lang}`, `/${newLang}`);
-    router.push(newPath);
+    const segments = pathname.split('/');
+    // Primul segment după bară (index 1) este [locale]
+    if (segments[1] === 'ro' || segments[1] === 'ru') {
+      segments[1] = newLang;
+    } else {
+      segments.splice(1, 0, newLang);
+    }
+    router.push(segments.join('/'));
   };
 
   const [reviews, setReviews] = useState<any[]>([]);
@@ -112,7 +132,7 @@ export default function AdminReviewsPage() {
   return (
     <div className="min-h-screen bg-[#F1F5F9] p-4 md:p-10 font-sans text-slate-900">
       
-      {/* BUTON SCHIMBARE LIMBA - Acum schimbă URL-ul */}
+      {/* BUTON SCHIMBARE LIMBA */}
       <div className="max-w-7xl mx-auto flex justify-end mb-4">
         <button 
           onClick={toggleLanguage}
@@ -134,8 +154,6 @@ export default function AdminReviewsPage() {
           <Download size={20} /> {t.export_btn}
         </button>
       </div>
-
-      {/* ... restul codului ramane identic, folosind variabila 't' si 'lang' ... */}
       
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="lg:col-span-1 space-y-4">
@@ -146,40 +164,40 @@ export default function AdminReviewsPage() {
 
             <div className="space-y-6">
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels.location}</label>
+                <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels?.location}</label>
                 <select 
                   value={selLocation} 
                   onChange={(e) => setSelLocation(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 px-4 font-bold text-slate-700 transition-all outline-none"
                 >
-                  <option value="all">{t.options.all_locs}</option>
+                  <option value="all">{t.options?.all_locs}</option>
                   {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels.employee}</label>
+                <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels?.employee}</label>
                 <select 
                   value={selEmployee}
                   onChange={(e) => setSelEmployee(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 px-4 font-bold text-slate-700 transition-all outline-none"
                 >
-                  <option value="all">{t.options.all_emps}</option>
+                  <option value="all">{t.options?.all_emps}</option>
                   {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels.period}</label>
+                <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels?.period}</label>
                 <select 
                   value={selPeriod}
                   onChange={(e) => setSelPeriod(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 px-4 font-bold text-slate-700 transition-all outline-none"
                 >
-                  <option value="7d">{t.options['7d']}</option>
-                  <option value="1m">{t.options['1m']}</option>
-                  <option value="3m">{t.options['3m']}</option>
-                  <option value="custom">{t.options.custom}</option>
+                  <option value="7d">{t.options?.['7d']}</option>
+                  <option value="1m">{t.options?.['1m']}</option>
+                  <option value="3m">{t.options?.['3m']}</option>
+                  <option value="custom">{t.options?.custom}</option>
                 </select>
               </div>
 
@@ -228,7 +246,7 @@ export default function AdminReviewsPage() {
                         </div>
                         
                         <p className="text-slate-700 text-lg font-semibold leading-relaxed mb-6 italic group-hover:text-slate-900 transition-colors">
-                          "{rev.comment || messages.Dashboard.feed.no_comment}"
+                          "{rev.comment || dashboardFeedMessages.no_comment}"
                         </p>
 
                         <div className="flex flex-wrap gap-2">
