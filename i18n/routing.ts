@@ -4,7 +4,7 @@ import { defineRouting } from 'next-intl/routing';
 export const routing = defineRouting({
   locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  localePrefix: 'as-needed', 
+  localePrefix: 'always', 
   
   // Eliminăm traducerile de rute pentru a folosi căile standard
   pathnames: {
