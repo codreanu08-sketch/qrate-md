@@ -12,7 +12,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // 1. Inițializăm clientul Supabase în Middleware pentru actualizarea cookie-urilor
+  // Am adăugat tipul explicit pentru parametri ca să nu mai urle TypeScript
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xtsecrskyoswwulkhgll.supabase.co',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0c2VjcnNreW9zd3d1bGtoZ2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTE0MzUsImV4cCI6MjA5MzYyNzQzNX0.FdNFWdUPfrjTd1xTX_FdHuzcNtekh3SWXvGhjWvkn8E',
@@ -21,8 +21,8 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+        setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({
             request,
           });
@@ -32,10 +32,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Reîmprospătăm sesiunea Supabase (important pentru login stabil)
   await supabase.auth.getUser();
 
-  // 2. Logica de Redirecționare pentru Limbi (i18n)
+  const url = request.nextUrl.clone();
   const { pathname } = request.nextUrl;
   
   const pathnameHasLocale = locales.some(
@@ -43,10 +42,7 @@ export async function middleware(request: NextRequest) {
   );
 
   if (!pathnameHasLocale) {
-    // Dacă lipsește /ro sau /en, îl redirecționăm adăugând limba implicită
     url.pathname = `/${defaultLocale}${pathname}`;
-    
-    // Păstrăm cookie-urile Supabase în timpul redirecționării
     const redirectResponse = NextResponse.redirect(url);
     response.cookies.getAll().forEach((cookie) => {
       redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
@@ -58,7 +54,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Ignorăm fișierele statice, imaginile și rutele API
   matcher: [
     '/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js|site.webmanifest|.*\\..*).*)',
   ],
