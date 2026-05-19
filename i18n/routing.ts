@@ -5,7 +5,7 @@ import { createNavigation } from 'next-intl/navigation';
 export const routing = defineRouting({
   locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  localePrefix: 'always',                    // ← SCHIMBAT LA ALWAYS (oprește loop-ul)
+  localePrefix: 'always',
   pathnames: {
     '/': '/',
     '/auth/login': '/auth/login',
@@ -14,13 +14,8 @@ export const routing = defineRouting({
   }
 });
 
-export const { 
-  Link, 
-  redirect, 
-  usePathname, 
-  useRouter, 
-  getPathname 
-} = createNavigation(routing);
+export const { Link, redirect, usePathname, useRouter, getPathname } = 
+  createNavigation(routing);
 
 export const locales = routing.locales;
 export default routing;
