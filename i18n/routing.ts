@@ -5,7 +5,7 @@ import { createNavigation } from 'next-intl/navigation';
 export const routing = defineRouting({
   locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  localePrefix: 'as-needed',
+  localePrefix: 'always',                    // ← SCHIMBAT LA ALWAYS (oprește loop-ul)
   pathnames: {
     '/': '/',
     '/auth/login': '/auth/login',
