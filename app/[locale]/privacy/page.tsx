@@ -1,60 +1,95 @@
 import React from 'react';
-import { Shield, Eye, Lock, Share2, UserCheck, Clock } from 'lucide-react';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Zap, Mail } from 'lucide-react';
 
-export function PrivacyRo() {
+// Importăm componentele cu acolade pentru că ele folosesc export numit (export function)
+import { PrivacyRo } from './privacy-ro';
+import { PrivacyRu } from './privacy-ru';
+
+interface Props {
+  params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params;
+  const isRu = locale === 'ru';
+  
+  const title = isRu 
+    ? 'Политика конфиденциальности и защита данных | QRate.md' 
+    : 'Politica de Confidențialitate | Protecția Datelor | QRate.MD';
+    
+  const description = isRu
+    ? 'Политика конфиденциальности платформы QRate.md. Узнайте, как мы защищаем ваши данные в соответствии с Законом № 133/2011 в Молдове.'
+    : 'Politica de confidențialitate și securitate a datelor pentru platforma QRate.md. Informații despre stocarea în siguranță conform Legii nr. 133/2011 în RM.';
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    alternates: {
+      canonical: `https://qrate.md/${locale}/privacy`,
+      languages: {
+        'ro': 'https://qrate.md/ro/privacy',
+        'ru': 'https://qrate.md/ru/privacy',
+      },
+    },
+  };
+}
+
+// EXPORT DEFAULT OBLIGATORIU - Fără asta Next.js dă eroarea "Failed to type check"
+export default async function PrivacyPage({ params }: Props) {
+  const { locale } = await params;
+
+  if (locale !== 'ro' && locale !== 'ru') {
+    notFound();
+  }
+
+  const isRu = locale === 'ru';
+
   return (
-    <>
-      <article className="mb-16 space-y-4">
-        <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-          <Shield size={14} /> Protecția Datelor (Legea 133/2011)
-        </div>
-        <h1 className="text-5xl font-[900] tracking-tighter text-slate-950 uppercase leading-none">
-          Politica de <br /><span className="text-emerald-600 italic">Confidențialitate</span>
-        </h1>
-        <p className="text-slate-500 font-medium italic">
-          Protejăm datele afacerii tale cu rigoare bancară.
-        </p>
-      </article>
-
-      <div className="space-y-12 text-slate-600 leading-relaxed text-[15px]">
-        <section className="space-y-4">
-          <h2 className="flex items-center gap-3 text-xl font-black text-slate-950 uppercase tracking-tighter">
-            <Eye className="text-emerald-600" size={20} /> 1. Categorii de Date Colectate
-          </h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-slate-50 p-5 rounded-2xl">
-              <h3 className="font-bold text-slate-950 text-sm uppercase mb-2">Date de Cont</h3>
-              <p className="text-xs">
-                Nume administrator, email, parola criptată (hash) și denumirea brandului.
-              </p>
+    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+      
+      {/* HEADER */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
+        <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link href={`/${locale}/dashboard`} className="flex items-center gap-2 group">
+            <div className="bg-emerald-600 p-2 rounded-xl">
+              <Zap className="text-white fill-white" size={16} />
             </div>
-            <div className="bg-slate-50 p-5 rounded-2xl">
-              <h3 className="font-bold text-slate-950 text-sm uppercase mb-2">Date Fiscale</h3>
-              <p className="text-xs">
-                IDNO, Adresa Juridică și IBAN (necesare exclusiv pentru abonamentele plătite).
-              </p>
+            <span className="text-lg font-black uppercase tracking-tighter italic">
+              QRate<span className="text-emerald-600">.MD</span>
+            </span>
+          </Link>
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+            {isRu ? 'Конфиденциальность v2026.1' : 'Confidențialitate v2026.1'}
+          </span>
+        </div>
+      </nav>
+
+      {/* CONTINUT DINAMIC */}
+      <main className="max-w-4xl mx-auto px-6 pt-32 pb-24">
+        
+        {isRu ? <PrivacyRu /> : <PrivacyRo />}
+
+        {/* FOOTER */}
+        <div className="mt-20 pt-10 border-t border-slate-100 flex flex-col md:flex-row justify-between gap-8">
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+              {isRu ? 'Юридическая информация и поддержка' : 'Juridic & Suport'}
+            </p>
+            <div className="flex gap-4 text-slate-900 items-center">
+              <Mail size={16}/> <span className="text-xs font-bold uppercase tracking-widest text-emerald-600">hello@qrate.md</span>
             </div>
           </div>
-        </section>
-
-        <section className="space-y-4 border-l-4 border-emerald-600 pl-6 py-2">
-          <h2 className="text-xl font-black text-slate-950 uppercase tracking-tighter">
-            2. Baza Legală a Prelucrării
-          </h2>
-          <p className="text-sm">
-            Prelucrăm datele dumneavoastră în conformitate cu <strong>Legea nr. 133/2011</strong> privind protecția datelor cu caracter personal din Republica Moldova.
+          <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.5em] self-center">
+            QRate Moldova • QR SOLUTIONS GROUP
           </p>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="flex items-center gap-3 text-xl font-black text-slate-950 uppercase tracking-tighter">
-            <Lock className="text-emerald-600" size={20} /> 3. Securitatea Datelor
-          </h2>
-          <p>
-            Toate conexiunile către <strong>QRate.MD</strong> sunt securizate prin protocolul <strong>HTTPS (SSL/TLS)</strong> cu politici stricte Row Level Security (RLS) în Supabase.
-          </p>
-        </section>
-      </div>
-    </>
+        </div>
+      </main>
+    </div>
   );
 }
