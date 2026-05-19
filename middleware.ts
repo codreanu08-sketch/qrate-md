@@ -2,17 +2,17 @@ import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// 1. Configurația pentru limbi (next-intl)
+// 1. Configurația de bază pentru next-intl
 const intlMiddleware = createMiddleware({
   locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  localePrefix: 'always' // Forțează prefixul /ro/ sau /ru/ în URL
+  localePrefix: 'always' // Forțează prefixul /ro/ sau /ru/ în URL-ul din browser
 });
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Ignoră fișierele statice, imaginile, api-ul și supabase ca să nu facă buclă
+  // 2. Ignoră fișierele statice, rutele API și procesele interne ca să eviți buclele infinite (infinite loops)
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
@@ -22,11 +22,11 @@ export default function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Lasă next-intl să se ocupe de rutare și limbi
+  // 3. Permite next-intl să gestioneze redirecționarea de limbă pentru restul paginilor
   return intlMiddleware(request);
 }
 
-// Configul obligatoriu pentru a intercepta toate rutele din aplicație
+// 4. Matcher-ul obligatoriu pentru a intercepta toate rutele din aplicație
 export const config = {
   matcher: ['/((?!_next|api|.*\\.).*)'],
 };
