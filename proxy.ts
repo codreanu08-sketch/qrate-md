@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-// Adăugat 'ru' în listă pentru a se potrivi cu paginile tale din [locale]
-const locales = ['ro', 'ru', 'en']; 
+// Adăugăm și 'ru' pentru că ai pagini de privacy în rusă în proiect
+const locales = ['ro', 'ru', 'en'];
 const defaultLocale = 'ro';
 
-// NU schimba numele în proxy! Next.js cere strict exportul funcției 'middleware'
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -38,10 +37,12 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const { pathname } = request.nextUrl;
   
+  // Verificăm dacă URL-ul are deja o limbă setată corect
   const pathnameHasLocale = locales.some(
     (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
   );
 
+  // Dacă utilizatorul a scris simplu qrate.md/privacy, îl redirecționăm automat la /ro/privacy
   if (!pathnameHasLocale) {
     url.pathname = `/${defaultLocale}${pathname}`;
     const redirectResponse = NextResponse.redirect(url);
@@ -56,6 +57,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    // Rulează proxy-ul pe toate rutele, mai puțin pe fișiere statice și API-uri
     '/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js|site.webmanifest|.*\\..*).*)',
   ],
 };
