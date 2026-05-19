@@ -6,7 +6,7 @@ import {
   Send, BarChart3, Globe, Cookie, ShieldCheck, LogOut, 
   LayoutDashboard, ShieldAlert, BellRing
 } from 'lucide-react';
-import { Link, usePathname, useRouter, locales } from '@/i18n/config'; 
+import { Link, usePathname, useRouter, locales } from '@/i18n/routing';   // ← SCHIMBAT AICI
 import { useTranslations, useLocale } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 
@@ -33,12 +33,9 @@ export default function LandingPage() {
     if (stickerCount < 500) setStickerCount(500);
   };
 
-  // Planul Start este strict pentru 1 singură locație
   const isStartPlan = locs === 1;
-  // Planul Pro se activează automat dacă sunt mai multe locații
   const isProPlan = locs > 1;
 
-  // Calcul tarife reflectând eliminarea angajaților extra
   const startBaseCost = 650;
   const proBaseCostPerLocation = 600;
 
@@ -54,7 +51,6 @@ export default function LandingPage() {
     router.replace(pathname, { locale: newLocale });
   };
 
-  // --- HOOK USER ȘI COOKIES ---
   useEffect(() => {
     let isMounted = true;
 
@@ -94,7 +90,6 @@ export default function LandingPage() {
     router.refresh();
   };
 
-  // --- HOOK NOTIFICĂRI OPTIMIZAT CU CLEANUP ---
   useEffect(() => {
     let notificationTimer: NodeJS.Timeout;
     
@@ -112,7 +107,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
       
-      {/* HEADER SEMANTIC PENTRU SEO */}
+      {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-center p-4">
         <nav className="max-w-7xl w-full bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[2rem] px-8 h-20 flex items-center justify-between transition-all" aria-label="Navigare Principală">
           <div className="flex items-center gap-2 group cursor-pointer">
@@ -160,7 +155,7 @@ export default function LandingPage() {
       </header>
 
       <main className="pt-20">
-        {/* --- HERO SECTION --- */}
+        {/* HERO SECTION */}
         <section className="pt-36 pb-24 px-6 text-center">
           <div className="max-w-5xl mx-auto space-y-10">
             <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em] animate-bounce">
@@ -179,7 +174,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* --- SECȚIUNEA SERVICII --- */}
+        {/* SERVICII */}
         <section id="servicii" className="py-24 px-6 bg-white relative overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20 space-y-4">
@@ -206,7 +201,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* --- DEMO VIZUAL --- */}
+        {/* DEMO VIZUAL */}
         <section id="vizual-demo" className="py-32 px-6 scroll-mt-24">
           <div className="max-w-6xl mx-auto">
             <div className="bg-slate-950 rounded-[4rem] p-8 md:p-20 overflow-hidden relative border border-white/5 shadow-2xl">
@@ -264,7 +259,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* --- SECȚIUNEA CONFIGURATOR ȘI TARIFE --- */}
+        {/* PRETURI + CONFIGURATOR */}
         <section id="preturi" className="py-32 px-6 scroll-mt-24 bg-slate-50/50">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
@@ -274,7 +269,6 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Configurator */}
             <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col md:flex-row items-center justify-around gap-8 mb-12">
               <div className="flex flex-col items-center w-full md:w-auto">
                 <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">{t('pricing.configurator.locations')}</span>
@@ -285,14 +279,12 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Indicator Dinamic Plan Pro */}
               <div className={`flex flex-col items-center transition-all duration-300 ${isProPlan ? 'opacity-100 scale-110 text-blue-600' : 'opacity-20 grayscale'}`}>
                 <ShieldCheck size={40} />
                 <span className="text-[9px] font-black uppercase mt-2 tracking-tighter">PRO PLAN ACTIVATED</span>
               </div>
             </div>
 
-            {/* Stickere */}
             <div className={`transition-all duration-500 p-6 rounded-[2.5rem] shadow-lg flex flex-col md:flex-row items-center gap-6 mb-12 border-b-4 ${isStickersAdded ? 'bg-blue-600 text-white border-blue-800 scale-[1.01]' : 'bg-slate-900 text-white border-slate-700'}`}>
               <div className={`p-4 rounded-2xl ${isStickersAdded ? 'bg-white text-blue-600' : 'bg-blue-600'}`}><QrCode size={32} /></div>
               <div className="text-left flex-1">
@@ -314,10 +306,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Grid Planuri */}
             <div className="grid md:grid-cols-2 gap-10 items-stretch mb-16">
-              
-              {/* Card 1: Planul Start */}
               <article className={`p-12 rounded-[4rem] border-[4px] transition-all duration-500 bg-white relative flex flex-col justify-between ${isStartPlan ? 'border-blue-600 shadow-2xl scale-[1.02] z-10 opacity-100' : 'border-slate-100 opacity-60'}`}>
                 <div>
                   <div className="flex justify-between items-start mb-6">
@@ -344,25 +333,13 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <Link 
-                  href={
-                    isLoggedIn 
-                      ? { 
-                          pathname: '/dashboard', 
-                          query: { 
-                            setup: 'start', 
-                            locs: '1', 
-                            stickers: isStickersAdded ? stickerCount.toString() : '0' 
-                          } 
-                        } 
-                      : '/auth/register'
-                  } 
+                  href={isLoggedIn ? { pathname: '/dashboard', query: { setup: 'start', locs: '1', stickers: isStickersAdded ? stickerCount.toString() : '0' } } : '/auth/register'} 
                   className="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] shadow-lg shadow-blue-200 hover:bg-slate-950 transition-all text-center"
                 >
                   {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_register')}
                 </Link>
               </article>
 
-              {/* Card 2: Planul Pro */}
               <article className={`p-12 rounded-[4rem] border-[4px] transition-all duration-500 bg-slate-950 text-white relative flex flex-col justify-between ${isProPlan ? 'border-blue-500 shadow-2xl scale-[1.02] z-10 opacity-100' : 'border-transparent opacity-60'}`}>
                 <div>
                   <div className="flex justify-between items-start mb-6">
@@ -392,18 +369,7 @@ export default function LandingPage() {
                   </ul>
                 </div>
                 <Link 
-                  href={
-                    isLoggedIn 
-                      ? {
-                          pathname: '/dashboard',
-                          query: {
-                            setup: 'pro',
-                            locs: locs.toString(),
-                            stickers: isStickersAdded ? stickerCount.toString() : '0'
-                          }
-                        }
-                      : '/auth/register'
-                  } 
+                  href={isLoggedIn ? { pathname: '/dashboard', query: { setup: 'pro', locs: locs.toString(), stickers: isStickersAdded ? stickerCount.toString() : '0' } } : '/auth/register'} 
                   className="block w-full bg-white text-slate-950 py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] hover:bg-blue-600 hover:text-white transition-all text-center"
                 >
                   {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_choose')}
@@ -411,7 +377,6 @@ export default function LandingPage() {
               </article>
             </div>
 
-            {/* Total Estimativ */}
             <div className="max-w-md mx-auto bg-slate-900 border-b-4 border-blue-600 rounded-[2rem] p-6 text-white text-center shadow-2xl">
               <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{t('pricing.total.estimated_total')}</span>
               <h3 className="text-4xl font-black text-white mt-1">{grandTotal.toFixed(2)} MDL</h3>
@@ -423,7 +388,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* --- FOOTER --- */}
+      {/* FOOTER */}
       <footer className="bg-white border-t border-slate-100 pt-32 pb-16">
         <div className="max-w-7xl mx-auto px-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-20 mb-24">
@@ -438,21 +403,9 @@ export default function LandingPage() {
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.docs_title')}</h4>
               <nav aria-label="Documente Legale">
                 <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest">
-                  <li>
-                    <a href={`/${locale}/legal/terms`} className="hover:text-blue-600 transition-colors">
-                      {t('footer.terms')}
-                    </a>
-                  </li>
-                  <li>
-                    <a href={`/${locale}/legal/privacy`} className="hover:text-blue-600 transition-colors">
-                      {t('footer.privacy')}
-                    </a>
-                  </li>
-                  <li>
-                    <a href={`/${locale}/legal/refund`} className="hover:text-blue-600 transition-colors">
-                      {t('footer.refund_policy')}
-                    </a>
-                  </li>
+                  <li><a href={`/${locale}/legal/terms`} className="hover:text-blue-600 transition-colors">{t('footer.terms')}</a></li>
+                  <li><a href={`/${locale}/legal/privacy`} className="hover:text-blue-600 transition-colors">{t('footer.privacy')}</a></li>
+                  <li><a href={`/${locale}/legal/refund`} className="hover:text-blue-600 transition-colors">{t('footer.refund_policy')}</a></li>
                 </ul>
               </nav>
             </div>
@@ -477,7 +430,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* --- COOKIE CONSENT BANNER --- */}
+      {/* COOKIE BANNER */}
       {showCookieBanner && (
         <aside role="dialog" aria-live="polite" className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md bg-slate-900 text-white p-6 rounded-3xl shadow-[0_30px_60px_rgba(0,0,0,0.25)] border border-slate-800 z-50">
           <div className="flex items-start gap-4">
