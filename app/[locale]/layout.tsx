@@ -32,3 +32,8 @@ export default async function RootLayout({
     </html>
   );
 }
+
+// OBLIGATORIU LA NIVEL DE LAYOUT PENTRU NEXT.JS / VERCEL PRODUCTION BUILD
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
