@@ -1,20 +1,14 @@
-export default function TestPage() {
-  console.log('✅ [DEBUG] Pagina [locale]/page.tsx s-a încărcat cu succes!');
-  
+export default function Home() {
   return (
     <div style={{ 
-      padding: '100px', 
-      fontSize: '48px', 
+      padding: '80px 20px', 
+      fontSize: '42px', 
       textAlign: 'center',
-      background: '#0a0a0a',
+      background: '#111',
       color: 'white',
       minHeight: '100vh'
     }}>
-      ✅ QRate.MD - Test Page
-      <br />
-      <span style={{ fontSize: '24px', color: '#888' }}>
-        Dacă vezi asta → pagina funcționează!
-      </span>
+      ✅ QRate.MD FUNCȚIONEAZĂ!
     </div>
   );
 }
