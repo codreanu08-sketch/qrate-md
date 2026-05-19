@@ -9,7 +9,7 @@ import ro from '@/messages/ro.json';
 interface FeedbackFormProps {
   slug: string;
   locale: 'ro' | 'ru';
-  employeeId?: string; // <-- Corecție: Adăugat aici pentru a elimina eroarea de tip din build
+  employeeId?: string;
 }
 
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
@@ -102,7 +102,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         finalPhotoUrl = urlData.publicUrl;
       }
 
-      // Pregătim datele de inserat în tabela de recenzii.
       const reviewData = {
         company_slug: slug,
         rating: rating,
@@ -111,11 +110,9 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         email: formData.email,
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
-        // Dacă în baza de date ai nevoie și de salvat ID-ul angajatului, îl poți include opțional aici:
-        // employee_id: employeeId || null
+        employee_id: employeeId || null
       };
 
-      // 1. Salvăm recenzia în baza de date și cerem înapoi rândul inserat
       const { data: insertedReview, error: dbError } = await supabase
         .from('reviews')
         .insert([reviewData])
@@ -124,7 +121,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       if (dbError) throw dbError;
 
-      // 2. Coadă Asincronă pentru recenzii negative (1-3 stele)
       if (rating <= 3 && insertedReview) {
         const { error: queueError } = await supabase
           .from('telegram_messages_queue')
@@ -286,6 +282,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
               </label>
             ) : (
               <div className="relative w-full h-64 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl animate-in fade-in zoom-in-95">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 p-4">
                    <button 

@@ -4,23 +4,26 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import "@/app/globals.css";
 
-export default async function RootLayout({
+export default async function LocaleLayout({
   children,
-  params
+  params,
 }: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  // Așteptăm parametrul locale din URL
   const { locale } = await params;
 
-  // Verificăm dacă limba din URL este acceptată de aplicație
+  // Verificare strictă locale
   if (!routing.locales.includes(locale as any)) {
     notFound();
   }
 
-  // Încărcăm fișierul JSON corespunzător (ro.json sau ru.json)
-  const messages = await getMessages();
+  let messages;
+  try {
+    messages = await getMessages({ locale });
+  } catch (error) {
+    notFound();
+  }
 
   return (
     <html lang={locale} className="scroll-smooth">
@@ -33,7 +36,7 @@ export default async function RootLayout({
   );
 }
 
-// OBLIGATORIU LA NIVEL DE LAYOUT PENTRU NEXT.JS / VERCEL PRODUCTION BUILD
+// Important pentru Static Generation pe Vercel
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }

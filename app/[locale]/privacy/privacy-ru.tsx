@@ -6,7 +6,7 @@ export function PrivacyRu() {
     <>
       <article className="mb-16 space-y-4">
         <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-100">
-          <Shield size={14} /> Защита данных (Закон 133/2011)
+          <Shield size={14} /> Защита данных (Закон № 133/2011)
         </div>
         <h1 className="text-5xl font-[900] tracking-tighter text-slate-950 uppercase leading-none">
           Политика <br /><span className="text-emerald-600 italic">Конфиденциальности</span>
@@ -39,19 +39,19 @@ export function PrivacyRu() {
 
         <section className="space-y-4 border-l-4 border-emerald-600 pl-6 py-2">
           <h2 className="text-xl font-black text-slate-950 uppercase tracking-tighter">
-            2. Законные основания для обработки
+            2. Правовая основа обработки
           </h2>
           <p className="text-sm">
-            Мы обрабатываем ваши данные в соответствии с <strong>Законом № 133/2011</strong> о защите персональных данных в Республики Молдова.
+            Мы обрабатываем ваши данные в соответствии с <strong>Законом № 133/2011</strong> о защите персональных данных в Республике Молдова.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="flex items-center gap-3 text-xl font-black text-slate-950 uppercase tracking-tighter">
-            <Lock className="text-emerald-600" size={20} /> 3. Безопасность и шифрование данных
+            <Lock className="text-emerald-600" size={20} /> 3. Безопасность данных
           </h2>
           <p>
-            Все соединения с <strong>QRate.MD</strong> защищены протоколом <strong>HTTPS (SSL/TLS)</strong>. Данные хранятся в безопасных базах данных с Row Level Security (RLS) через Supabase.
+            Все соединения с <strong>QRate.MD</strong> защищены протоколом <strong>HTTPS (SSL/TLS)</strong> со строгими политиками Row Level Security (RLS) в Supabase.
           </p>
         </section>
       </div>
