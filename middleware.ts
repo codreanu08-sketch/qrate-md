@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-const locales = ['ro', 'en'];
+// Adăugat 'ru' în listă pentru a se potrivi cu paginile tale din [locale]
+const locales = ['ro', 'ru', 'en']; 
 const defaultLocale = 'ro';
 
-// Schimbat numele din middleware în proxy ca să se potrivească cu Next.js 16
-export async function proxy(request: NextRequest) {
+// NU schimba numele în proxy! Next.js cere strict exportul funcției 'middleware'
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
