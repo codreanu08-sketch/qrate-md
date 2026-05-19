@@ -285,9 +285,10 @@ export default function LandingPage() {
                 </div>
               </div>
 
+              {/* Indicator Dinamic Plan Pro */}
               <div className={`flex flex-col items-center transition-all duration-300 ${isProPlan ? 'opacity-100 scale-110 text-blue-600' : 'opacity-20 grayscale'}`}>
-                 <ShieldCheck size={40} />
-                 <span className="text-[9px] font-black uppercase mt-2 tracking-tighter">PRO PLAN ACTIVATED</span>
+                <ShieldCheck size={40} />
+                <span className="text-[9px] font-black uppercase mt-2 tracking-tighter">PRO PLAN ACTIVATED</span>
               </div>
             </div>
 
@@ -436,24 +437,24 @@ export default function LandingPage() {
             <div className="space-y-8">
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.docs_title')}</h4>
               <nav aria-label="Documente Legale">
-  <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest">
-    <li>
-      <a href={`/${locale}/legal/terms`} className="hover:text-blue-600 transition-colors">
-        {t('footer.terms')}
-      </a>
-    </li>
-    <li>
-      <a href={`/${locale}/legal/privacy`} className="hover:text-blue-600 transition-colors">
-        {t('footer.privacy')}
-      </a>
-    </li>
-    <li>
-      <a href={`/${locale}/legal/refund`} className="hover:text-blue-600 transition-colors">
-        {t('footer.refund_policy')}
-      </a>
-    </li>
-  </ul>
-</nav>
+                <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest">
+                  <li>
+                    <a href={`/${locale}/legal/terms`} className="hover:text-blue-600 transition-colors">
+                      {t('footer.terms')}
+                    </a>
+                  </li>
+                  <li>
+                    <a href={`/${locale}/legal/privacy`} className="hover:text-blue-600 transition-colors">
+                      {t('footer.privacy')}
+                    </a>
+                  </li>
+                  <li>
+                    <a href={`/${locale}/legal/refund`} className="hover:text-blue-600 transition-colors">
+                      {t('footer.refund_policy')}
+                    </a>
+                  </li>
+                </ul>
+              </nav>
             </div>
             <div className="space-y-8">
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.support_title')}</h4>
