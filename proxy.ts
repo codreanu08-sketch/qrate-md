@@ -5,14 +5,14 @@ import { createServerClient } from '@supabase/ssr';
 const locales = ['ro', 'en'];
 const defaultLocale = 'ro';
 
-export async function middleware(request: NextRequest) {
+// Schimbat numele din middleware în proxy ca să se potrivească cu Next.js 16
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
-  // Am adăugat tipul explicit pentru parametri ca să nu mai urle TypeScript
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xtsecrskyoswwulkhgll.supabase.co',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0c2VjcnNreW9zd3d1bGtoZ2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTE0MzUsImV4cCI6MjA5MzYyNzQzNX0.FdNFWdUPfrjTd1xTX_FdHuzcNtekh3SWXvGhjWvkn8E',
