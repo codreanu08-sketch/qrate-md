@@ -5,7 +5,7 @@ import { createNavigation } from 'next-intl/navigation';
 export const routing = defineRouting({
   locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  localePrefix: 'as-needed',        // esențial pentru ca qrate.md să meargă direct
+  localePrefix: 'always',                    // ← SCHIMBAT LA ALWAYS
   pathnames: {
     '/': '/',
     '/auth/login': '/auth/login',
