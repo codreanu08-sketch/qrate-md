@@ -495,3 +495,8 @@ export default function LandingPage() {
     </div>
   );
 }
+
+// OBLIGATORIU PENTRU VERCEL / NEXT.JS PRODUCTION BUILD
+export function generateStaticParams() {
+  return [{ locale: 'ro' }, { locale: 'ru' }];
+}
