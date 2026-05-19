@@ -5,12 +5,15 @@ import { Zap, Mail } from 'lucide-react';
 import { RefundRo } from './refund-ro';
 import { RefundRu } from './refund-ru';
 
-interface Props {
+// Interfața actualizată conform standardelor Next.js 16 pentru parametri asincroni
+interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
-export async function generateMetadata({ params }: Props) {
-  const { locale } = await params;
+// Generarea metadatelor indexabile
+export async function generateMetadata(props: PageProps) {
+  const params = await props.params;
+  const locale = params.locale;
   const isRu = locale === 'ru';
   
   const title = isRu 
@@ -38,9 +41,12 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-export default async function RefundPage({ params }: Props) {
-  const { locale } = await params;
+// Componenta principală a paginii
+export default async function RefundPage(props: PageProps) {
+  const params = await props.params;
+  const locale = params.locale;
 
+  // Securitate împotriva limbilor nesuportate
   if (locale !== 'ro' && locale !== 'ru') {
     notFound();
   }
@@ -70,6 +76,7 @@ export default async function RefundPage({ params }: Props) {
       {/* CONTINUT INDEXABIL */}
       <main className="max-w-4xl mx-auto px-6 pt-32 pb-24">
         
+        {/* Randerare dinamică în funcție de limbă */}
         {isRu ? <RefundRu /> : <RefundRo />}
 
         {/* FOOTER DETALII */}
