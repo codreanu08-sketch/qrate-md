@@ -3,13 +3,24 @@ import { defineRouting } from 'next-intl/routing';
 import { createNavigation } from 'next-intl/navigation';
 
 export const routing = defineRouting({
-  locales: ['ro'],
+  locales: ['ro', 'ru'],
   defaultLocale: 'ro',
-  localePrefix: 'never',           // ← cea mai simplă variantă
+  localePrefix: 'as-needed',
+  pathnames: {
+    '/': '/',
+    '/auth/login': '/auth/login',
+    '/auth/register': '/auth/register',
+    '/dashboard': '/dashboard'
+  }
 });
 
-export const { Link, redirect, usePathname, useRouter, getPathname } = 
-  createNavigation(routing);
+export const { 
+  Link, 
+  redirect, 
+  usePathname, 
+  useRouter, 
+  getPathname 
+} = createNavigation(routing);
 
 export const locales = routing.locales;
 export default routing;
