@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Zap, Mail } from 'lucide-react';
+import { Metadata } from 'next'; // <--- IMPORTĂM TIPUL METADATA
 
 // Importăm componentele cu acolade pentru că ele folosesc export numit (export function)
 import { PrivacyRo } from './privacy-ro';
@@ -11,7 +12,8 @@ interface Props {
   params: Promise<{ locale: string }>;
 }
 
-export async function generateMetadata({ params }: Props) {
+// ADĂUGĂM TIPUL DE RETURNARE : Promise<Metadata>
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const isRu = locale === 'ru';
   
@@ -40,7 +42,7 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-// EXPORT DEFAULT OBLIGATORIU - Fără asta Next.js dă eroarea "Failed to type check"
+// EXPORT DEFAULT OBLIGATORIU
 export default async function PrivacyPage({ params }: Props) {
   const { locale } = await params;
 
