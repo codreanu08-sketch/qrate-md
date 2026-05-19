@@ -1,55 +1,32 @@
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
 
-const locales = ['ro', 'ru', 'en']; // Adăugat 'ru' obligatoriu
-const defaultLocale = 'ro';
+// 1. Configurația pentru limbi (next-intl)
+const intlMiddleware = createMiddleware({
+  locales: ['ro', 'ru'],
+  defaultLocale: 'ro',
+  localePrefix: 'always' // Forțează prefixul /ro/ sau /ru/ în URL
+});
 
-export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://xtsecrskyoswwulkhgll.supabase.co',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0c2VjcnNreW9zd3d1bGtoZ2xsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNTE0MzUsImV4cCI6MjA5MzYyNzQzNX0.FdNFWdUPfrjTd1xTX_FdHuzcNtekh3SWXvGhjWvkn8E',
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll(); },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options: any }>) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
-        },
-      },
-    }
-  );
-
-  await supabase.auth.getUser();
-
-  const url = request.nextUrl.clone();
+export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
-  const pathnameHasLocale = locales.some(
-    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-  );
 
-  if (!pathnameHasLocale) {
-    url.pathname = `/${defaultLocale}${pathname}`;
-    const redirectResponse = NextResponse.redirect(url);
-    response.cookies.getAll().forEach((cookie) => {
-      redirectResponse.cookies.set(cookie.name, cookie.value, cookie);
-    });
-    return redirectResponse;
+  // Ignoră fișierele statice, imaginile, api-ul și supabase ca să nu facă buclă
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next();
   }
 
-  return response;
+  // Lasă next-intl să se ocupe de rutare și limbi
+  return intlMiddleware(request);
 }
 
+// Configul obligatoriu pentru a intercepta toate rutele din aplicație
 export const config = {
-  matcher: [
-    '/((?!api|_next/static|_next/image|assets|favicon.ico|sw.js|site.webmanifest|.*\\..*).*)',
-  ],
+  matcher: ['/((?!_next|api|.*\\.).*)'],
 };
