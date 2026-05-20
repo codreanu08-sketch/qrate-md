@@ -113,43 +113,56 @@ export default function LandingPage() {
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
       
       {/* HEADER SEMANTIC PENTRU SEO */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex justify-center p-4">
-        <nav className="max-w-7xl w-full bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[2rem] px-8 h-20 flex items-center justify-between transition-all" aria-label="Navigare Principală">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200 group-hover:rotate-12 transition-transform duration-300">
-              <Zap className="text-white fill-white" size={20} />
+      <header className="fixed top-0 left-0 right-0 z-50 flex justify-center p-2 md:p-4">
+        <nav className="max-w-7xl w-full bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[1.5rem] md:rounded-[2rem] px-4 md:px-8 h-16 md:h-20 flex items-center justify-between transition-all" aria-label="Navigare Principală">
+          
+          {/* 1. LOGO (Compact pe mobil) */}
+          <div className="flex items-center gap-1.5 md:gap-2 group cursor-pointer shrink-0">
+            <div className="bg-blue-600 p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg shadow-blue-200 group-hover:rotate-12 transition-transform duration-300">
+              <Zap className="text-white fill-white w-4 h-4 md:w-5 md:h-5" />
             </div>
-            <span className="text-xl font-black uppercase tracking-tighter italic text-slate-950">QRate<span className="text-blue-600">.MD</span></span>
+            <span className="text-lg md:text-xl font-black uppercase tracking-tighter italic text-slate-950">
+              QRate<span className="text-blue-600 hidden sm:inline">.MD</span>
+            </span>
           </div>
 
+          {/* 2. LINK-URI DESKTOP (Ascunse pe mobil) */}
           <div className="hidden lg:flex items-center gap-10">
             <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
               <a href="#servicii" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.services')}</a>
               <a href="#vizual-demo" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.demo')}</a>
               <a href="#preturi" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.pricing')}</a>
             </div>
-
-            <div className="flex items-center bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-              <button type="button" onClick={() => switchLanguage('ro')} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all duration-300 ${locale === 'ro' ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
-              <button type="button" onClick={() => switchLanguage('ru')} className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all duration-300 ${locale === 'ru' ? 'bg-white text-blue-600 shadow-md scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
-            </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          {/* 3. ZONA DE ACȚIUNE: LIMBĂ + BUTOANE (Adaptate fluid) */}
+          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+            
+            {/* SELECTOR LIMBĂ */}
+            <div className="flex items-center bg-slate-100/80 p-1 rounded-lg md:rounded-2xl border border-slate-200 shadow-inner">
+              <button type="button" onClick={() => switchLanguage('ro')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ro' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
+              <button type="button" onClick={() => switchLanguage('ru')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ru' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
+            </div>
+
             {isLoggedIn ? (
-              <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200/60 shadow-sm">
-                <Link href="/dashboard" className="flex items-center gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 transition-all text-[10px] font-black uppercase tracking-wider">
+              <div className="flex items-center gap-1 md:gap-2 bg-slate-50 p-1 md:p-1.5 rounded-lg md:rounded-2xl border border-slate-200/60 shadow-sm">
+                <Link href="/dashboard" className="flex items-center gap-1.5 md:gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 px-2 md:px-4 py-1.5 md:py-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-700 transition-all text-[9px] md:text-[10px] font-black uppercase tracking-wider">
                   <LayoutDashboard size={14} className="text-blue-600" />
-                  <span>{t('nav.dashboard')}</span>
+                  <span className="hidden sm:inline">{t('nav.dashboard')}</span>
                 </Link>
-                <button type="button" onClick={handleLogout} className="bg-white hover:bg-red-50 hover:text-red-600 p-2.5 rounded-xl border border-slate-200 text-slate-400 transition-all active:scale-95 flex items-center justify-center" title={t('nav.logout_title')}>
+                <button type="button" onClick={handleLogout} className="bg-white hover:bg-red-50 hover:text-red-600 p-1.5 md:p-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-400 transition-all active:scale-95 flex items-center justify-center" title={t('nav.logout_title')}>
                   <LogOut size={14} />
                 </button>
               </div>
             ) : (
               <>
-                <Link href="/auth/login" className="hidden sm:block text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-blue-600 px-4 transition-colors">{t('nav.login')}</Link>
-                <Link href="/auth/register" className="relative group overflow-hidden bg-slate-950 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:shadow-xl active:scale-95">
+                {/* LOGARE */}
+                <Link href="/auth/login" className="text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-widest text-slate-500 hover:text-blue-600 px-1 md:px-2 transition-colors whitespace-nowrap">
+                  {t('nav.login')}
+                </Link>
+                
+                {/* ÎNREGISTRARE */}
+                <Link href="/auth/register" className="relative group overflow-hidden bg-slate-950 text-white px-3 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-[0.2em] transition-all hover:shadow-xl active:scale-95 whitespace-nowrap">
                   <span className="relative z-10">{t('nav.signup')}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 </Link>
