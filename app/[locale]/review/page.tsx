@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { supabase } from '@/lib/supabase'; // Asigură-te că exportul din acest fișier folosește createBrowserClient sau clientul standard de browser
+import { supabase } from '@/lib/supabase';
 
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
@@ -40,11 +40,10 @@ export default function AdminReviewsPage() {
 
   const dashboardFeedMessages = messages?.Dashboard?.feed || { no_comment: 'Fără comentariu' };
   
-  // FUNCȚIE REPARATĂ PENTRU SCHIMBAREA LIMBII (Schimbă doar primul segment din URL)
+  // FUNCȚIE PENTRU SCHIMBAREA LIMBII
   const toggleLanguage = () => {
     const newLang = lang === 'ro' ? 'ru' : 'ro';
     const segments = pathname.split('/');
-    // Primul segment după bară (index 1) este [locale]
     if (segments[1] === 'ro' || segments[1] === 'ru') {
       segments[1] = newLang;
     } else {
@@ -58,10 +57,10 @@ export default function AdminReviewsPage() {
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // FILTRE
+  // FILTRE -> Setat inițial pe 'all' pentru a evita ascunderea recenziilor noi
   const [selLocation, setSelLocation] = useState('all');
   const [selEmployee, setSelEmployee] = useState('all');
-  const [selPeriod, setSelPeriod] = useState('7d');
+  const [selPeriod, setSelPeriod] = useState('all'); 
   const [specificDate, setSpecificDate] = useState('');
 
   // PAGINARE
@@ -93,6 +92,7 @@ export default function AdminReviewsPage() {
       if (selLocation !== 'all') query = query.eq('location_id', selLocation);
       if (selEmployee !== 'all') query = query.eq('employee_id', selEmployee);
 
+      // Aplicăm filtrele de timp doar dacă nu este selectat 'all'
       if (selPeriod === '7d') {
         const d = new Date(); d.setDate(d.getDate() - 7);
         query = query.gte('created_at', d.toISOString());
@@ -130,7 +130,7 @@ export default function AdminReviewsPage() {
   }, [selLocation, selEmployee, selPeriod, specificDate]);
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] p-4 md:p-10 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#F1F5F9] p-4 md:p-10 font-sans text-slate-900 overflow-x-hidden">
       
       {/* BUTON SCHIMBARE LIMBA */}
       <div className="max-w-7xl mx-auto flex justify-end mb-4">
@@ -143,57 +143,58 @@ export default function AdminReviewsPage() {
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-black flex items-center gap-3">
-            {t.title} {loading && <Loader2 className="animate-spin text-blue-600" size={28} />}
+          <h1 className="text-3xl md:text-4xl font-black flex items-center gap-3">
+            {t.title} {loading && <Loader2 className="animate-spin text-blue-600" size={24} />}
           </h1>
           <p className="text-slate-500 font-medium mt-1">{t.subtitle}</p>
         </div>
-        <button className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-bold text-slate-700 hover:border-blue-500 transition-all shadow-sm flex items-center gap-2">
+        <button className="bg-white border-2 border-slate-200 px-6 py-3 rounded-2xl font-bold text-slate-700 hover:border-blue-500 transition-all shadow-sm flex items-center justify-center gap-2 w-full sm:w-auto">
           <Download size={20} /> {t.export_btn}
         </button>
       </div>
       
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <aside className="lg:col-span-1 space-y-4">
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
+        <aside className="lg:col-span-1 space-y-4 w-full min-w-0">
+          <div className="bg-white p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-white w-full min-w-0">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-5 flex items-center gap-2">
               <Filter size={14} /> {t.filter_title}
             </h2>
 
-            <div className="space-y-6">
-              <div>
+            <div className="space-y-5 w-full min-w-0">
+              <div className="w-full min-w-0">
                 <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels?.location}</label>
                 <select 
                   value={selLocation} 
                   onChange={(e) => setSelLocation(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 px-4 font-bold text-slate-700 transition-all outline-none"
+                  className="w-full min-w-0 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-2.5 px-3 md:py-3 md:px-4 font-bold text-slate-700 transition-all outline-none text-sm md:text-base cursor-pointer"
                 >
                   <option value="all">{t.options?.all_locs}</option>
                   {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
                 </select>
               </div>
 
-              <div>
+              <div className="w-full min-w-0">
                 <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels?.employee}</label>
                 <select 
                   value={selEmployee}
                   onChange={(e) => setSelEmployee(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 px-4 font-bold text-slate-700 transition-all outline-none"
+                  className="w-full min-w-0 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-2.5 px-3 md:py-3 md:px-4 font-bold text-slate-700 transition-all outline-none text-sm md:text-base cursor-pointer"
                 >
                   <option value="all">{t.options?.all_emps}</option>
                   {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
                 </select>
               </div>
 
-              <div>
+              <div className="w-full min-w-0">
                 <label className="text-xs font-bold text-slate-700 mb-2 block">{t.labels?.period}</label>
                 <select 
                   value={selPeriod}
                   onChange={(e) => setSelPeriod(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-3 px-4 font-bold text-slate-700 transition-all outline-none"
+                  className="w-full min-w-0 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl py-2.5 px-3 md:py-3 md:px-4 font-bold text-slate-700 transition-all outline-none text-sm md:text-base cursor-pointer"
                 >
+                  <option value="all">Toată perioada</option>
                   <option value="7d">{t.options?.['7d']}</option>
                   <option value="1m">{t.options?.['1m']}</option>
                   <option value="3m">{t.options?.['3m']}</option>
@@ -202,12 +203,12 @@ export default function AdminReviewsPage() {
               </div>
 
               {selPeriod === 'custom' && (
-                <div className="pt-2 animate-in slide-in-from-top-4 duration-300">
+                <div className="pt-1 animate-in slide-in-from-top-4 duration-300 w-full min-w-0">
                   <input 
                     type="date"
                     value={specificDate}
                     onChange={(e) => setSpecificDate(e.target.value)}
-                    className="w-full bg-blue-50 border-2 border-blue-200 rounded-2xl py-3 px-4 font-bold text-blue-700 outline-none"
+                    className="w-full min-w-0 bg-blue-50 border-2 border-blue-200 rounded-2xl py-2.5 px-3 md:py-3 md:px-4 font-bold text-blue-700 outline-none text-sm md:text-base"
                   />
                 </div>
               )}
@@ -215,46 +216,48 @@ export default function AdminReviewsPage() {
           </div>
         </aside>
 
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-3 space-y-6 w-full min-w-0">
           {loading && reviews.length === 0 ? (
-            <div className="bg-white p-20 rounded-[2.5rem] flex flex-col items-center justify-center">
+            <div className="bg-white p-12 md:p-20 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center">
               <Loader2 className="animate-spin text-blue-600 mb-4" size={40} />
               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t.loading_db}</p>
             </div>
           ) : !loading && reviews.length === 0 ? (
-            <div className="bg-white p-20 rounded-[2.5rem] text-center border-2 border-dashed border-slate-300">
+            <div className="bg-white p-12 md:p-20 rounded-[2rem] md:rounded-[2.5rem] text-center border-2 border-dashed border-slate-300">
               <p className="text-slate-400 font-bold">{t.no_results}</p>
             </div>
           ) : (
             <>
-              <div className={`grid gap-4 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+              <div className={`grid gap-4 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'} transition-opacity duration-300 w-full min-w-0`}>
                 {reviews.map((rev) => (
-                  <div key={rev.id} className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all border border-transparent hover:border-blue-100 group">
-                    <div className="flex flex-col md:flex-row gap-6">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1 mb-4">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i} 
-                              size={20} 
-                              className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-slate-200"} 
-                            />
-                          ))}
-                          <span className="ml-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  <div key={rev.id} className="bg-white p-5 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all border border-transparent hover:border-blue-100 group w-full min-w-0">
+                    <div className="flex flex-col md:flex-row gap-6 w-full min-w-0">
+                      <div className="flex-1 w-full min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i} 
+                                size={18} 
+                                className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-slate-200"} 
+                              />
+                            ))}
+                          </div>
+                          <span className="sm:ml-2 text-[10px] font-black text-slate-400 uppercase tracking-widest block whitespace-nowrap">
                             {new Date(rev.created_at).toLocaleDateString(lang === 'ro' ? 'ro-RO' : 'ru-RU')}
                           </span>
                         </div>
                         
-                        <p className="text-slate-700 text-lg font-semibold leading-relaxed mb-6 italic group-hover:text-slate-900 transition-colors">
+                        <p className="text-slate-700 text-base md:text-lg font-semibold leading-relaxed mb-5 italic group-hover:text-slate-900 transition-colors break-words">
                           "{rev.comment || dashboardFeedMessages.no_comment}"
                         </p>
 
-                        <div className="flex flex-wrap gap-2">
-                          <span className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-[11px] font-black uppercase">
-                            <MapPin size={12} /> {rev.locations?.name}
+                        <div className="flex flex-wrap gap-2 w-full">
+                          <span className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-[10px] md:text-[11px] font-black uppercase max-w-full truncate">
+                            <MapPin size={12} className="shrink-0" /> <span className="truncate">{rev.locations?.name || 'Locație Generală'}</span>
                           </span>
-                          <span className="flex items-center gap-2 bg-purple-50 text-purple-700 px-4 py-1.5 rounded-full text-[11px] font-black uppercase">
-                            <User size={12} /> {rev.employees?.name || t.general_tag}
+                          <span className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-[10px] md:text-[11px] font-black uppercase max-w-full truncate">
+                            <User size={12} className="shrink-0" /> <span className="truncate">{rev.employees?.name || t.general_tag}</span>
                           </span>
                         </div>
                       </div>
@@ -263,23 +266,23 @@ export default function AdminReviewsPage() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-center gap-4 pt-6">
+              <div className="flex items-center justify-center gap-3 pt-4 md:pt-6">
                 <button 
                   onClick={() => setPage(p => Math.max(0, p - 1))}
                   disabled={page === 0 || loading}
-                  className="p-3 rounded-2xl bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-all"
+                  className="p-2.5 md:p-3 rounded-2xl bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-all flex items-center justify-center"
                 >
-                  <ChevronLeft size={24} />
+                  <ChevronLeft size={22} />
                 </button>
-                <span className="font-black text-slate-700 text-sm bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm">
+                <span className="font-black text-slate-700 text-xs md:text-sm bg-white px-4 py-2.5 md:px-6 md:py-3 rounded-2xl border border-slate-200 shadow-sm whitespace-nowrap">
                   {t.page_label} {page + 1}
                 </span>
                 <button 
                   onClick={() => setPage(p => p + 1)}
                   disabled={reviews.length < itemsPerPage || loading}
-                  className="p-3 rounded-2xl bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-all"
+                  className="p-2.5 md:p-3 rounded-2xl bg-white border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition-all flex items-center justify-center"
                 >
-                  <ChevronRight size={24} />
+                  <ChevronRight size={22} />
                 </button>
               </div>
             </>
