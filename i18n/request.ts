@@ -4,11 +4,10 @@ import { getRequestConfig } from 'next-intl/server';
 const locales = ['ro', 'ru'];
 
 export default getRequestConfig(async ({ locale }) => {
-  // Validăm limba
-  const currentLocale = locales.includes(locale) ? locale : 'ro';
+  // Îi garantăm lui TypeScript că rezultatul va fi STRICT un string din listă sau 'ro'
+  const currentLocale = (locales.includes(locale) ? locale : 'ro') as string;
 
   return {
-    // ADAUGĂM LINIA ASTA (TypeScript o cere neapărat):
     locale: currentLocale,
     messages: (await import(`../messages/${currentLocale}.json`)).default
   };
