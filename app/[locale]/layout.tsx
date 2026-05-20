@@ -26,8 +26,8 @@ export default async function LocaleLayout({
   }
 
   return (
-    <html lang={locale} className="scroll-smooth">
-      <body className="antialiased">
+    <html lang={locale} className="scroll-smooth h-full w-full overflow-x-hidden">
+      <body className="antialiased min-h-full w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
         </NextIntlClientProvider>
