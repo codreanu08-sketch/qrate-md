@@ -219,14 +219,17 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* --- DEMO VIZUAL --- */}
-        <section id="vizual-demo" className="py-32 px-6 scroll-mt-24">
+       {/* --- DEMO VIZUAL --- */}
+        <section id="vizual-demo" className="py-16 px-4 sm:px-6 md:py-32 scroll-mt-24">
           <div className="max-w-6xl mx-auto">
-            <div className="bg-slate-950 rounded-[4rem] p-8 md:p-20 overflow-hidden relative border border-white/5 shadow-2xl">
+            <div className="bg-slate-950 rounded-[2.5rem] md:rounded-[4rem] px-5 py-12 sm:p-12 md:p-20 overflow-hidden relative border border-white/5 shadow-2xl">
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] -mr-64 -mt-64 rounded-full"></div>
-              <div className="grid lg:grid-cols-2 gap-20 items-center relative z-10 text-left">
-                <div className="space-y-10">
-                  <h2 className="text-4xl md:text-7xl font-black text-white uppercase tracking-tighter leading-[0.85]">
+              
+              <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 text-left">
+                
+                {/* TEXTUL: Optimizat pentru ecrane mici */}
+                <div className="space-y-6 md:space-y-10">
+                  <h2 className="text-3xl sm:text-4xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] sm:leading-[0.85] break-words">
                     {t('demo.title_1')} <br /><span className="text-blue-500 italic">{t('demo.title_2')}</span>
                   </h2>
                   <div className="space-y-4">
@@ -235,48 +238,60 @@ export default function LandingPage() {
                       { icon: <ShieldAlert size={20}/>, t: t('demo.feature_2_t'), d: t('demo.feature_2_d') },
                       { icon: <Check size={20}/>, t: t('demo.feature_3_t'), d: t('demo.feature_3_d') }
                     ].map((step, i) => (
-                      <div key={i} className="flex gap-5 items-center bg-white/5 p-6 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-                        <div className="p-4 bg-white/10 text-blue-400 rounded-xl">{step.icon}</div>
+                      <div key={i} className="flex gap-4 sm:gap-5 items-center bg-white/5 p-4 sm:p-6 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
+                        <div className="p-3 sm:p-4 bg-white/10 text-blue-400 rounded-xl shrink-0">{step.icon}</div>
                         <div>
-                          <h4 className="text-white font-black uppercase text-xs tracking-widest">{step.t}</h4>
-                          <p className="text-slate-400 text-sm font-medium">{step.d}</p>
+                          <h4 className="text-white font-black uppercase text-[10px] sm:text-xs tracking-widest">{step.t}</h4>
+                          <p className="text-slate-400 text-xs sm:text-sm font-medium mt-1">{step.d}</p>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="relative flex justify-center scale-90 md:scale-100">
-                  <div className="relative w-[340px] h-[680px] bg-slate-900 rounded-[4rem] border-[12px] border-slate-800 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden">
-                    <div className="bg-white h-full w-full p-8 flex flex-col items-center text-center space-y-10 relative">
-                      <div className={`absolute top-6 left-4 right-4 z-20 transition-all duration-700 transform ${showNotification ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-20 opacity-0 scale-95'}`}>
-                        <div className="bg-slate-950 text-white p-5 rounded-3xl shadow-2xl border border-white/10 flex items-start gap-4 text-left">
-                          <div className="bg-red-500 p-2.5 rounded-xl animate-pulse"><BellRing size={18} className="text-white" /></div>
+                {/* TELEFONUL: Scalare fluidă (Nu mai iese din margini) */}
+                <div className="relative flex justify-center w-full layout-container">
+                  <div className="relative w-[270px] h-[550px] min-[400px]:w-[310px] min-[400px]:h-[620px] sm:w-[340px] sm:h-[680px] bg-slate-900 rounded-[2.5rem] sm:rounded-[4rem] border-[8px] sm:border-[12px] border-slate-800 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300">
+                    <div className="bg-white h-full w-full p-5 sm:p-8 flex flex-col items-center text-center justify-between relative">
+                      
+                      {/* Notificare internă optimizată */}
+                      <div className={`absolute top-4 sm:top-6 left-3 right-3 sm:left-4 sm:right-4 z-20 transition-all duration-700 transform ${showNotification ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-20 opacity-0 scale-95'}`}>
+                        <div className="bg-slate-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl border border-white/10 flex items-start gap-3 sm:gap-4 text-left">
+                          <div className="bg-red-500 p-2 sm:p-2.5 rounded-xl animate-pulse shrink-0"><BellRing size={16} className="text-white" /></div>
                           <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">{t('demo.notification_badge')}</p>
-                            <p className="text-[11px] font-bold text-slate-200">{t('demo.notification_text')}</p>
+                            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-red-500">{t('demo.notification_badge')}</p>
+                            <p className="text-[10px] sm:text-[11px] font-bold text-slate-200 leading-tight mt-0.5">{t('demo.notification_text')}</p>
                           </div>
                         </div>
                       </div>
-                      <div className="w-16 h-16 bg-slate-950 rounded-2xl flex items-center justify-center text-white font-black italic text-2xl mt-12 shadow-xl shadow-blue-100">Q</div>
-                      <div className="space-y-2 text-left w-full"><h4 className="font-black text-slate-950 text-2xl uppercase tracking-tighter leading-none">{t('demo.phone_title')}</h4></div>
-                      <div className="flex gap-2.5 py-4">
-                        <div className="w-12 h-12 rounded-2xl bg-yellow-400 text-white flex items-center justify-center text-2xl shadow-lg shadow-yellow-100">★</div>
-                        <div className="w-12 h-12 rounded-2xl bg-yellow-400 text-white flex items-center justify-center text-2xl shadow-lg shadow-yellow-100">★</div>
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-300 flex items-center justify-center text-2xl">★</div>
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-300 flex items-center justify-center text-2xl">★</div>
-                        <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-300 flex items-center justify-center text-2xl">★</div>
+
+                      {/* Continutul central din telefon adaptat pe înălțime */}
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-950 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black italic text-xl sm:text-2xl mt-14 sm:mt-12 shadow-xl shadow-blue-100 shrink-0">Q</div>
+                      
+                      <div className="text-left w-full mt-2">
+                        <h4 className="font-black text-slate-950 text-xl sm:text-2xl uppercase tracking-tighter leading-none">{t('demo.phone_title')}</h4>
                       </div>
-                      <div className="w-full p-5 bg-slate-50 rounded-[2rem] border border-slate-100 text-xs text-slate-400 font-bold italic h-32 text-left">{t('demo.phone_placeholder')}</div>
-                      <button type="button" className="w-full py-6 bg-red-600 text-white rounded-[1.5rem] text-xs font-black uppercase tracking-[0.25em] shadow-xl shadow-red-100">{t('demo.phone_btn')}</button>
+                      
+                      <div className="flex gap-1.5 sm:gap-2.5 my-2">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <div key={star} className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl ${star <= 2 ? 'bg-yellow-400 text-white shadow-lg shadow-yellow-100' : 'bg-slate-100 text-slate-300'}`}>★</div>
+                        ))}
+                      </div>
+                      
+                      <div className="w-full p-4 sm:p-5 bg-slate-50 rounded-2xl sm:rounded-[2rem] border border-slate-100 text-[11px] sm:text-xs text-slate-400 font-bold italic text-left flex-1 flex items-center min-h-[70px] sm:min-h-[110px] my-2">
+                        {t('demo.phone_placeholder')}
+                      </div>
+                      
+                      <button type="button" className="w-full py-4 sm:py-6 bg-red-600 text-white rounded-xl sm:rounded-[1.5rem] text-[11px] sm:text-xs font-black uppercase tracking-[0.25em] shadow-xl shadow-red-100 shrink-0 mt-auto">{t('demo.phone_btn')}</button>
                     </div>
                   </div>
                 </div>
+
               </div>
             </div>
           </div>
         </section>
-
+        
         {/* --- SECȚIUNEA CONFIGURATOR ȘI TARIFE --- */}
         <section id="preturi" className="py-32 px-6 scroll-mt-24 bg-slate-50/50">
           <div className="max-w-6xl mx-auto">
