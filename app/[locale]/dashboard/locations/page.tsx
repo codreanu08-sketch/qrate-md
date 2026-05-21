@@ -252,8 +252,9 @@ export default function LocationsPage() {
       setIsAdding(false);
       return;
     }
+
     if (!companyId) {
-      setErrorMessage("Eroare: ID-ul companiei lipsește.");
+      setErrorMessage("Eroare: Nu s-a putut identifica compania. Reîmprospătează pagina.");
       setIsAdding(false);
       return;
     }
@@ -261,7 +262,7 @@ export default function LocationsPage() {
     const { error } = await supabase.from('locations').insert([{ 
       name: newName.trim(), 
       address: newAddress.trim(), 
-      company_id: companyId,
+      company_id: companyId,           // ← IMPORTANT: trimitem companyId
       type: type, 
       logo_url: logoUrl || null, 
       welcome_message: welcomeMessage
@@ -374,13 +375,11 @@ export default function LocationsPage() {
           </div>
         </div>
 
-        {/* ==================== FORMULAR ADĂUGARE LOCAȚIE - CORECTAT ==================== */}
+        {/* FORMULAR ADĂUGARE LOCAȚIE - CORECTAT */}
         <form onSubmit={handleAddLocation} className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-100 mb-12">
           <h3 className="text-xl font-black text-slate-900 mb-6">Adaugă locație nouă</h3>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            {/* Coloana 1 - Informații de bază */}
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5">NUMELE LOCAȚIEI *</label>
@@ -400,7 +399,7 @@ export default function LocationsPage() {
                   onChange={(e) => setType(e.target.value)} 
                   className="w-full bg-slate-50 rounded-2xl py-3.5 px-5 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent"
                 >
-                  <option value="Physical">Fizică (Restaurant, Magazin, etc.)</option>
+                  <option value="Physical">Fizică (Restaurant, Magazin)</option>
                   <option value="Delivery">Livrare / Online</option>
                 </select>
               </div>
@@ -416,17 +415,12 @@ export default function LocationsPage() {
               </div>
             </div>
 
-            {/* Coloana 2 - Logo + Mesaj */}
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5">LOGO (opțional)</label>
                 <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
                   <div className="w-14 h-14 rounded-xl bg-white overflow-hidden flex items-center justify-center border shadow-sm shrink-0">
-                    {logoUrl ? (
-                      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
-                    ) : (
-                      <ImageIcon className="text-slate-300" size={22} />
-                    )}
+                    {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" size={22} />}
                   </div>
                   <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
                   <button 
@@ -455,7 +449,7 @@ export default function LocationsPage() {
 
           <button 
             type="submit" 
-            disabled={isAdding || !newName.trim()}
+            disabled={isAdding || !newName.trim() || !companyId}
             className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-black py-4 rounded-2xl uppercase tracking-[0.5px] text-sm shadow-lg shadow-blue-200 active:scale-[0.985] transition-all flex items-center justify-center gap-2"
           >
             {isAdding ? (
@@ -468,9 +462,8 @@ export default function LocationsPage() {
             )}
           </button>
         </form>
-        {/* ==================== SFÂRȘIT FORMULAR ==================== */}
 
-        {/* Grid Locații + Restul codului rămâne exact la fel */}
+        {/* Grid Locații */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {locations.map((loc) => {
             const locReviews = lastReviews.filter(r => r.location_id === loc.id);
@@ -538,8 +531,8 @@ export default function LocationsPage() {
           })}
         </div>
 
-        {/* Restul codului (Feed recenzii + Modal) rămâne exact la fel ca în original */}
-        {/* ... (am păstrat tot restul codului neschimbat) ... */}
+        {/* Secțiune Feed Recenzii + Modal - păstrat exact ca înainte */}
+        {/* ... (codul pentru recenzii și modal rămâne neschimbat) ... */}
 
       </div>
     </div>
