@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
-import { Zap, Star, Send, CheckCircle2, Phone, User, Loader2, Camera, X, MessageSquareQuote } from 'lucide-react';
+import { Zap, Star, Send, CheckCircle2, Phone, User, Loader2, Camera, X, MessageSquareQuote, MapPin, Briefcase } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
@@ -15,9 +15,11 @@ interface FeedbackFormProps {
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Stări pentru stocarea corectă a ID-urilor UUID
+  // Stări pentru stocarea corectă a ID-urilor UUID și a numelui entității vizate
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
+  const [targetName, setTargetName] = useState<string>('');
+  const [isEmployee, setIsEmployee] = useState<boolean>(false);
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
 
   // Invocăm traducerile din fișierele JSON locale
@@ -25,9 +27,9 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
   
   const t = (messages as any)?.PublicFeedback || {
     step: locale === 'ro' ? 'Pasul 1/1' : 'Шаг 1/1',
-    heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв pentru',
+    heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв для',
     title_line1: locale === 'ro' ? 'Părerea Ta' : 'Ваше Мнение',
-    title_line2: locale === 'ro' ? 'Contează' : 'Важно Pentru Нас',
+    title_line2: locale === 'ro' ? 'Contează' : 'Важно Для Нас',
     subtitle: locale === 'ro' ? 'Ajută-ne să devenim mai buni evaluând experiența ta.' : 'Помогите нам стать лучше, оценив ваш визит.',
     label_step1: locale === 'ro' ? 'Alege nota ta' : 'Выберите оценку',
     label_step2: locale === 'ro' ? 'Detalii despre vizită' : 'Детали визита',
@@ -60,47 +62,76 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     comment: ''
   });
 
-  // STRATEGIE NOUĂ: Interogăm direct locația. Dacă slug este un UUID, va funcționa instant.
-  // Dacă eșuează, înseamnă că 'slug' este text, și rulăm fallback-ul pe tabela de companii.
   useEffect(() => {
     async function getCorrectIdentifiers() {
       try {
         setFetchingIds(true);
+        let resolvedCompanyId = null;
+        let resolvedLocationId = null;
+
+        // Pasul 1: Dacă avem employeeId, aducem numele lui și datele de localizare
+        if (employeeId) {
+          const { data: empData } = await supabase
+            .from('employees')
+            .select('name, company_id, location_id')
+            .eq('id', employeeId)
+            .maybeSingle();
+
+          if (empData) {
+            setTargetName(empData.name);
+            setIsEmployee(true);
+            setCompanyId(empData.company_id);
+            setLocationId(empData.location_id);
+            return; // Identificare completă pentru angajat
+          }
+        }
         
-        // Pasul A: Încercăm să vedem dacă `slug` este de fapt ID-ul direct al locației (UUID)
+        // Pasul 2: Fallback la Locație (verificăm dacă slug este UUID de locație)
         const { data: locData } = await supabase
           .from('locations')
-          .select('id, company_id')
+          .select('id, name, company_id')
           .eq('id', slug)
           .maybeSingle();
 
         if (locData) {
-          setLocationId(locData.id);
-          setCompanyId(locData.company_id);
-          return; // Am rezolvat, oprim execuția aici
-        }
-
-        // Pasul B: Fallback în cazul în care QR-ul trimite totuși un slug text al companiei
-        const { data: compData } = await supabase
-          .from('companies')
-          .select('id')
-          .eq('slug', slug)
-          .maybeSingle();
-
-        if (compData) {
-          setCompanyId(compData.id);
-
-          const { data: fallbackLoc } = await supabase
-            .from('locations')
-            .select('id')
-            .eq('company_id', compData.id)
-            .limit(1)
+          resolvedLocationId = locData.id;
+          resolvedCompanyId = locData.company_id;
+          setTargetName(locData.name);
+          setIsEmployee(false);
+        } else {
+          // Pasul 3: Fallback la Companie (după text slug)
+          const { data: compData } = await supabase
+            .from('companies')
+            .select('id, name')
+            .eq('slug', slug)
             .maybeSingle();
 
-          if (fallbackLoc) {
-            setLocationId(fallbackLoc.id);
+          if (compData) {
+            resolvedCompanyId = compData.id;
+            setTargetName(compData.name);
+            setIsEmployee(false);
+
+            const { data: fallbackLoc } = await supabase
+              .from('locations')
+              .select('id')
+              .eq('company_id', compData.id)
+              .limit(1)
+              .maybeSingle();
+
+            if (fallbackLoc) {
+              resolvedLocationId = fallbackLoc.id;
+            }
           }
         }
+
+        setCompanyId(resolvedCompanyId);
+        setLocationId(resolvedLocationId);
+
+        // Dacă nu s-a găsit niciun nume curat, curățăm slug-ul primit ca text secundar
+        if (!targetName && !employeeId) {
+          setTargetName(slug.replace(/-/g, ' '));
+        }
+
       } catch (err) {
         console.error("Eroare la identificarea companiei/locației:", err);
       } finally {
@@ -111,7 +142,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     if (slug) {
       getCorrectIdentifiers();
     }
-  }, [slug]);
+  }, [slug, employeeId, targetName]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -159,11 +190,10 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         finalPhotoUrl = urlData.publicUrl;
       }
 
-      // Salvăm recenzia cu ID-urile extrase din baza de date
       const reviewData = {
         company_slug: slug,
-        company_id: companyId,     // Nu mai este NULL
-        location_id: locationId,   // Nu mai este NULL
+        company_id: companyId,
+        location_id: locationId,
         rating: rating,
         full_name: formData.fullName,
         phone: formData.phone,
@@ -225,18 +255,25 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
       <header className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-100 z-50">
         <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-blue-600 rounded-xl p-2 shadow-lg shadow-blue-100">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-4">
+            <div className="bg-blue-600 rounded-xl p-2 shadow-lg shadow-blue-100 shrink-0">
               <Zap className="text-white fill-white" size={16} />
             </div>
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-tight">{t.heading_for}</span>
-              <span className="text-sm font-black text-slate-950 uppercase tracking-widest leading-tight truncate max-w-[180px]">
-                {slug.replace(/-/g, ' ')}
+            <div className="flex flex-col min-w-0">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-tight flex items-center gap-1">
+                {t.heading_for} 
+                {fetchingIds ? '' : isEmployee ? (
+                  <span className="text-blue-600 font-black text-[8px] bg-blue-50 px-1.5 py-0.5 rounded-md uppercase tracking-normal flex items-center gap-0.5"><Briefcase size={8}/> Staff</span>
+                ) : (
+                  <span className="text-emerald-600 font-black text-[8px] bg-emerald-50 px-1.5 py-0.5 rounded-md uppercase tracking-normal flex items-center gap-0.5"><MapPin size={8}/> Locație</span>
+                )}
+              </span>
+              <span className="text-sm font-black text-slate-950 uppercase tracking-widest leading-tight truncate">
+                {fetchingIds ? '...' : targetName}
               </span>
             </div>
           </div>
-          <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full uppercase tracking-wider">
+          <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full uppercase tracking-wider shrink-0">
             {t.step}
           </div>
         </div>
