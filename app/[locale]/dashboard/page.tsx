@@ -175,71 +175,45 @@ export default function AdminDashboardPage() {
 
       <div className="max-w-7xl mx-auto">
         
-        {/* NAV BAR */}
-        <nav className="bg-white/80 backdrop-blur-md sticky top-4 z-50 rounded-[2.5rem] p-4 mb-10 border border-slate-100 flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-4 px-2">
-            <div className="bg-slate-900 p-2.5 rounded-2xl text-white shadow-indigo-200 shadow-lg">
-              <Zap size={22} fill="#60a5fa" className="text-blue-400" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-black text-2xl tracking-tighter leading-none">QRate.md</span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                {t('admin_panel')}
-              </span>
-            </div>
-          </div>
+<nav className="bg-white/80 backdrop-blur-md sticky top-2 z-50 rounded-[1.5rem] p-3 mx-2 mb-6 border border-slate-100 flex items-center justify-between shadow-lg">
+  {/* LOGO - mai compact pe mobil */}
+  <div className="flex items-center gap-2">
+    <div className="bg-slate-900 p-2 rounded-xl text-white">
+      <Zap size={16} />
+    </div>
+    <div className="hidden sm:flex flex-col">
+      <span className="font-black text-lg leading-none">QRate.md</span>
+      <span className="text-[8px] font-bold text-slate-400 uppercase">{t('admin_panel')}</span>
+    </div>
+  </div>
 
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={handleOpenLiveProfile}
-              className="group relative flex items-center gap-3 bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl transition-all duration-300 hover:scale-[1.02] active:scale-95 shadow-xl shadow-indigo-100"
-            >
-              <div className="relative">
-                <Globe size={20} className="group-hover:rotate-12 transition-transform duration-500" />
-                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-200 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-400 border-2 border-indigo-600"></span>
-                </span>
-              </div>
-              <div className="flex flex-col items-start leading-none">
-                <span className="text-[11px] font-black uppercase tracking-wider">{t('view_profile')}</span>
-                <span className="text-[13px] font-bold opacity-80">{t('live_on')}</span>
-              </div>
-            </button>
-
-            <button className="hidden md:flex bg-slate-100 text-slate-600 p-4 rounded-2xl hover:bg-slate-200 transition-colors">
-              <Download size={20} />
-            </button>
-          </div>
-        </nav>
-
-        {/* HERO SECTION */}
-        <div className="mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
-          <div className="space-y-1">
-            <h1 className="text-5xl font-black tracking-tight text-slate-900">{t('title')}</h1>
-            <p className="text-slate-500 font-medium italic">{t('subtitle')}</p>
-          </div>
-          
-          <div className="flex bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm">
-             {['7d', '1m', 'all'].map((p) => (
-               <button 
-                key={p}
-                onClick={() => setSelPeriod(p)}
-                className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selPeriod === p ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-slate-400 hover:text-slate-600'}`}
-               >
-                 {t(`periods.${p}`)}
-               </button>
-             ))}
-          </div>
-        </div>
-
-        {/* STATS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <StatCard label={t('stats.avg_rating')} value={stats.avg} icon={<Star className="text-yellow-400 fill-yellow-400" />} />
-          <StatCard label={t('stats.hero_day')} value={stats.bestEmp} icon={<Trophy className="text-orange-500" />} />
-          <StatCard label={t('stats.peak_hour')} value={stats.peak} icon={<Clock className="text-blue-500" />} />
-          <StatCard label={t('stats.new_reviews')} value={stats.today} icon={<Activity className="text-emerald-500" />} isAlert={stats.today > 0} />
-        </div>
+  {/* BUTOANE - reduce padding-ul pe mobil */}
+  <div className="flex items-center gap-2">
+    <button onClick={handleOpenLiveProfile} className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase">
+      <Globe size={14} />
+      <span className="hidden sm:inline">{t('view_profile')}</span>
+    </button>
+  </div>
+</nav>
+        <div className="mb-8 flex flex-col items-start gap-4 px-2">
+  <div className="space-y-0">
+    <h1 className="text-3xl font-black tracking-tight text-slate-900">{t('title')}</h1>
+    <p className="text-sm text-slate-500 font-medium italic">{t('subtitle')}</p>
+  </div>
+  
+  {/* Filtrele - mai compacte */}
+  <div className="flex bg-white p-1 rounded-xl border border-slate-100 shadow-sm w-full sm:w-auto">
+     {['7d', '1m', 'all'].map((p) => (
+       <button 
+         key={p}
+         onClick={() => setSelPeriod(p)}
+         className={`flex-1 px-4 py-2 rounded-lg text-[9px] font-black uppercase ${selPeriod === p ? 'bg-indigo-600 text-white' : 'text-slate-400'}`}
+       >
+         {t(`periods.${p}`)}
+       </button>
+     ))}
+  </div>
+</div>
 
         {/* ANALYSIS BOX */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
