@@ -173,7 +173,7 @@ export default function EmployeesPage() {
 
   const handleDeleteConfirm = async () => {
     if (!showDeleteModal) return;
-    setLoading(true);
+    loading(true);
     try {
       await supabase
         .from('reviews')
@@ -281,9 +281,12 @@ export default function EmployeesPage() {
             </div>
           ) : (
             employees.map(emp => {
-              // CONSTRUIRE CURATĂ A URL-ULUI PENTRU QR CODE
+              // DETECTARE SLUG DINAMIC CONFORM STRUCTURII TALE (/rate/[slug])
+              const dynamicSlug = emp.location_id || companyId || 'general';
+
+              // CONSTRUIRE CURATĂ ȘI CORECTĂ A URL-ULUI PENTRU QR CODE
               const qrUrl = typeof window !== 'undefined' 
-                ? `${window.location.origin}/${locale}/rate?employee=${emp.id}` 
+                ? `${window.location.origin}/${locale}/rate/${dynamicSlug}?employee=${emp.id}` 
                 : '';
               
               return (
