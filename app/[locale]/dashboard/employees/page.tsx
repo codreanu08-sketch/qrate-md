@@ -173,7 +173,7 @@ export default function EmployeesPage() {
 
   const handleDeleteConfirm = async () => {
     if (!showDeleteModal) return;
-    loading(true);
+    setLoading(true);
     try {
       await supabase
         .from('reviews')
