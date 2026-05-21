@@ -20,7 +20,7 @@ interface Review {
   employee_id?: string;
   photo_url?: string | null;
   full_name?: string | null;   
-  phone?: string | null;       
+  phone?: string | null;      
   locations?: { name: string } | null;
   employees?: { name: string; position: string; photo_url: string } | null;
 }
@@ -116,7 +116,6 @@ export default function AllReviewsDashboard() {
     if (!companyId || hasAccess === false) return;
     setLoading(true);
     
-    // Select-ul este acum explicit pentru a forța returnarea corectă a tuturor coloanelor primitive
     let query = supabase
       .from('reviews')
       .select(`
@@ -153,7 +152,6 @@ export default function AllReviewsDashboard() {
     if (error) {
       console.error("❌ EROARE SUPABASE REVIEWS:", error);
     } else {
-      // Log în consolă pentru depanare locală rapidă
       console.log("👉 DATE DE LA SUPABASE:", data);
     }
 
@@ -236,7 +234,6 @@ export default function AllReviewsDashboard() {
               </button>
             </header>
 
-            {/* Filtre Aliniate fără suprapunere */}
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                 <FilterGroup label={t('labels.location')} icon={<MapPin size={15}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
@@ -272,14 +269,12 @@ export default function AllReviewsDashboard() {
               </div>
             </div>
 
-            {/* Grid Statistici */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <StatCard label={tCommon('stats.avg_rating')} value={`${smartStats.avg}/5.0`} icon={<Star className="text-yellow-400 fill-yellow-400" size={18} />} />
               <StatCard label={tCommon('stats.hero_day')} value={smartStats.bestEmp} icon={<Trophy className="text-orange-500" size={18} />} />
               <StatCard label={tStats('volume')} value={smartStats.count.toString()} icon={<MessageSquare className="text-blue-600" size={18} />} />
             </div>
 
-            {/* Lista de Recenzii */}
             <div className="space-y-4">
                {loading ? (
                  <div className="py-20 flex flex-col items-center justify-center">
@@ -304,7 +299,6 @@ export default function AllReviewsDashboard() {
                )}
             </div>
 
-            {/* Paginator */}
             {reviews.length > ITEMS_PER_PAGE && (
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl z-40 flex items-center gap-1 border border-white/10">
                 <button 
@@ -330,7 +324,6 @@ export default function AllReviewsDashboard() {
         )}
       </div>
 
-      {/* Pop-up Modul Poza Mărită */}
       {activePhoto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setActivePhoto(null)}>
           <div className="relative max-w-3xl w-full max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -340,7 +333,6 @@ export default function AllReviewsDashboard() {
             >
               <X size={18} />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={activePhoto} alt="Review attachment" className="w-full h-auto max-h-[85vh] object-contain mx-auto" />
           </div>
         </div>
@@ -384,7 +376,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="flex-1 space-y-3.5">
           
-          {/* Header Card: Stele + Informații Client */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 pb-2.5">
             <div className="flex items-center gap-0.5 shrink-0">
               {[...Array(5)].map((_, i) => (
@@ -392,7 +383,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
               ))}
             </div>
             
-            {/* Verificăm dacă există date valide scrise în câmpuri (excludem șirurile goale sau valoarea string 'EMPTY') */}
             {((rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY') || 
               (rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY')) && (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
@@ -402,9 +392,13 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
                   </span>
                 )}
                 {rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY' && (
-                  <span className="text-slate-700 font-black flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-gray-200/40 tracking-tight">
-                    <Phone size={10} className="text-slate-500" /> {rev.phone}
-                  </span>
+                  <a 
+                    href={`tel:${rev.phone.trim()}`}
+                    className="text-slate-700 font-black flex items-center gap-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 px-2.5 py-0.5 rounded-lg border border-gray-200/40 tracking-tight transition-all cursor-pointer"
+                    title={locale === 'ru' ? 'Позвонить' : 'Apelează numărul'}
+                  >
+                    <Phone size={10} className="text-slate-500 group-hover:text-blue-500" /> {rev.phone}
+                  </a>
                 )}
               </div>
             )}
@@ -414,14 +408,12 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             "{rev.comment || noCommentText}"
           </p>
           
-          {/* Randarea Imaginii - Verificare strictă de URL */}
           {rev.photo_url && rev.photo_url.trim() !== '' && rev.photo_url !== 'NULL' && rev.photo_url !== 'EMPTY' && (
             <div className="pt-1">
               <div 
                 onClick={() => onViewPhoto(rev.photo_url)}
                 className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden cursor-pointer border border-gray-200 group/img shadow-sm active:scale-95 transition-transform"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                   src={rev.photo_url} 
                   alt="Client upload" 
