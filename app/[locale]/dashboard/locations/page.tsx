@@ -57,10 +57,15 @@ export default function LocationsPage() {
         supabase.from('locations').select('*').eq('company_id', cId).order('created_at', { ascending: false }),
         supabase.from('reviews').select('*, locations(name)').eq('company_id', cId).order('created_at', { ascending: false })
       ]);
-      if (locsRes.data) setLocations(locsRes.data);
-      if (revsRes.data) setLastReviews(revsRes.data);
-    } catch (err) {
+      
+      if (locsRes.error) throw locsRes.error;
+      if (revsRes.error) throw revsRes.error;
+
+      setLocations(locsRes.data || []);
+      setLastReviews(revsRes.data || []);
+    } catch (err: any) {
       console.error("Eroare fetch date:", err);
+      setErrorMessage(`Nu s-au putut încărca locațiile: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -259,20 +264,26 @@ export default function LocationsPage() {
       return;
     }
     
-    const { error } = await supabase.from('locations').insert([{ 
-      name: newName.trim(), 
-      address: newAddress.trim(), 
-      company_id: companyId,           // ← IMPORTANT: trimitem companyId
-      type: type, 
-      logo_url: logoUrl || null, 
-      welcome_message: welcomeMessage
-    }]);
+    // Corecție importantă: Trimiterea obiectului corect în baza de date
+    const { data, error } = await supabase
+      .from('locations')
+      .insert([{ 
+        name: newName.trim(), 
+        address: newAddress.trim(), 
+        company_id: companyId,
+        type: type, 
+        logo_url: logoUrl || null, 
+        welcome_message: welcomeMessage
+      }])
+      .select();
 
     if (!error) {
       setNewName(''); 
       setNewAddress('');
       setSuccessMessage("Locația a fost adăugată cu succes!");
       setTimeout(() => setSuccessMessage(null), 4000);
+      
+      // Forțăm reîncărcarea datelor direct cu ID-ul stabil din state
       await fetchData(companyId);
     } else {
       console.error("Supabase Insert Error:", error);
@@ -375,7 +386,7 @@ export default function LocationsPage() {
           </div>
         </div>
 
-        {/* FORMULAR ADĂUGARE LOCAȚIE - CORECTAT */}
+        {/* FORMULAR ADĂUGARE LOCAȚIE */}
         <form onSubmit={handleAddLocation} className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-100 mb-12">
           <h3 className="text-xl font-black text-slate-900 mb-6">Adaugă locație nouă</h3>
           
@@ -464,76 +475,80 @@ export default function LocationsPage() {
         </form>
 
         {/* Grid Locații */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {locations.map((loc) => {
-            const locReviews = lastReviews.filter(r => r.location_id === loc.id);
-            const isSelected = selectedLocationId === loc.id;
-            const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review/${loc.id}` : '';
+        {locations.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-bold">
+            Nu ai nicio locație adăugată pentru această companie. Folosește formularul de mai sus.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+            {locations.map((loc) => {
+              const locReviews = lastReviews.filter(r => r.location_id === loc.id);
+              const isSelected = selectedLocationId === loc.id;
+              const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review/${loc.id}` : '';
 
-            return (
-              <div 
-                key={loc.id} 
-                onClick={() => setSelectedLocationId(isSelected ? null : loc.id)}
-                className={`bg-white p-6 rounded-[2.5rem] shadow-sm border-2 transition-all cursor-pointer relative flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 bg-blue-50/10' : 'border-slate-100 hover:border-blue-200'}`}
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs ${locReviews.length > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                    <Star size={12} fill="currentColor" /> {locReviews.length > 0 ? t('card.status_active') : t('card.status_new')}
+              return (
+                <div 
+                  key={loc.id} 
+                  onClick={() => setSelectedLocationId(isSelected ? null : loc.id)}
+                  className={`bg-white p-6 rounded-[2.5rem] shadow-sm border-2 transition-all cursor-pointer relative flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 bg-blue-50/10' : 'border-slate-100 hover:border-blue-200'}`}
+                >
+                  <div className="flex justify-between items-center mb-6">
+                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs ${locReviews.length > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                      <Star size={12} fill="currentColor" /> {locReviews.length > 0 ? t('card.status_active') : t('card.status_new')}
+                    </div>
+                    {isSelected && <div className="bg-blue-500 text-white p-1 rounded-full"><Filter size={12} /></div>}
                   </div>
-                  {isSelected && <div className="bg-blue-500 text-white p-1 rounded-full"><Filter size={12} /></div>}
+
+                  <div className="hidden">
+                    {qrUrl && (
+                      <QRCodeCanvas 
+                        id={`qr-${loc.id}`} 
+                        value={qrUrl} 
+                        size={1024} 
+                        level="H" 
+                      />
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 p-6 rounded-[2.5rem] mb-6 self-center border border-transparent shadow-inner">
+                    {qrUrl && (
+                      <QRCodeCanvas 
+                        value={qrUrl} 
+                        size={140}
+                        level="H"
+                        imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavate: true } : undefined}
+                      />
+                    )}
+                  </div>
+
+                  <div className="text-center mb-6">
+                    <h3 className="font-black text-slate-800 text-xl uppercase truncate px-2">{loc.name}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                      {t('card.reviews_count', { count: locReviews.length })}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
+                    <button 
+                      type="button"
+                      onClick={() => downloadQR(loc.id, loc.name, loc.logo_url)} 
+                      className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors shadow-md"
+                    >
+                      <Download size={18} /> {t('card.download_qr')}
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setShowDeleteModal({id: loc.id, name: loc.name})} 
+                      className="text-slate-300 text-[10px] font-black uppercase hover:text-red-500 transition-colors py-2"
+                    >
+                      {t('card.delete_loc')}
+                    </button>
+                  </div>
                 </div>
-
-                <div className="hidden">
-                  {qrUrl && (
-                    <QRCodeCanvas 
-                      id={`qr-${loc.id}`} 
-                      value={qrUrl} 
-                      size={1024} 
-                      level="H" 
-                    />
-                  )}
-                </div>
-
-                <div className="bg-slate-50 p-6 rounded-[2.5rem] mb-6 self-center border border-transparent shadow-inner">
-                  {qrUrl && (
-                    <QRCodeCanvas 
-                      value={qrUrl} 
-                      size={140}
-                      level="H"
-                      imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavate: true } : undefined}
-                    />
-                  )}
-                </div>
-
-                <div className="text-center mb-6">
-                  <h3 className="font-black text-slate-800 text-xl uppercase truncate px-2">{loc.name}</h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                    {t('card.reviews_count', { count: locReviews.length })}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
-                  <button 
-                    onClick={() => downloadQR(loc.id, loc.name, loc.logo_url)} 
-                    className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors shadow-md"
-                  >
-                    <Download size={18} /> {t('card.download_qr')}
-                  </button>
-                  <button 
-                    onClick={() => setShowDeleteModal({id: loc.id, name: loc.name})} 
-                    className="text-slate-300 text-[10px] font-black uppercase hover:text-red-500 transition-colors py-2"
-                  >
-                    {t('card.delete_loc')}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Secțiune Feed Recenzii + Modal - păstrat exact ca înainte */}
-        {/* ... (codul pentru recenzii și modal rămâne neschimbat) ... */}
-
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
