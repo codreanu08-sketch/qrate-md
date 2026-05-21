@@ -280,7 +280,7 @@ export default function EmployeesPage() {
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
-            积 = employees.map(emp => {
+            employees.map(emp => {
               // CONSTRUIRE CURATĂ A URL-ULUI PENTRU QR CODE
               const qrUrl = typeof window !== 'undefined' 
                 ? `${window.location.origin}/${locale}/rate?employee=${emp.id}` 
