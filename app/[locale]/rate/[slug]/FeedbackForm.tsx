@@ -1,19 +1,24 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { Zap, Star, Send, CheckCircle2, Phone, User, Loader2, Camera, X, MessageSquareQuote } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
 
 interface FeedbackFormProps {
-  slug: string;
+  slug: string; // Acesta este slug-ul companiei sau al locației transmis din pagină
   locale: 'ro' | 'ru';
   employeeId?: string;
 }
 
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Stări noi pentru a stoca ID-urile reale din baza de date
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [locationId, setLocationId] = useState<string | null>(null);
+  const [fetchingIds, setFetchingIds] = useState<boolean>(true);
 
   // Invocăm traducerile din fișierele JSON locale
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
@@ -55,6 +60,50 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     email: '',
     comment: ''
   });
+
+  // EFECT NOU: Preluăm automat `company_id` și `location_id` folosind slug-ul primit în URL
+  useEffect(() => {
+    async function fetchIdsBySlug() {
+      try {
+        setFetchingIds(true);
+        
+        // Căutăm în tabela 'companies' ID-ul corespunzător acestui slug
+        const { data: companyData, error: compError } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('slug', slug)
+          .maybeSingle();
+
+        if (compError) throw compError;
+
+        if (companyData) {
+          setCompanyId(companyData.id);
+
+          // Dacă avem compania, căutăm prima locație asociată acesteia
+          // (Dacă ulterior codul tău QR va trimite direct un ID de locație, putem ajusta)
+          const { data: locationData, error: locError } = await supabase
+            .from('locations')
+            .select('id')
+            .eq('company_id', companyData.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (locError) throw locError;
+          if (locationData) {
+            setLocationId(locationData.id);
+          }
+        }
+      } catch (err) {
+        console.error("Eroare la obținerea ID-urilor din bază:", err);
+      } finally {
+        setFetchingIds(false);
+      }
+    }
+
+    if (slug) {
+      fetchIdsBySlug();
+    }
+  }, [slug]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,8 +151,11 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         finalPhotoUrl = urlData.publicUrl;
       }
 
+      // MODIFICARE CRUCIALĂ: Trimitem structura exactă pe care o cere tabela ta din bază
       const reviewData = {
-        company_slug: slug,
+        company_slug: slug, // Păstrat în caz că ai și această coloană, dar opțional
+        company_id: companyId,     // Salvează ID-ul UUID al companiei
+        location_id: locationId,   // Salvează ID-ul UUID al locației
         rating: rating,
         full_name: formData.fullName,
         phone: formData.phone,
@@ -304,15 +356,17 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
           <div className="pt-6 sticky bottom-4 z-40">
             <button
               type="submit"
-              disabled={loading || rating === 0}
+              disabled={loading || rating === 0 || fetchingIds}
               className={`w-full py-6 rounded-[2rem] font-black uppercase text-xs tracking-[0.25em] transition-all flex items-center justify-center gap-3 shadow-2xl active:scale-[0.97] ${
-                rating > 0 
+                rating > 0 && !fetchingIds
                 ? 'bg-slate-950 text-white hover:bg-blue-600 hover:shadow-blue-200 disabled:bg-slate-400' 
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
               {loading ? (
                 <><Loader2 className="animate-spin" size={20} /> {t.sending}</>
+              ) : fetchingIds ? (
+                <>Se încarcă datele...</>
               ) : (
                 <>{t.btn_submit} <Send size={18} className="-rotate-12" /></>
               )}
