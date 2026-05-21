@@ -19,8 +19,8 @@ interface Review {
   location_id: string;
   employee_id?: string;
   photo_url?: string | null;
-  client_name?: string | null;   // Adăugat pentru numele clientului
-  client_phone?: string | null;  // Adăugat pentru telefonul clientului
+  full_name?: string | null;   // Mapat exact după coloana full_name din DB
+  phone?: string | null;       // Mapat exact după coloana phone din DB
   locations?: { name: string };
   employees?: { name: string; position: string; photo_url: string };
 }
@@ -44,16 +44,13 @@ export default function AllReviewsDashboard() {
   const [employees, setEmployees] = useState<BasicInfo[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
 
-  // Stare pentru Pop-up-ul de vizualizare a pozei mărite
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
 
-  // Filtre active
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '1m' | '3m' | 'custom'>('7d');
   const [customDate, setCustomDate] = useState<string>('');
 
-  // Paginație activă
   const [currentPage, setCurrentPage] = useState<number>(1);
   const ITEMS_PER_PAGE = 10;
 
@@ -121,7 +118,6 @@ export default function AllReviewsDashboard() {
     
     let query = supabase
       .from('reviews')
-      // Preluăm explicit client_name și client_phone din baza de date
       .select(`*, locations (name), employees (name, position, photo_url)`)
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
@@ -130,7 +126,7 @@ export default function AllReviewsDashboard() {
     if (selectedEmployee !== 'all') query = query.eq('employee_id', selectedEmployee);
 
     if (timeFilter === 'custom' && customDate) {
-      query = query.gte('created_at', `${customDate}T00:00:00Z`).lte('custom_at', `${customDate}T23:59:59Z`);
+      query = query.gte('created_at', `${customDate}T00:00:00Z`).lte('created_at', `${customDate}T23:59:59Z`);
     } else if (timeFilter !== 'all') {
       const now = new Date();
       if (timeFilter === '7d') now.setDate(now.getDate() - 7);
@@ -151,8 +147,8 @@ export default function AllReviewsDashboard() {
     const rows = reviews.map(r => [
       new Date(r.created_at).toLocaleDateString(),
       r.rating,
-      `"${r.client_name || 'Anonim'}"`,
-      `"${r.client_phone || 'N/A'}"`,
+      `"${r.full_name || 'Anonim'}"`,
+      `"${r.phone || 'N/A'}"`,
       `"${r.comment?.replace(/"/g, '""') || ''}"`,
       r.locations?.name || 'General',
       r.employees?.name || 'N/A'
@@ -219,20 +215,20 @@ export default function AllReviewsDashboard() {
               </button>
             </header>
 
-            {/* Zonă Filtre Corectată și Aliniată Premium */}
-            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-                <FilterGroup label={t('labels.location')} icon={<MapPin size={14}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
-                <FilterGroup label={t('labels.employee')} icon={<User size={14}/>} value={selectedEmployee} onChange={setSelectedEmployee} options={employees} allLabel={t('options.all_emps')} />
+            {/* Filtre Curate - Fixate 100% fără suprapunere */}
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                <FilterGroup label={t('labels.location')} icon={<MapPin size={15}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
+                <FilterGroup label={t('labels.employee')} icon={<User size={15}/>} value={selectedEmployee} onChange={setSelectedEmployee} options={employees} allLabel={t('options.all_emps')} />
                 
-                <div className="flex flex-col gap-1.5 w-full">
+                <div className="flex flex-col gap-2 w-full">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Период' : 'Perioada'}</span>
-                  <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-200/60 w-full justify-between">
+                  <div className="grid grid-cols-4 gap-1 w-full bg-gray-50 p-1 rounded-xl border border-gray-200/60 h-11 items-center">
                     {['7d', '1m', '3m', 'all'].map((period) => (
                       <button 
                         key={period} 
                         onClick={() => { setTimeFilter(period as any); setCustomDate(''); }} 
-                        className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all flex-1 text-center ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                        className={`h-full rounded-lg text-[9px] font-black uppercase tracking-tight transition-all flex items-center justify-center text-center px-1 ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                         {t(`options.${period}`)}
                       </button>
@@ -240,15 +236,15 @@ export default function AllReviewsDashboard() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5 w-full">
+                <div className="flex flex-col gap-2 w-full">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Календарь' : 'Alege Data'}</span>
-                  <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all h-[38px] ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
-                     <CalendarIcon size={14} className={timeFilter === 'custom' ? 'text-blue-600' : 'text-gray-400'} />
+                  <div className={`flex items-center gap-2.5 px-3.5 rounded-xl border transition-all h-11 w-full ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
+                     <CalendarIcon size={15} className={timeFilter === 'custom' ? 'text-blue-600' : 'text-gray-400'} />
                      <input 
                        type="date" 
                        value={customDate}
                        onChange={(e) => { setCustomDate(e.target.value); setTimeFilter('custom'); }}
-                       className="bg-transparent border-none text-[11px] font-black text-gray-700 outline-none p-0 cursor-pointer w-full"
+                       className="bg-transparent border-none text-xs font-black text-gray-700 outline-none p-0 cursor-pointer w-full focus:ring-0"
                      />
                   </div>
                 </div>
@@ -334,11 +330,11 @@ export default function AllReviewsDashboard() {
 
 function FilterGroup({ label, icon, value, onChange, options, allLabel }: any) {
   return (
-    <div className="flex flex-col gap-1.5 w-full">
+    <div className="flex flex-col gap-2 w-full">
       <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{label}</span>
-      <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200/60 h-[38px] w-full">
+      <div className="flex items-center gap-2 bg-gray-50 px-3.5 rounded-xl border border-gray-200/60 h-11 w-full">
         <div className="text-gray-400 shrink-0">{icon}</div>
-        <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent border-none text-[11px] font-black text-gray-700 outline-none cursor-pointer p-0 focus:ring-0 w-full font-black">
+        <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent border-none text-xs font-black text-gray-700 outline-none cursor-pointer p-0 focus:ring-0 w-full font-black">
           <option value="all">{allLabel}</option>
           {options.map((o: any) => <option key={o.id} value={o.id}>{o.name}</option>)}
         </select>
@@ -367,24 +363,24 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="flex-1 space-y-3.5">
           
-          {/* Header Card: Stele + Informații Client (Nume și Telefon) */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-50 pb-2.5">
+          {/* Header Card: Stele + Informații Client corect mapate (full_name și phone) */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 pb-2.5">
             <div className="flex items-center gap-0.5 shrink-0">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} size={13} className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} />
               ))}
             </div>
             
-            {(rev.client_name || rev.client_phone) && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                {rev.client_name && (
-                  <span className="text-slate-900 font-extrabold flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-gray-100">
-                    <User size={12} className="text-slate-400" /> {rev.client_name}
+            {(rev.full_name || rev.phone) && (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                {rev.full_name && rev.full_name !== 'EMPTY' && (
+                  <span className="text-slate-900 font-black flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-gray-200/40 uppercase tracking-tight">
+                    <User size={11} className="text-slate-500" /> {rev.full_name}
                   </span>
                 )}
-                {rev.client_phone && (
-                  <span className="text-gray-500 font-medium flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-gray-100">
-                    <Phone size={11} className="text-gray-400" /> {rev.client_phone}
+                {rev.phone && rev.phone !== 'EMPTY' && (
+                  <span className="text-slate-700 font-black flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-gray-200/40 tracking-tight">
+                    <Phone size={10} className="text-slate-500" /> {rev.phone}
                   </span>
                 )}
               </div>
@@ -395,7 +391,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             "{rev.comment || noCommentText}"
           </p>
           
-          {/* Afișare Poză Atașată */}
           {rev.photo_url && (
             <div className="pt-1">
               <div 
@@ -421,7 +416,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
           </div>
         </div>
 
-        {/* Informații Timp / Dată */}
         <div className="text-left md:text-right min-w-[100px] border-t border-gray-50 pt-3 md:pt-0 md:border-none flex md:flex-col justify-between md:justify-start items-center md:items-end gap-1">
           <div className="md:block">
             <span className="text-[9px] font-black text-gray-300 uppercase block leading-none md:mb-1">{locale === 'ru' ? 'Время' : 'Ora'}</span>
