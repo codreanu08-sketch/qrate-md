@@ -282,7 +282,8 @@ export default function EmployeesPage() {
             </div>
           ) : (
             employees.map(emp => {
-              const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review?employee=${emp.id}` : '';
+              // AICI ESTE CORECTURA: Schimbat din /review în /rate pentru a duce utilizatorul direct la pagina corectă
+              const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/rate?employee=${emp.id}` : '';
               
               return (
                 <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
