@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Download, 
   Star, AlertTriangle, Loader2,
   Building2, Image as ImageIcon, MessageSquare, Upload, CheckCircle2,
-  Filter, X, MapPin, Truck
+  Filter, X, MapPin, Truck, Phone
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -596,7 +596,9 @@ export default function LocationsPage() {
               {filteredReviews.map((review) => (
                 <div key={review.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-100/50 transition-colors">
                   <div className="space-y-1 w-full sm:w-auto">
-                    <div className="flex items-center gap-3">
+                    
+                    {/* AICI AM ADĂUGAT NUMELE ȘI TELEFONUL */}
+                    <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex gap-0.5 text-amber-500">
                         {[...Array(5)].map((_, i) => (
                           <Star 
@@ -610,7 +612,25 @@ export default function LocationsPage() {
                       <span className="text-xs bg-white text-slate-600 border px-2 py-0.5 rounded-md font-black uppercase text-[10px]">
                         {review.locations?.name || "Locație ștearsă"}
                       </span>
+
+                      {/* Afișare Nume client (dacă este completat în DB) */}
+                      {review.name && (
+                        <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                          {review.name}
+                        </span>
+                      )}
+
+                      {/* Afișare Telefon client (buton apelabil) */}
+                      {review.phone && (
+                        <a 
+                          href={`tel:${review.phone.replace(/\s+/g, '')}`} 
+                          className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-bold text-[10px] hover:bg-blue-100 transition-colors"
+                        >
+                          <Phone size={10} /> {review.phone}
+                        </a>
+                      )}
                     </div>
+                    
                     <p className="text-sm font-bold text-slate-700 italic">
                       {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal">Fără comentariu lăsat</span>}
                     </p>
