@@ -279,6 +279,8 @@ export default function LocationsPage() {
     if (!error) {
       setNewName(''); 
       setNewAddress('');
+      setLogoUrl(''); 
+      if (fileInputRef.current) fileInputRef.current.value = ''; 
       setSuccessMessage("Locația a fost adăugată cu succes!");
       setTimeout(() => setSuccessMessage(null), 4000);
       await fetchData(companyId);
@@ -301,7 +303,6 @@ export default function LocationsPage() {
     }
   };
 
-  // Filtrarea recenziilor în funcție de locația selectată
   const filteredReviews = selectedLocationId 
     ? lastReviews.filter(r => r.location_id === selectedLocationId)
     : lastReviews;
@@ -395,6 +396,7 @@ export default function LocationsPage() {
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5">NUMELE LOCAȚIEI *</label>
                 <input 
+                  type="text"
                   placeholder="Ex: Filiala Centru" 
                   value={newName} 
                   onChange={(e) => setNewName(e.target.value)} 
@@ -418,6 +420,7 @@ export default function LocationsPage() {
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5">ADRESĂ (opțional)</label>
                 <input 
+                  type="text"
                   placeholder="Str. Ștefan cel Mare 45" 
                   value={newAddress} 
                   onChange={(e) => setNewAddress(e.target.value)} 
@@ -493,7 +496,6 @@ export default function LocationsPage() {
                   className={`bg-white p-6 rounded-[2.5rem] shadow-sm border-2 transition-all cursor-pointer relative flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 bg-blue-50/10' : 'border-slate-100 hover:border-blue-200'}`}
                 >
                   <div className="flex justify-between items-center mb-6">
-                    {/* Afișare Categorie / Tip locație */}
                     <div className="flex items-center gap-1 bg-slate-100 text-slate-700 px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider">
                       {loc.type === 'Delivery' ? (
                         <>
@@ -530,7 +532,7 @@ export default function LocationsPage() {
                         value={qrUrl} 
                         size={140}
                         level="H"
-                        imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavate: true } : undefined}
+                        imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavations: true } : undefined}
                       />
                     )}
                   </div>
@@ -564,7 +566,7 @@ export default function LocationsPage() {
           </div>
         )}
 
-        {/* SECȚIUNE AFISARE RECENZII (Apare mereu jos) */}
+        {/* SECȚIUNE AFISARE RECENZII */}
         <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
             <div>
@@ -595,9 +597,8 @@ export default function LocationsPage() {
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
               {filteredReviews.map((review) => (
                 <div key={review.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-100/50 transition-colors">
-                  <div className="space-y-1 w-full sm:w-auto">
+                  <div className="space-y-1.5 w-full sm:w-auto">
                     
-                    {/* AICI AM ADĂUGAT NUMELE ȘI TELEFONUL */}
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex gap-0.5 text-amber-500">
                         {[...Array(5)].map((_, i) => (
@@ -613,14 +614,12 @@ export default function LocationsPage() {
                         {review.locations?.name || "Locație ștearsă"}
                       </span>
 
-                      {/* Afișare Nume client (dacă este completat în DB) */}
                       {review.name && (
                         <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold text-[10px]">
                           {review.name}
                         </span>
                       )}
 
-                      {/* Afișare Telefon client (buton apelabil) */}
                       {review.phone && (
                         <a 
                           href={`tel:${review.phone.replace(/\s+/g, '')}`} 
@@ -631,8 +630,9 @@ export default function LocationsPage() {
                       )}
                     </div>
                     
-                    <p className="text-sm font-bold text-slate-700 italic">
-                      {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal">Fără comentariu lăsat</span>}
+                    {/* MODIFICAT AICI: text-base (16px) în loc de text-sm (14px) și font-semibold pentru lizibilitate sporită */}
+                    <p className="text-base font-semibold text-slate-700 italic tracking-wide mt-1">
+                      {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal text-sm">Fără comentariu lăsat</span>}
                     </p>
                   </div>
                   
@@ -647,7 +647,7 @@ export default function LocationsPage() {
 
       </div>
 
-      {/* MODAL DETALII ȘTERGERE (OBLIGATORIU) */}
+      {/* MODAL DETALII ȘTERGERE */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full border border-slate-100 text-center">
@@ -660,12 +660,14 @@ export default function LocationsPage() {
             </p>
             <div className="flex gap-3">
               <button 
+                type="button"
                 onClick={() => setShowDeleteModal(null)}
                 className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors"
               >
                 Anulează
               </button>
               <button 
+                type="button"
                 onClick={() => deleteLocation(showDeleteModal.id)}
                 className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors shadow-lg shadow-rose-100"
               >
