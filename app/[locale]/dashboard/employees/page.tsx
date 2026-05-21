@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   UserPlus, Trash2, Download, Star, 
   MapPin, AlertCircle, Loader2, Camera, User, 
-  MessageSquare, ChevronRight, Briefcase
+  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import Link from 'next/link';
@@ -25,6 +25,7 @@ export default function EmployeesPage() {
   const [form, setForm] = useState({ name: '', position: '', location_id: '', image: null as File | null });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<any>(null);
+  const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
 
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
@@ -61,10 +62,10 @@ export default function EmployeesPage() {
       const currentLocs = locs || [];
       setLocations(currentLocs);
       
-      // Preluăm angajații cu recenziile lor
+      // Preluăm angajații cu TOATE datele recenziilor lor
       const { data: emps, error: empsError } = await supabase
         .from('employees')
-        .select(`*, reviews(rating)`)
+        .select(`*, reviews(*)`)
         .eq('company_id', company.id)
         .order('created_at', { ascending: false });
 
@@ -87,8 +88,14 @@ export default function EmployeesPage() {
             
             const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
 
+            // Sortăm recenziile descrescător după data creării (cele mai noi primele)
+            const sortedReviews = emp.reviews ? [...emp.reviews].sort((a: any, b: any) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            ) : [];
+
             return { 
               ...emp, 
+              reviews: sortedReviews,
               avgRating: avg.toFixed(1), 
               totalReviews,
               location_name: locationData ? locationData.name : (t.has('card.mobile_location') ? t('card.mobile_location') : 'Fără locație (Mobil)')
@@ -197,6 +204,10 @@ export default function EmployeesPage() {
     }
   };
 
+  const toggleReviews = (empId: string) => {
+    setExpandedEmployee(prev => prev === empId ? null : empId);
+  };
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 lg:p-12 font-sans text-slate-900">
       <div className="max-w-[1400px] mx-auto">
@@ -281,80 +292,134 @@ export default function EmployeesPage() {
             </div>
           ) : (
             employees.map(emp => {
-              // DETECTARE SLUG DINAMIC CONFORM STRUCTURII TALE (/rate/[slug])
               const dynamicSlug = emp.location_id || companyId || 'general';
-
-              // CONSTRUIRE CURATĂ ȘI CORECTĂ A URL-ULUI PENTRU QR CODE
               const qrUrl = typeof window !== 'undefined' 
                 ? `${window.location.origin}/${locale}/rate/${dynamicSlug}?employee=${emp.id}` 
                 : '';
               
+              const isExpanded = expandedEmployee === emp.id;
+
               return (
                 <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
                   
-                  {/* Canvas Ascuns pentru download - rezoluție optimă */}
+                  {/* Canvas Ascuns pentru download */}
                   <div className="hidden">
                     {qrUrl && (
                       <QRCodeCanvas 
                         id={`qr-download-${emp.id}`}
                         value={qrUrl}
-                        size={512} // Generăm la rezoluție mare pentru print clar, chiar dacă eticheta e mică
+                        size={512}
                         level="H"
                         includeMargin={true}
                       />
                     )}
                   </div>
 
-                  <div className="flex items-start gap-6 mb-6">
-                    <div className="relative shrink-0">
-                      {emp.photo_url ? (
-                        <img 
-                          src={emp.photo_url} 
-                          className="w-24 h-24 rounded-2xl object-cover border-4 border-slate-50 shadow-md relative z-10"
-                          alt={emp.name}
-                        />
-                      ) : (
-                        <div className="w-24 h-24 rounded-2xl bg-slate-50 border-4 border-slate-50 flex items-center justify-center text-slate-200 shadow-md relative z-10">
-                          <User size={40} />
+                  <div>
+                    <div className="flex items-start gap-6 mb-6">
+                      <div className="relative shrink-0">
+                        {emp.photo_url ? (
+                          <img 
+                            src={emp.photo_url} 
+                            className="w-24 h-24 rounded-2xl object-cover border-4 border-slate-50 shadow-md relative z-10"
+                            alt={emp.name}
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-2xl bg-slate-50 border-4 border-slate-50 flex items-center justify-center text-slate-200 shadow-md relative z-10">
+                            <User size={40} />
+                          </div>
+                        )}
+                        <div className="absolute -top-2 -right-2 bg-yellow-400 text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-sm z-20 flex items-center gap-1">
+                          <Star size={11} className="fill-white" /> {emp.avgRating}
                         </div>
-                      )}
-                      <div className="absolute -top-2 -right-2 bg-yellow-400 text-white text-[11px] font-black px-2.5 py-1 rounded-lg shadow-sm z-20 flex items-center gap-1">
-                        <Star size={11} className="fill-white" /> {emp.avgRating}
+                      </div>
+
+                      <div className="flex-1 min-w-0 pt-1"> 
+                        <h3 className="font-[900] text-slate-900 text-2xl uppercase tracking-tighter leading-tight break-words mb-3">
+                          {emp.name}
+                        </h3>
+                        <div className="flex flex-wrap gap-2.5">
+                          <span className="bg-blue-50 text-blue-600 px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                            <Briefcase size={12} /> {emp.position || (t.has('card.default_position') ? t('card.default_position') : 'Angajat')}
+                          </span>
+                          <span className="bg-slate-50 text-slate-400 px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                            <MessageSquare size={12} /> {emp.totalReviews}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex-1 min-w-0 pt-1"> 
-                      <h3 className="font-[900] text-slate-900 text-2xl uppercase tracking-tighter leading-tight break-words mb-3">
-                        {emp.name}
-                      </h3>
-                      <div className="flex flex-wrap gap-2.5">
-                        <span className="bg-blue-50 text-blue-600 px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                          <Briefcase size={12} /> {emp.position || (t.has('card.default_position') ? t('card.default_position') : 'Angajat')}
-                        </span>
-                        <span className="bg-slate-50 text-slate-400 px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                          <MessageSquare size={12} /> {emp.totalReviews}
-                        </span>
+                    <div className="flex items-center justify-between gap-6 bg-slate-50/60 p-5 rounded-2xl mb-4 border border-slate-100">
+                      <div className="flex flex-col gap-2 min-w-0">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tight">
+                          <MapPin size={16} className="text-blue-500 shrink-0" />
+                          <span className="truncate">{emp.location_name}</span>
+                        </div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {emp.id.slice(0,8)}</p>
+                      </div>
+                      
+                      <div className="bg-white p-2.5 rounded-xl shadow-sm shrink-0 border border-slate-100">
+                        {qrUrl && (
+                          <QRCodeCanvas 
+                            id={`qr-${emp.id}`}
+                            value={qrUrl} 
+                            size={76} 
+                            level="H"
+                          />
+                        )}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between gap-6 bg-slate-50/60 p-5 rounded-2xl mb-6 border border-slate-100">
-                    <div className="flex flex-col gap-2 min-w-0">
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tight">
-                        <MapPin size={16} className="text-blue-500 shrink-0" />
-                        <span className="truncate">{emp.location_name}</span>
-                      </div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {emp.id.slice(0,8)}</p>
-                    </div>
-                    
-                    <div className="bg-white p-2.5 rounded-xl shadow-sm shrink-0 border border-slate-100">
-                      {qrUrl && (
-                        <QRCodeCanvas 
-                          id={`qr-${emp.id}`}
-                          value={qrUrl} 
-                          size={76} 
-                          level="H"
-                        />
+                    {/* SECTIUNE TOGGLE RECENZII */}
+                    <div className="mb-6">
+                      <button
+                        type="button"
+                        onClick={() => toggleReviews(emp.id)}
+                        className="w-full flex items-center justify-between bg-slate-50 hover:bg-slate-100/80 transition-colors px-5 py-3 rounded-xl text-xs font-black uppercase tracking-wider text-slate-600"
+                      >
+                        <span className="flex items-center gap-2">
+                          <MessageSquare size={14} className="text-blue-500" />
+                          {isExpanded ? 'Ascunde recenziile' : `Vezi recenzii (${emp.totalReviews})`}
+                        </span>
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-3 space-y-3 max-h-[220px] overflow-y-auto pr-1 border-t border-slate-100 pt-3 custom-scrollbar">
+                          {emp.reviews && emp.reviews.length > 0 ? (
+                            emp.reviews.map((rev: any) => (
+                              <div key={rev.id} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <div className="min-w-0">
+                                    <p className="font-black text-slate-800 text-xs truncate uppercase tracking-tight">
+                                      {rev.client_name || rev.name || 'Client Anonim'}
+                                    </p>
+                                    {(rev.client_phone || rev.phone) && (
+                                      <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
+                                        <Phone size={10} /> {rev.client_phone || rev.phone}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-0.5 bg-amber-50 px-2 py-0.5 rounded-md text-amber-600 shrink-0">
+                                    <Star size={10} className="fill-amber-500 text-amber-500" />
+                                    <span className="text-[11px] font-black">{rev.rating}</span>
+                                  </div>
+                                </div>
+                                {rev.text || rev.comment ? (
+                                  <p className="text-xs text-slate-600 font-medium leading-relaxed bg-white/60 p-2.5 rounded-lg border border-slate-50 italic">
+                                    "{rev.text || rev.comment}"
+                                  </p>
+                                ) : (
+                                  <p className="text-[11px] text-slate-400 italic pl-1">Fără comentariu text</p>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-center text-xs font-bold text-slate-400 py-4 uppercase tracking-wider italic">
+                              Nu există recenzii pentru acest angajat.
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
