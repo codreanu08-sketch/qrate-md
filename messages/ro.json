@@ -269,7 +269,7 @@
       "badge": "Securizat prin Supabase",
       "title_part1": "Sistem Inteligent de Recenzii",
       "title_part2": "pentru Afacerea Ta",
-      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților în timp real și crește ratingul în Google.",
+      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților,locațiilor sau a serviciului de livrare în timp real și .",
       "btn_start": "Începe acum",
       "btn_go_dashboard": "Mergi la panou"
     },
@@ -280,7 +280,7 @@
     "services": {
       "qr_employee": {
         "title": "QR pentru Angajat",
-        "desc": "Coduri unice pentru fiecare punto sau angajat pentru urmărirea eficienței în timp real."
+        "desc": "Coduri unice pentru fiecare locație sau angajat pentru urmărirea eficienței în timp real."
       },
       "telegram": {
         "title": "Alerte Telegram",

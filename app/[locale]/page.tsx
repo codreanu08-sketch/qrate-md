@@ -179,10 +179,10 @@ export default function LandingPage() {
             <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em] animate-bounce">
               <Zap size={14} /> {t('hero.badge')}
             </div>
-            <h1 className="text-6xl md:text-[100px] font-[900] tracking-tighter text-slate-950 uppercase leading-[0.8] mb-6">
-              {t('hero.title_part1')} <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-indigo-800 italic">{t('hero.title_part2')}</span>
-            </h1>
+            <h1 className="text-5xl md:text-7xl font-[900] tracking-tighter text-slate-950 uppercase leading-[0.9] mb-6">
+  {t('hero.title_part1')} <br />
+  <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-indigo-800 italic">{t('hero.title_part2')}</span>
+           </h1>
             <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed italic">{t('hero.description')}</p>
             <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link href={isLoggedIn ? "/dashboard" : "/auth/register"} className="w-full sm:w-auto bg-blue-600 text-white px-14 py-8 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_25px_50px_-12px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 transition-all text-center">
@@ -291,7 +291,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-        
+
         {/* --- SECȚIUNEA CONFIGURATOR ȘI TARIFE --- */}
         <section id="preturi" className="py-32 px-6 scroll-mt-24 bg-slate-50/50">
           <div className="max-w-6xl mx-auto">
