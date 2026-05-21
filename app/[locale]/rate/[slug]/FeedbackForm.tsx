@@ -7,7 +7,7 @@ import ru from '@/messages/ru.json';
 import ro from '@/messages/ro.json'; 
 
 interface FeedbackFormProps {
-  slug: string; // Acesta este slug-ul companiei sau al locației transmis din pagină
+  slug: string; // Acesta conține ID-ul/Slug-ul transmis din structura rutei dinamice
   locale: 'ro' | 'ru';
   employeeId?: string;
 }
@@ -15,7 +15,7 @@ interface FeedbackFormProps {
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Stări noi pentru a stoca ID-urile reale din baza de date
+  // Stări pentru stocarea corectă a ID-urilor UUID
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
@@ -23,7 +23,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
   // Invocăm traducerile din fișierele JSON locale
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
   
-  // Fallback-uri inteligente cu forțare de tip pe 'messages' pentru a asigura stabilitatea build-ului
   const t = (messages as any)?.PublicFeedback || {
     step: locale === 'ro' ? 'Pasul 1/1' : 'Шаг 1/1',
     heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв pentru',
@@ -61,47 +60,56 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     comment: ''
   });
 
-  // EFECT NOU: Preluăm automat `company_id` și `location_id` folosind slug-ul primit în URL
+  // STRATEGIE NOUĂ: Interogăm direct locația. Dacă slug este un UUID, va funcționa instant.
+  // Dacă eșuează, înseamnă că 'slug' este text, și rulăm fallback-ul pe tabela de companii.
   useEffect(() => {
-    async function fetchIdsBySlug() {
+    async function getCorrectIdentifiers() {
       try {
         setFetchingIds(true);
         
-        // Căutăm în tabela 'companies' ID-ul corespunzător acestui slug
-        const { data: companyData, error: compError } = await supabase
+        // Pasul A: Încercăm să vedem dacă `slug` este de fapt ID-ul direct al locației (UUID)
+        const { data: locData } = await supabase
+          .from('locations')
+          .select('id, company_id')
+          .eq('id', slug)
+          .maybeSingle();
+
+        if (locData) {
+          setLocationId(locData.id);
+          setCompanyId(locData.company_id);
+          return; // Am rezolvat, oprim execuția aici
+        }
+
+        // Pasul B: Fallback în cazul în care QR-ul trimite totuși un slug text al companiei
+        const { data: compData } = await supabase
           .from('companies')
           .select('id')
           .eq('slug', slug)
           .maybeSingle();
 
-        if (compError) throw compError;
+        if (compData) {
+          setCompanyId(compData.id);
 
-        if (companyData) {
-          setCompanyId(companyData.id);
-
-          // Dacă avem compania, căutăm prima locație asociată acesteia
-          // (Dacă ulterior codul tău QR va trimite direct un ID de locație, putem ajusta)
-          const { data: locationData, error: locError } = await supabase
+          const { data: fallbackLoc } = await supabase
             .from('locations')
             .select('id')
-            .eq('company_id', companyData.id)
+            .eq('company_id', compData.id)
             .limit(1)
             .maybeSingle();
 
-          if (locError) throw locError;
-          if (locationData) {
-            setLocationId(locationData.id);
+          if (fallbackLoc) {
+            setLocationId(fallbackLoc.id);
           }
         }
       } catch (err) {
-        console.error("Eroare la obținerea ID-urilor din bază:", err);
+        console.error("Eroare la identificarea companiei/locației:", err);
       } finally {
         setFetchingIds(false);
       }
     }
 
     if (slug) {
-      fetchIdsBySlug();
+      getCorrectIdentifiers();
     }
   }, [slug]);
 
@@ -151,11 +159,11 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         finalPhotoUrl = urlData.publicUrl;
       }
 
-      // MODIFICARE CRUCIALĂ: Trimitem structura exactă pe care o cere tabela ta din bază
+      // Salvăm recenzia cu ID-urile extrase din baza de date
       const reviewData = {
-        company_slug: slug, // Păstrat în caz că ai și această coloană, dar opțional
-        company_id: companyId,     // Salvează ID-ul UUID al companiei
-        location_id: locationId,   // Salvează ID-ul UUID al locației
+        company_slug: slug,
+        company_id: companyId,     // Nu mai este NULL
+        location_id: locationId,   // Nu mai este NULL
         rating: rating,
         full_name: formData.fullName,
         phone: formData.phone,
