@@ -53,13 +53,29 @@ export default function LocationsPage() {
   const [isAdding, setIsAdding] = useState(false);
 
   const fetchData = useCallback(async (cId: string) => {
+    console.log('🔄 Fetching locations for company:', cId);
     try {
-      const [locsRes, revsRes] = await Promise.all([
-        supabase.from('locations').select('*').eq('company_id', cId).order('created_at', { ascending: false }),
-        supabase.from('reviews').select('*, locations(name)').eq('company_id', cId).order('created_at', { ascending: false })
-      ]);
-      if (locsRes.data) setLocations(locsRes.data);
-      if (revsRes.data) setLastReviews(revsRes.data);
+      const { data, error } = await supabase
+        .from('locations')
+        .select('*')
+        .eq('company_id', cId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Fetch error:', error);
+        return;
+      }
+
+      console.log('✅ Locations fetched:', data?.length || 0, 'items');
+      setLocations(data || []);
+      
+      const { data: revs } = await supabase
+        .from('reviews')
+        .select('*, locations(name)')
+        .eq('company_id', cId)
+        .order('created_at', { ascending: false });
+        
+      setLastReviews(revs || []);
     } catch (err) {
       console.error("Eroare fetch date:", err);
     } finally {
@@ -274,7 +290,6 @@ export default function LocationsPage() {
       setNewAddress('');
       setSuccessMessage("✅ Locația a fost adăugată cu succes!");
 
-      // Forțează refresh-ul datelor
       await fetchData(companyId);
       router.refresh();
 
