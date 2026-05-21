@@ -85,7 +85,6 @@ export default function EmployeesPage() {
               ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
               : 0;
             
-            // Tipizat explicit (l: any) pentru a preveni erorile stricte de compilare
             const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
 
             return { 
@@ -281,22 +280,24 @@ export default function EmployeesPage() {
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
-            employees.map(emp => {
-              // AICI ESTE CORECTURA: Schimbat din /review în /rate pentru a duce utilizatorul direct la pagina corectă
-              const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/rate?employee=${emp.id}` : '';
+            积 = employees.map(emp => {
+              // CONSTRUIRE CURATĂ A URL-ULUI PENTRU QR CODE
+              const qrUrl = typeof window !== 'undefined' 
+                ? `${window.location.origin}/${locale}/rate?employee=${emp.id}` 
+                : '';
               
               return (
                 <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
                   
-                  {/* Canvas Ascuns - generat FIX la dimensiunea de 70x70 pixeli */}
+                  {/* Canvas Ascuns pentru download - rezoluție optimă */}
                   <div className="hidden">
                     {qrUrl && (
                       <QRCodeCanvas 
                         id={`qr-download-${emp.id}`}
                         value={qrUrl}
-                        size={70}
+                        size={512} // Generăm la rezoluție mare pentru print clar, chiar dacă eticheta e mică
                         level="H"
-                        includeMargin={false}
+                        includeMargin={true}
                       />
                     )}
                   </div>
