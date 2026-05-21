@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { 
   MapPin, User, Star, Loader2, Lock, 
-  Filter, Calendar as CalendarIcon, MessageSquare,
+  Calendar as CalendarIcon, MessageSquare, Phone,
   Trophy, ChevronLeft, ChevronRight, Download, Zap, X, Eye
 } from 'lucide-react';
 
@@ -19,6 +19,8 @@ interface Review {
   location_id: string;
   employee_id?: string;
   photo_url?: string | null;
+  client_name?: string | null;   // Adăugat pentru numele clientului
+  client_phone?: string | null;  // Adăugat pentru telefonul clientului
   locations?: { name: string };
   employees?: { name: string; position: string; photo_url: string };
 }
@@ -119,6 +121,7 @@ export default function AllReviewsDashboard() {
     
     let query = supabase
       .from('reviews')
+      // Preluăm explicit client_name și client_phone din baza de date
       .select(`*, locations (name), employees (name, position, photo_url)`)
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
@@ -144,10 +147,12 @@ export default function AllReviewsDashboard() {
   const handleExportCSV = () => {
     if (reviews.length === 0) return;
     
-    const headers = ['Data', 'Rating', 'Comentariu', 'Locatie', 'Angajat'];
+    const headers = ['Data', 'Rating', 'Client', 'Telefon', 'Comentariu', 'Locatie', 'Angajat'];
     const rows = reviews.map(r => [
       new Date(r.created_at).toLocaleDateString(),
       r.rating,
+      `"${r.client_name || 'Anonim'}"`,
+      `"${r.client_phone || 'N/A'}"`,
       `"${r.comment?.replace(/"/g, '""') || ''}"`,
       r.locations?.name || 'General',
       r.employees?.name || 'N/A'
@@ -182,72 +187,76 @@ export default function AllReviewsDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {!hasAccess ? (
            <div className="min-h-[70vh] flex items-center justify-center text-center p-4">
-             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] md:rounded-[3.5rem] shadow-2xl border border-gray-100 max-w-md w-full">
-               <Lock className="text-red-500 mx-auto mb-6 md:mb-8" size={40} />
-               <h2 className="text-3xl md:text-4xl font-black mb-3 tracking-tight">Premium Only</h2>
-               <p className="text-gray-500 mb-8 font-medium text-sm md:text-base">
+             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 max-w-md w-full">
+               <Lock className="text-red-500 mx-auto mb-6" size={40} />
+               <h2 className="text-3xl font-black mb-3 tracking-tight">Premium Only</h2>
+               <p className="text-gray-500 mb-8 font-medium text-sm">
                  {locale === 'ru' ? 'Обновите план для доступа к этой панели.' : 'Upgrade pentru a vedea analizele smart.'}
                </p>
-               <button onClick={() => router.push(`/${locale}/pricing`)} className="w-full bg-slate-950 text-white py-4.5 rounded-2xl font-black uppercase text-xs tracking-wider transition-transform active:scale-95">
+               <button onClick={() => router.push(`/${locale}/pricing`)} className="w-full bg-slate-950 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-wider transition-transform active:scale-95">
                  Upgrade Now
                </button>
              </div>
            </div>
         ) : (
           <>
-            <header className="flex flex-col sm:flex-row sm:items-center justify-between py-8 md:py-10 gap-4 border-b border-gray-100 mb-6 md:mb-8">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between py-8 md:py-10 gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                   <Zap className="text-blue-600 fill-blue-600 shrink-0" size={28} /> {t('title')}
                 </h1>
-                <p className="text-gray-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1.5">{t('subtitle')}</p>
+                <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">{t('subtitle')}</p>
               </div>
               <button 
                 onClick={handleExportCSV} 
                 disabled={reviews.length === 0}
-                className="w-full sm:w-auto bg-white border border-gray-200 px-5 py-3 rounded-xl font-bold text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm text-sm"
+                className="w-full sm:w-auto bg-white border border-gray-200 px-6 py-3.5 rounded-2xl font-black text-gray-700 flex items-center justify-center gap-2 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm text-xs uppercase tracking-wider"
               >
-                <Download size={18} /> {t('export_btn')}
+                <Download size={16} /> {t('export_btn')}
               </button>
             </header>
 
-            {/* Zonă Filtre Complet Responsivă */}
-            <div className="bg-white p-4 rounded-3xl md:rounded-[2.5rem] shadow-sm border border-gray-50 mb-8 flex flex-col gap-4 lg:flex-row lg:items-center">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:w-auto flex-1">
-                <FilterGroup label={t('labels.location')} icon={<MapPin size={13}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
-                <FilterGroup label={t('labels.employee')} icon={<User size={13}/>} value={selectedEmployee} onChange={setSelectedEmployee} options={employees} allLabel={t('options.all_emps')} />
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
-                <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 overflow-x-auto scrollbar-none">
-                  {['7d', '1m', '3m', 'all'].map((period) => (
-                    <button 
-                      key={period} 
-                      onClick={() => { setTimeFilter(period as any); setCustomDate(''); }} 
-                      className={`px-4 py-2 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex-1 text-center ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm font-black' : 'text-gray-400 font-bold'}`}
-                    >
-                      {t(`options.${period}`)}
-                    </button>
-                  ))}
+            {/* Zonă Filtre Corectată și Aliniată Premium */}
+            <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <FilterGroup label={t('labels.location')} icon={<MapPin size={14}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
+                <FilterGroup label={t('labels.employee')} icon={<User size={14}/>} value={selectedEmployee} onChange={setSelectedEmployee} options={employees} allLabel={t('options.all_emps')} />
+                
+                <div className="flex flex-col gap-1.5 w-full">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Период' : 'Perioada'}</span>
+                  <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-200/60 w-full justify-between">
+                    {['7d', '1m', '3m', 'all'].map((period) => (
+                      <button 
+                        key={period} 
+                        onClick={() => { setTimeFilter(period as any); setCustomDate(''); }} 
+                        className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all flex-1 text-center ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400'}`}
+                      >
+                        {t(`options.${period}`)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl border transition-all justify-center ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-100'}`}>
-                   <CalendarIcon size={14} className={timeFilter === 'custom' ? 'text-blue-600' : 'text-gray-400'} />
-                   <input 
-                     type="date" 
-                     value={customDate}
-                     onChange={(e) => { setCustomDate(e.target.value); setTimeFilter('custom'); }}
-                     className="bg-transparent border-none text-[11px] font-black text-gray-700 outline-none p-0 cursor-pointer max-w-[105px]"
-                   />
+                <div className="flex flex-col gap-1.5 w-full">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Календарь' : 'Alege Data'}</span>
+                  <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border transition-all h-[38px] ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
+                     <CalendarIcon size={14} className={timeFilter === 'custom' ? 'text-blue-600' : 'text-gray-400'} />
+                     <input 
+                       type="date" 
+                       value={customDate}
+                       onChange={(e) => { setCustomDate(e.target.value); setTimeFilter('custom'); }}
+                       className="bg-transparent border-none text-[11px] font-black text-gray-700 outline-none p-0 cursor-pointer w-full"
+                     />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Statistici cu Scroll Orizontal pe Mobil */}
-            <div className="flex gap-4 overflow-x-auto pb-3 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:pb-0 mb-8 snap-x scrollbar-none">
+            {/* Grid Statistici */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <StatCard label={tCommon('stats.avg_rating')} value={`${smartStats.avg}/5.0`} icon={<Star className="text-yellow-400 fill-yellow-400" size={18} />} />
               <StatCard label={tCommon('stats.hero_day')} value={smartStats.bestEmp} icon={<Trophy className="text-orange-500" size={18} />} />
               <StatCard label={tStats('volume')} value={smartStats.count.toString()} icon={<MessageSquare className="text-blue-600" size={18} />} />
@@ -257,11 +266,11 @@ export default function AllReviewsDashboard() {
             <div className="space-y-4">
                {loading ? (
                  <div className="py-20 flex flex-col items-center justify-center">
-                   <Loader2 className="animate-spin text-blue-600 mb-4" size={32} />
+                   <Loader2 className="animate-spin text-blue-600 mb-3" size={32} />
                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t('loading_db')}</p>
                  </div>
                ) : paginatedReviews.length === 0 ? (
-                 <div className="bg-white p-12 md:p-20 rounded-3xl md:rounded-[3rem] text-center border border-dashed border-gray-200 shadow-sm">
+                 <div className="bg-white p-16 rounded-[2rem] text-center border border-dashed border-gray-200 shadow-sm">
                     <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">{t('no_results')}</p>
                  </div>
                ) : (
@@ -272,15 +281,15 @@ export default function AllReviewsDashboard() {
                      locale={locale} 
                      noCommentText={tCommon('feed.no_comment')} 
                      generalTag={t('general_tag')} 
-                     onViewPhoto={(url: string) => setActivePhoto(url)} // TIPAT EXPLICIT CU (url: string)
+                     onViewPhoto={(url: string) => setActivePhoto(url)}
                    />
                  ))
                )}
             </div>
 
-            {/* Paginator Fixat și Optimizat Mobil */}
+            {/* Paginator */}
             {reviews.length > ITEMS_PER_PAGE && (
-              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl z-40 flex items-center gap-1 border border-white/10 max-w-[90vw]">
+              <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl z-40 flex items-center gap-1 border border-white/10">
                 <button 
                   disabled={currentPage === 1}
                   onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }}
@@ -288,7 +297,7 @@ export default function AllReviewsDashboard() {
                 >
                   <ChevronLeft size={18} />
                 </button>
-                <span className="text-white font-black text-[9px] md:text-[10px] uppercase tracking-widest px-4 whitespace-nowrap">
+                <span className="text-white font-black text-[10px] uppercase tracking-widest px-4 whitespace-nowrap">
                   {currentPage} / {totalPages}
                 </span>
                 <button 
@@ -304,22 +313,18 @@ export default function AllReviewsDashboard() {
         )}
       </div>
 
-      {/* Pop-up Modul pentru Poza Mărită */}
+      {/* Pop-up Modul Poza Mărită */}
       {activePhoto && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setActivePhoto(null)}>
-          <div className="relative max-w-3xl w-full max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setActivePhoto(null)}>
+          <div className="relative max-w-3xl w-full max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
             <button 
               onClick={() => setActivePhoto(null)}
-              className="absolute top-4 right-4 bg-slate-950/60 text-white p-2.5 rounded-full hover:bg-slate-950 transition-colors z-10"
+              className="absolute top-4 right-4 bg-slate-950/60 text-white p-2 rounded-full hover:bg-slate-950 transition-colors z-10"
             >
               <X size={18} />
             </button>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={activePhoto} 
-              alt="Review attachment" 
-              className="w-full h-auto max-h-[85vh] object-contain mx-auto"
-            />
+            <img src={activePhoto} alt="Review attachment" className="w-full h-auto max-h-[85vh] object-contain mx-auto" />
           </div>
         </div>
       )}
@@ -329,47 +334,70 @@ export default function AllReviewsDashboard() {
 
 function FilterGroup({ label, icon, value, onChange, options, allLabel }: any) {
   return (
-    <div className="flex items-center gap-2 bg-gray-50 px-3.5 py-1 rounded-xl border border-gray-100 w-full justify-between sm:justify-start">
-      <div className="flex items-center gap-2 text-gray-400 text-[10px] font-bold uppercase tracking-tight shrink-0">
-        {icon} <span>{label}:</span>
+    <div className="flex flex-col gap-1.5 w-full">
+      <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{label}</span>
+      <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200/60 h-[38px] w-full">
+        <div className="text-gray-400 shrink-0">{icon}</div>
+        <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent border-none text-[11px] font-black text-gray-700 outline-none cursor-pointer p-0 focus:ring-0 w-full font-black">
+          <option value="all">{allLabel}</option>
+          {options.map((o: any) => <option key={o.id} value={o.id}>{o.name}</option>)}
+        </select>
       </div>
-      <select value={value} onChange={(e) => onChange(e.target.value)} className="bg-transparent border-none text-[11px] font-black text-gray-700 outline-none cursor-pointer py-2 pl-1 pr-7 focus:ring-0 w-full sm:w-auto text-right sm:text-left font-black">
-        <option value="all">{allLabel}</option>
-        {options.map((o: any) => <option key={o.id} value={o.id}>{o.name}</option>)}
-      </select>
     </div>
   );
 }
 
 function StatCard({ label, value, icon }: any) {
   return (
-    <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[2.5rem] shadow-sm border border-gray-50 min-w-[220px] sm:min-w-0 sm:w-full snap-center shrink-0">
-      <div className="bg-gray-50 w-9 h-9 rounded-xl flex items-center justify-center mb-4">{icon}</div>
-      <p className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
-      <h3 className="text-xl md:text-2xl font-black text-gray-900 truncate">{value}</h3>
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+      <div className="bg-gray-50 w-11 h-11 rounded-xl flex items-center justify-center shrink-0">{icon}</div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider mb-0.5">{label}</p>
+        <h3 className="text-xl font-black text-gray-900 truncate leading-none">{value}</h3>
+      </div>
     </div>
   );
 }
 
 function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any) {
   return (
-    <div className="bg-white p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden group">
+    <div className="bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
       <div className={`absolute top-0 left-0 w-1.5 h-full ${rev.rating >= 4 ? 'bg-emerald-500' : rev.rating === 3 ? 'bg-amber-400' : 'bg-rose-500'}`} />
       
-      <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6">
-        <div className="flex-1 space-y-3">
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} size={13} className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} />
-            ))}
+      <div className="flex flex-col md:flex-row justify-between gap-4">
+        <div className="flex-1 space-y-3.5">
+          
+          {/* Header Card: Stele + Informații Client (Nume și Telefon) */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-50 pb-2.5">
+            <div className="flex items-center gap-0.5 shrink-0">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={13} className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} />
+              ))}
+            </div>
+            
+            {(rev.client_name || rev.client_phone) && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                {rev.client_name && (
+                  <span className="text-slate-900 font-extrabold flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-gray-100">
+                    <User size={12} className="text-slate-400" /> {rev.client_name}
+                  </span>
+                )}
+                {rev.client_phone && (
+                  <span className="text-gray-500 font-medium flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-gray-100">
+                    <Phone size={11} className="text-gray-400" /> {rev.client_phone}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           
-          <p className="text-slate-800 font-bold text-base md:text-lg leading-relaxed italic">
+          <p className="text-slate-800 font-medium text-base leading-relaxed italic">
             "{rev.comment || noCommentText}"
           </p>
           
+          {/* Afișare Poză Atașată */}
           {rev.photo_url && (
-            <div className="pt-2">
+            <div className="pt-1">
               <div 
                 onClick={() => onViewPhoto(rev.photo_url)}
                 className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden cursor-pointer border border-gray-200 group/img shadow-sm active:scale-95 transition-transform"
@@ -387,12 +415,13 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             </div>
           )}
 
-          <div className="flex flex-wrap gap-1.5 pt-2">
+          <div className="flex flex-wrap gap-1.5 pt-1">
             <Tag text={rev.employees?.name || generalTag} icon={<User size={10}/>} />
             <Tag text={rev.locations?.name || 'General'} icon={<MapPin size={10}/>} />
           </div>
         </div>
 
+        {/* Informații Timp / Dată */}
         <div className="text-left md:text-right min-w-[100px] border-t border-gray-50 pt-3 md:pt-0 md:border-none flex md:flex-col justify-between md:justify-start items-center md:items-end gap-1">
           <div className="md:block">
             <span className="text-[9px] font-black text-gray-300 uppercase block leading-none md:mb-1">{locale === 'ru' ? 'Время' : 'Ora'}</span>
