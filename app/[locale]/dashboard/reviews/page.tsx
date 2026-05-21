@@ -19,10 +19,10 @@ interface Review {
   location_id: string;
   employee_id?: string;
   photo_url?: string | null;
-  full_name?: string | null;   // Mapat exact după coloana full_name din DB
-  phone?: string | null;       // Mapat exact după coloana phone din DB
-  locations?: { name: string };
-  employees?: { name: string; position: string; photo_url: string };
+  full_name?: string | null;   
+  phone?: string | null;       
+  locations?: { name: string } | null;
+  employees?: { name: string; position: string; photo_url: string } | null;
 }
 
 interface BasicInfo {
@@ -116,9 +116,22 @@ export default function AllReviewsDashboard() {
     if (!companyId || hasAccess === false) return;
     setLoading(true);
     
+    // Select-ul este acum explicit pentru a forța returnarea corectă a tuturor coloanelor primitive
     let query = supabase
       .from('reviews')
-      .select(`*, locations (name), employees (name, position, photo_url)`)
+      .select(`
+        id, 
+        rating, 
+        comment, 
+        created_at, 
+        location_id, 
+        employee_id, 
+        photo_url, 
+        full_name, 
+        phone,
+        locations ( name ),
+        employees ( name, position, photo_url )
+      `)
       .eq('company_id', companyId)
       .order('created_at', { ascending: false });
 
@@ -135,7 +148,15 @@ export default function AllReviewsDashboard() {
       query = query.gte('created_at', now.toISOString());
     }
 
-    const { data } = await query;
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error("❌ EROARE SUPABASE REVIEWS:", error);
+    } else {
+      // Log în consolă pentru depanare locală rapidă
+      console.log("👉 DATE DE LA SUPABASE:", data);
+    }
+
     setReviews((data as unknown as Review[]) || []);
     setLoading(false);
   }, [selectedLocation, selectedEmployee, hasAccess, companyId, timeFilter, customDate]);
@@ -215,7 +236,7 @@ export default function AllReviewsDashboard() {
               </button>
             </header>
 
-            {/* Filtre Curate - Fixate 100% fără suprapunere */}
+            {/* Filtre Aliniate fără suprapunere */}
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                 <FilterGroup label={t('labels.location')} icon={<MapPin size={15}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
@@ -363,7 +384,7 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="flex-1 space-y-3.5">
           
-          {/* Header Card: Stele + Informații Client corect mapate (full_name și phone) */}
+          {/* Header Card: Stele + Informații Client */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 pb-2.5">
             <div className="flex items-center gap-0.5 shrink-0">
               {[...Array(5)].map((_, i) => (
@@ -371,14 +392,16 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
               ))}
             </div>
             
-            {(rev.full_name || rev.phone) && (
+            {/* Verificăm dacă există date valide scrise în câmpuri (excludem șirurile goale sau valoarea string 'EMPTY') */}
+            {((rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY') || 
+              (rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY')) && (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-                {rev.full_name && rev.full_name !== 'EMPTY' && (
+                {rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY' && (
                   <span className="text-slate-900 font-black flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-gray-200/40 uppercase tracking-tight">
                     <User size={11} className="text-slate-500" /> {rev.full_name}
                   </span>
                 )}
-                {rev.phone && rev.phone !== 'EMPTY' && (
+                {rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY' && (
                   <span className="text-slate-700 font-black flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-gray-200/40 tracking-tight">
                     <Phone size={10} className="text-slate-500" /> {rev.phone}
                   </span>
@@ -391,7 +414,8 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             "{rev.comment || noCommentText}"
           </p>
           
-          {rev.photo_url && (
+          {/* Randarea Imaginii - Verificare strictă de URL */}
+          {rev.photo_url && rev.photo_url.trim() !== '' && rev.photo_url !== 'NULL' && rev.photo_url !== 'EMPTY' && (
             <div className="pt-1">
               <div 
                 onClick={() => onViewPhoto(rev.photo_url)}
