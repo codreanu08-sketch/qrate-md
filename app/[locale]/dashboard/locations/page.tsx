@@ -532,7 +532,7 @@ export default function LocationsPage() {
                         value={qrUrl} 
                         size={140}
                         level="H"
-                        imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavations: true } : undefined}
+                        imageSettings={loc.logo_url ? { src: loc.logo_url, height: 34, width: 34, excavate: true } : undefined}
                       />
                     )}
                   </div>
@@ -630,7 +630,6 @@ export default function LocationsPage() {
                       )}
                     </div>
                     
-                    {/* MODIFICAT AICI: text-base (16px) în loc de text-sm (14px) și font-semibold pentru lizibilitate sporită */}
                     <p className="text-base font-semibold text-slate-700 italic tracking-wide mt-1">
                       {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal text-sm">Fără comentariu lăsat</span>}
                     </p>
