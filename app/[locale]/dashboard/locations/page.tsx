@@ -8,7 +8,7 @@ import {
   Plus, Trash2, Download, 
   Star, AlertTriangle, Loader2,
   Building2, Image as ImageIcon, MessageSquare, Upload, CheckCircle2,
-  Filter, X
+  Filter, X, MapPin, Truck
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -264,7 +264,6 @@ export default function LocationsPage() {
       return;
     }
     
-    // Corecție importantă: Trimiterea obiectului corect în baza de date
     const { data, error } = await supabase
       .from('locations')
       .insert([{ 
@@ -282,8 +281,6 @@ export default function LocationsPage() {
       setNewAddress('');
       setSuccessMessage("Locația a fost adăugată cu succes!");
       setTimeout(() => setSuccessMessage(null), 4000);
-      
-      // Forțăm reîncărcarea datelor direct cu ID-ul stabil din state
       await fetchData(companyId);
     } else {
       console.error("Supabase Insert Error:", error);
@@ -304,9 +301,12 @@ export default function LocationsPage() {
     }
   };
 
+  // Filtrarea recenziilor în funcție de locația selectată
   const filteredReviews = selectedLocationId 
     ? lastReviews.filter(r => r.location_id === selectedLocationId)
     : lastReviews;
+
+  const selectedLocationObj = locations.find(l => l.id === selectedLocationId);
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
@@ -476,11 +476,11 @@ export default function LocationsPage() {
 
         {/* Grid Locații */}
         {locations.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-bold">
+          <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-bold mb-12">
             Nu ai nicio locație adăugată pentru această companie. Folosește formularul de mai sus.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
             {locations.map((loc) => {
               const locReviews = lastReviews.filter(r => r.location_id === loc.id);
               const isSelected = selectedLocationId === loc.id;
@@ -493,10 +493,24 @@ export default function LocationsPage() {
                   className={`bg-white p-6 rounded-[2.5rem] shadow-sm border-2 transition-all cursor-pointer relative flex flex-col ${isSelected ? 'border-blue-500 ring-4 ring-blue-50 bg-blue-50/10' : 'border-slate-100 hover:border-blue-200'}`}
                 >
                   <div className="flex justify-between items-center mb-6">
+                    {/* Afișare Categorie / Tip locație */}
+                    <div className="flex items-center gap-1 bg-slate-100 text-slate-700 px-3 py-1 rounded-xl text-[11px] font-black uppercase tracking-wider">
+                      {loc.type === 'Delivery' ? (
+                        <>
+                          <Truck size={12} className="text-blue-500" />
+                          Livrare / Online
+                        </>
+                      ) : (
+                        <>
+                          <MapPin size={12} className="text-emerald-500" />
+                          Fizică
+                        </>
+                      )}
+                    </div>
+
                     <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs ${locReviews.length > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
                       <Star size={12} fill="currentColor" /> {locReviews.length > 0 ? t('card.status_active') : t('card.status_new')}
                     </div>
-                    {isSelected && <div className="bg-blue-500 text-white p-1 rounded-full"><Filter size={12} /></div>}
                   </div>
 
                   <div className="hidden">
@@ -549,7 +563,98 @@ export default function LocationsPage() {
             })}
           </div>
         )}
+
+        {/* SECȚIUNE AFISARE RECENZII (Apare mereu jos) */}
+        <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+            <div>
+              <h3 className="text-2xl font-black text-slate-900">
+                {selectedLocationId ? `Recenzii: ${selectedLocationObj?.name}` : "Toate recenziile companiei"}
+              </h3>
+              <p className="text-xs text-slate-400 font-bold uppercase mt-1">
+                {selectedLocationId ? "Filtru activat pe această locație" : "Apasă pe o locație de mai sus pentru a filtra"}
+              </p>
+            </div>
+            {selectedLocationId && (
+              <button
+                onClick={() => setSelectedLocationId(null)}
+                className="flex items-center gap-1.5 text-xs font-black uppercase bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl transition-colors"
+              >
+                <X size={14} /> Resetează filtru
+              </button>
+            )}
+          </div>
+
+          {filteredReviews.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 font-bold bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+              {selectedLocationId 
+                ? "Această locație nu are încă nicio recenzie înregistrată." 
+                : "Compania dumneavoastră nu a primit nicio recenzie deocamdată."}
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              {filteredReviews.map((review) => (
+                <div key={review.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-100/50 transition-colors">
+                  <div className="space-y-1 w-full sm:w-auto">
+                    <div className="flex items-center gap-3">
+                      <div className="flex gap-0.5 text-amber-500">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            size={14} 
+                            fill={i < review.rating ? "currentColor" : "none"} 
+                            className={i < review.rating ? "text-amber-500" : "text-slate-200"} 
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs bg-white text-slate-600 border px-2 py-0.5 rounded-md font-black uppercase text-[10px]">
+                        {review.locations?.name || "Locație ștearsă"}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700 italic">
+                      {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal">Fără comentariu lăsat</span>}
+                    </p>
+                  </div>
+                  
+                  <div className="text-right shrink-0">
+                    <ClientFriendlyDate dateString={review.created_at} locale={locale} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
+
+      {/* MODAL DETALII ȘTERGERE (OBLIGATORIU) */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full border border-slate-100 text-center">
+            <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
+              <AlertTriangle size={24} />
+            </div>
+            <h4 className="text-xl font-black text-slate-900 mb-2">Ștergi locația?</h4>
+            <p className="text-slate-500 text-xs font-medium mb-6 leading-relaxed">
+              Sigur vrei să ștergi <strong className="text-slate-800 font-bold">„{showDeleteModal.name}”</strong>? Toate codurile QR și datele asociate vor deveni inaccesibile.
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowDeleteModal(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors"
+              >
+                Anulează
+              </button>
+              <button 
+                onClick={() => deleteLocation(showDeleteModal.id)}
+                className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors shadow-lg shadow-rose-100"
+              >
+                Șterge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
