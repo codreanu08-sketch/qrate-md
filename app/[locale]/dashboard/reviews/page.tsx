@@ -18,7 +18,7 @@ interface Review {
   created_at: string;
   location_id: string;
   employee_id?: string;
-  photo_url?: string | null; // Coloana pentru poze adăugată în interfață
+  photo_url?: string | null;
   locations?: { name: string };
   employees?: { name: string; position: string; photo_url: string };
 }
@@ -272,7 +272,7 @@ export default function AllReviewsDashboard() {
                      locale={locale} 
                      noCommentText={tCommon('feed.no_comment')} 
                      generalTag={t('general_tag')} 
-                     onViewPhoto={(url) => setActivePhoto(url)}
+                     onViewPhoto={(url: string) => setActivePhoto(url)} // TIPAT EXPLICIT CU (url: string)
                    />
                  ))
                )}
@@ -356,7 +356,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
     <div className="bg-white p-5 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm relative overflow-hidden group">
       <div className={`absolute top-0 left-0 w-1.5 h-full ${rev.rating >= 4 ? 'bg-emerald-500' : rev.rating === 3 ? 'bg-amber-400' : 'bg-rose-500'}`} />
       
-      {/* Direcție flexibilă: coloană pe mobil, rând pe ecran mare */}
       <div className="flex flex-col md:flex-row justify-between gap-4 md:gap-6">
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-1">
@@ -369,7 +368,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             "{rev.comment || noCommentText}"
           </p>
           
-          {/* Poza Încărcată (Randare condiționată + UI rafinat) */}
           {rev.photo_url && (
             <div className="pt-2">
               <div 
@@ -395,7 +393,6 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
           </div>
         </div>
 
-        {/* Secțiunea de Timp adaptată pentru citire ușoară pe orice ecran */}
         <div className="text-left md:text-right min-w-[100px] border-t border-gray-50 pt-3 md:pt-0 md:border-none flex md:flex-col justify-between md:justify-start items-center md:items-end gap-1">
           <div className="md:block">
             <span className="text-[9px] font-black text-gray-300 uppercase block leading-none md:mb-1">{locale === 'ru' ? 'Время' : 'Ora'}</span>
