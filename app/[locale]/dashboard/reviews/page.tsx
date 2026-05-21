@@ -404,8 +404,9 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             )}
           </div>
           
-          <p className="text-slate-800 font-medium text-base leading-relaxed italic">
-            "{rev.comment || noCommentText}"
+          {/* AICI ESTE MODIFICAREA PENTRU TEXTUL COMENTARIULUI (16px, exact ca la locations) */}
+          <p className="text-base font-semibold text-slate-700 italic tracking-wide mt-1">
+            {rev.comment ? `"${rev.comment}"` : <span className="text-slate-400 font-normal text-sm">{noCommentText}</span>}
           </p>
           
           {rev.photo_url && rev.photo_url.trim() !== '' && rev.photo_url !== 'NULL' && rev.photo_url !== 'EMPTY' && (
