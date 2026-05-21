@@ -7,7 +7,7 @@ import ru from '@/messages/ru.json';
 import ro from '@/messages/ro.json'; 
 
 interface FeedbackFormProps {
-  slug: string; // Acesta conține ID-ul/Slug-ul transmis din structura rutei dinamice
+  slug: string;
   locale: 'ro' | 'ru';
   employeeId?: string;
 }
@@ -15,14 +15,12 @@ interface FeedbackFormProps {
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Stări pentru stocarea corectă a ID-urilor UUID și a numelui entității vizate
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [targetName, setTargetName] = useState<string>('');
   const [isEmployee, setIsEmployee] = useState<boolean>(false);
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
 
-  // Invocăm traducerile din fișierele JSON locale
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
   
   const t = (messages as any)?.PublicFeedback || {
@@ -69,7 +67,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         let resolvedCompanyId = null;
         let resolvedLocationId = null;
 
-        // Pasul 1: Dacă avem employeeId, aducem numele lui și datele de localizare
         if (employeeId) {
           const { data: empData } = await supabase
             .from('employees')
@@ -82,11 +79,10 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             setIsEmployee(true);
             setCompanyId(empData.company_id);
             setLocationId(empData.location_id);
-            return; // Identificare completă pentru angajat
+            return;
           }
         }
         
-        // Pasul 2: Fallback la Locație (verificăm dacă slug este UUID de locație)
         const { data: locData } = await supabase
           .from('locations')
           .select('id, name, company_id')
@@ -99,7 +95,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
           setTargetName(locData.name);
           setIsEmployee(false);
         } else {
-          // Pasul 3: Fallback la Companie (după text slug)
           const { data: compData } = await supabase
             .from('companies')
             .select('id, name')
@@ -127,7 +122,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         setCompanyId(resolvedCompanyId);
         setLocationId(resolvedLocationId);
 
-        // Dacă nu s-a găsit niciun nume curat, curățăm slug-ul primit ca text secundar
         if (!targetName && !employeeId) {
           setTargetName(slug.replace(/-/g, ' '));
         }
@@ -320,7 +314,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
           </section>
 
           <section className="space-y-4">
-             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
+              <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
               <span className="flex items-center justify-center w-5 h-5 bg-blue-100 rounded-full text-blue-700 text-[9px]">2</span>
               {t.label_step2}
             </label>
@@ -379,7 +373,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
               </label>
             ) : (
               <div className="relative w-full h-64 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl animate-in fade-in zoom-in-95">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 p-4">
                    <button 
