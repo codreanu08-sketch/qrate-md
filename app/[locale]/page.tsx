@@ -5,7 +5,7 @@ import {
   Zap, Check, Mail, Trash2, Plus, Truck, QrCode, 
   Send, BarChart3, Globe, Cookie, ShieldCheck, LogOut, 
   LayoutDashboard, ShieldAlert, BellRing,
-  Activity, Star, Trophy, DollarSign, Sparkles
+  Activity, Star, Trophy, Sparkles
 } from 'lucide-react';
 import { Link, usePathname, useRouter, locales } from '@/i18n/config'; 
 import { useTranslations, useLocale } from 'next-intl';
@@ -175,7 +175,7 @@ export default function LandingPage() {
 
       <main className="pt-20">
         
-        {/* --- HERO SECTION CU BANNER NOU --- */}
+        {/* --- HERO SECTION CU BANNER NOU (FĂRĂ ROI) --- */}
         <section className="pt-36 pb-24 px-6 text-center">
           <div className="max-w-6xl mx-auto space-y-10">
             
@@ -184,13 +184,13 @@ export default function LandingPage() {
               <Zap size={14} /> {t('hero.badge')}
             </div>
 
-            {/* Titlu principal */}
-            <h1 className="text-5xl md:text-7xl font-[900] tracking-tighter text-slate-950 uppercase leading-[0.9] mb-4">
+            {/* Titlu principal - MAI MIC */}
+            <h1 className="text-4xl md:text-6xl font-[900] tracking-tighter text-slate-950 uppercase leading-[0.9] mb-4">
               {t('hero.title_part1')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-indigo-800 italic">{t('hero.title_part2')}</span>
             </h1>
 
-            {/* === BANNER NOU - SISTEM INTELIGENT QRate === */}
+            {/* === BANNER NOU - 4 FUNCTII === */}
             <div className="max-w-5xl mx-auto">
               <div className="bg-white border border-slate-200 shadow-2xl rounded-[3.5rem] p-8 md:p-14 text-left">
                 
@@ -205,7 +205,7 @@ export default function LandingPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   
-                  {/* Feature 1 - Live Monitoring */}
+                  {/* 1. Monitorizare Live */}
                   <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
                     <div className="shrink-0 w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Activity size={28} />
@@ -218,7 +218,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Feature 2 - AI Intel Report */}
+                  {/* 2. AI Intel Report */}
                   <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
                     <div className="shrink-0 w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Star size={28} />
@@ -231,7 +231,7 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Feature 3 - Leaderboard & Performance */}
+                  {/* 3. Leaderboard */}
                   <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
                     <div className="shrink-0 w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Trophy size={28} />
@@ -244,25 +244,12 @@ export default function LandingPage() {
                     </div>
                   </div>
 
-                  {/* Feature 4 - ROI Estimator */}
+                  {/* 4. Copilot Răspuns Inteligent */}
                   <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
-                    <div className="shrink-0 w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <DollarSign size={28} />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-xl tracking-tight">ROI & Estimare Financiară</h4>
-                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">
-                        Calculează automat câți bani generează recenziile pozitive. +15€ estimat per recenzie de 4-5 stele.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Feature 5 - Smart Replies */}
-                  <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all md:col-span-2">
                     <div className="shrink-0 w-14 h-14 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Sparkles size={28} />
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <h4 className="font-black text-xl tracking-tight">Copilot Răspuns Inteligent</h4>
                       <p className="text-slate-500 text-[15px] mt-2 leading-snug">
                         Generează instant răspunsuri personalizate (pozitive sau negative) + butoane directe pentru WhatsApp și copiere.
@@ -319,15 +306,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-       {/* --- DEMO VIZUAL --- */}
-        <section id="vizual-demo" className="py-16 px-4 sm:px-6 md:py-32 scroll-mt-24">
+       {/* --- DEMO VIZUAL (RIDICAT MAI SUS) --- */}
+        <section id="vizual-demo" className="py-16 px-4 sm:px-6 md:py-24 scroll-mt-24">
           <div className="max-w-6xl mx-auto">
             <div className="bg-slate-950 rounded-[2.5rem] md:rounded-[4rem] px-5 py-12 sm:p-12 md:p-20 overflow-hidden relative border border-white/5 shadow-2xl">
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] -mr-64 -mt-64 rounded-full"></div>
               
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 text-left">
                 
-                {/* TEXTUL: Optimizat pentru ecrane mici */}
+                {/* TEXTUL */}
                 <div className="space-y-6 md:space-y-10">
                   <h2 className="text-3xl sm:text-4xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] sm:leading-[0.85] break-words">
                     {t('demo.title_1')} <br /><span className="text-blue-500 italic">{t('demo.title_2')}</span>
@@ -349,12 +336,11 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* TELEFONUL: Scalare fluidă (Nu mai iese din margini) */}
+                {/* TELEFONUL */}
                 <div className="relative flex justify-center w-full layout-container">
                   <div className="relative w-[270px] h-[550px] min-[400px]:w-[310px] min-[400px]:h-[620px] sm:w-[340px] sm:h-[680px] bg-slate-900 rounded-[2.5rem] sm:rounded-[4rem] border-[8px] sm:border-[12px] border-slate-800 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300">
                     <div className="bg-white h-full w-full p-5 sm:p-8 flex flex-col items-center text-center justify-between relative">
                       
-                      {/* Notificare internă optimizată */}
                       <div className={`absolute top-4 sm:top-6 left-3 right-3 sm:left-4 sm:right-4 z-20 transition-all duration-700 transform ${showNotification ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-20 opacity-0 scale-95'}`}>
                         <div className="bg-slate-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl border border-white/10 flex items-start gap-3 sm:gap-4 text-left">
                           <div className="bg-red-500 p-2 sm:p-2.5 rounded-xl animate-pulse shrink-0"><BellRing size={16} className="text-white" /></div>
@@ -365,7 +351,6 @@ export default function LandingPage() {
                         </div>
                       </div>
 
-                      {/* Continutul central din telefon adaptat pe înălțime */}
                       <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-950 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black italic text-xl sm:text-2xl mt-14 sm:mt-12 shadow-xl shadow-blue-100 shrink-0">Q</div>
                       
                       <div className="text-left w-full mt-2">
@@ -413,7 +398,6 @@ export default function LandingPage() {
                 </div>
               </div>
 
-              {/* Indicator Dinamic Plan Pro */}
               <div className={`flex flex-col items-center transition-all duration-300 ${isProPlan ? 'opacity-100 scale-110 text-blue-600' : 'opacity-20 grayscale'}`}>
                 <ShieldCheck size={40} />
                 <span className="text-[9px] font-black uppercase mt-2 tracking-tighter">PRO PLAN ACTIVATED</span>
