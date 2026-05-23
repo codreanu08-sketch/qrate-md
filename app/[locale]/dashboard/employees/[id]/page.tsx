@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { 
   Star, ArrowLeft, User, 
-  MessageSquare, TrendingUp, Award, Clock, Loader2, Download, Send, X, MessageCircle
+  MessageSquare, TrendingUp, Award, Clock, Loader2, Download, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
@@ -25,9 +25,6 @@ export default function EmployeeStatsPage() {
   const [period, setPeriod] = useState('7d');
   const [specificDate, setSpecificDate] = useState('');
   const [loading, setLoading] = useState(true);
-  
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState('');
   const [isExporting, setIsExporting] = useState(false);
 
   // Funcție pentru generarea URL-urilor securizate pentru imagini/video
@@ -131,30 +128,7 @@ export default function EmployeeStatsPage() {
     }
   };
 
-  async function handleSendReply(reviewId: string) {
-    if (!replyText.trim()) return;
-    try {
-      const { error } = await supabase
-        .from('reviews')
-        .update({ 
-          reply_text: replyText.trim(),
-          replied_at: new Date().toISOString() 
-        })
-        .eq('id', reviewId);
-
-      if (error) throw error;
-      
-      setReviews(reviews.map(r => 
-        r.id === reviewId ? { ...r, reply_text: replyText.trim() } : r
-      ));
-      setReplyingTo(null);
-      setReplyText('');
-    } catch (err: any) {
-      alert("Eroare la trimiterea răspunsului: " + err.message);
-    }
-  }
-
-  // Generator Link WhatsApp inteligent bazat pe nota clientului
+  // Generator Link WhatsApp inteligent bazat pe locația angajatului și nota clientului
   const generateWhatsAppUrl = (phone: string, rating: number, clientName: string | null) => {
     const cleanPhone = phone.replace(/\D/g, '');
     let formattedPhone = cleanPhone;
@@ -168,10 +142,11 @@ export default function EmployeeStatsPage() {
     }
 
     const nameToUse = clientName || 'Stimate client';
+    const locationName = employee?.locations?.name || 'companiei noastre';
     
     const textMessage = rating <= 3
-      ? `Bună ziua, ${nameToUse}! Vă contactăm din partea echipei ${employee?.locations?.name || 'QRate'}. Am primit feedback-ul dumneavoastră de ${rating} ⭐ oferit colegului nostru ${employee?.name || ''} și ne pare rău pentru experiența neplăcută. Ne-ar ajuta să aflăm cum putem repara lucrurile.`
-      : `Bună ziua, ${nameToUse}! Vă mulțumim din suflet pentru recenzia de ${rating} ⭐ oferită colegului nostru ${employee?.name || ''} pe platforma QRate. Ne bucurăm că ați avut o experiență excelentă la ${employee?.locations?.name || 'noi'}!`;
+      ? `Bună ziua, ${nameToUse}! Vă contactăm din partea echipei ${locationName}. Am primit feedback-ul dumneavoastră de ${rating} ⭐ oferit colegului nostru ${employee?.name || ''} și ne pare rău pentru experiența neplăcută. Ne-ar ajuta să aflăm cum putem repara lucrurile.`
+      : `Bună ziua, ${nameToUse}! Vă mulțumim din suflet pentru recenzia de ${rating} ⭐ oferită colegului nostru ${employee?.name || ''}. Ne bucurăm că ați avut o experiență excelentă la ${locationName}!`;
 
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(textMessage)}`;
   };
@@ -246,7 +221,12 @@ export default function EmployeeStatsPage() {
                 <div className="relative group">
                   <div className="absolute inset-0 bg-blue-500 blur-3xl opacity-10" />
                   {employee?.photo_url ? (
-                    <img src={employee.photo_url} className="w-56 h-56 rounded-[4rem] object-cover border-[10px] border-white shadow-2xl relative z-10" alt={employee.name} />
+                    <img 
+                      src={employee.photo_url} 
+                      crossOrigin="anonymous"
+                      className="w-56 h-56 rounded-[4rem] object-cover border-[10px] border-white shadow-2xl relative z-10" 
+                      alt={employee.name} 
+                    />
                   ) : (
                     <div className="w-56 h-56 rounded-[4rem] bg-slate-50 border-[10px] border-white flex items-center justify-center text-slate-200 shadow-2xl relative z-10">
                       <User size={80} />
@@ -353,6 +333,7 @@ export default function EmployeeStatsPage() {
                         {rev.image_url && signedUrls[rev.image_url] && (
                           <img
                             src={signedUrls[rev.image_url]}
+                            crossOrigin="anonymous"
                             alt="Review media"
                             className="rounded-2xl w-full h-64 object-cover border border-slate-100 shadow-sm"
                           />
@@ -366,15 +347,18 @@ export default function EmployeeStatsPage() {
                         )}
                       </div>
 
-                      {/* SECȚIUNE ACTIUNI: WHATSAPP + RĂSPUNS INTERN */}
-                      <div className="pt-6 border-t border-slate-50 space-y-4">
-                        
-                        {/* Buton WhatsApp (Apare doar dacă există număr de telefon) */}
-                        {rev.phone && (
-                          <div className="flex flex-wrap items-center gap-3 mb-4">
-                            <div className="flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200/60">
+                      {/* SECȚIUNE ACTIUNI: APEL TELEFONIC + WHATSAPP */}
+                      {rev.phone && (
+                        <div className="pt-6 border-t border-slate-50">
+                          <div className="flex flex-wrap items-center gap-3">
+                            {/* Număr de telefon transformat în link click-to-call */}
+                            <a
+                              href={`tel:${rev.phone.replace(/\s+/g, '')}`}
+                              className="flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200/60 px-4 py-2 rounded-xl transition-all shadow-sm active:scale-95"
+                              title="Apasă pentru a apela clientul"
+                            >
                               📱 {rev.phone}
-                            </div>
+                            </a>
                             <a
                               href={generateWhatsAppUrl(rev.phone, rev.rating, rev.full_name)}
                               target="_blank"
@@ -385,44 +369,8 @@ export default function EmployeeStatsPage() {
                               Răspunde pe WhatsApp
                             </a>
                           </div>
-                        )}
-
-                        {/* Răspunsul din platformă */}
-                        {rev.reply_text ? (
-                          <div className="bg-blue-50/50 p-6 rounded-[2rem] border-l-4 border-blue-500">
-                            <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">{t('your_reply')}</p>
-                            <p className="text-slate-700 text-lg italic">{rev.reply_text}</p>
-                          </div>
-                        ) : (
-                          <>
-                            {replyingTo === rev.id ? (
-                              <div className="space-y-4">
-                                <textarea
-                                  value={replyText}
-                                  onChange={(e) => setReplyText(e.target.value)}
-                                  placeholder={t('reply_placeholder')}
-                                  className="w-full p-6 bg-slate-50 border border-slate-200 rounded-[2rem] outline-none transition-all italic text-slate-600 focus:bg-white focus:border-slate-400"
-                                />
-                                <div className="flex gap-3">
-                                  <button onClick={() => handleSendReply(rev.id)} className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-colors">
-                                    <Send size={14} /> {t('send_btn')}
-                                  </button>
-                                  <button onClick={() => setReplyingTo(null)} className="px-6 py-3 bg-slate-200 text-slate-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-300 transition-colors">
-                                    <X size={14} />
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <button 
-                                onClick={() => { setReplyingTo(rev.id); setReplyText(''); }}
-                                className="flex items-center gap-2 text-blue-600 font-black text-[10px] uppercase tracking-widest hover:bg-blue-50 px-4 py-2 rounded-xl transition-all"
-                              >
-                                <MessageSquare size={14} /> {t('reply_btn')}
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      )}
 
                     </div>
                   ))
