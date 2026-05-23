@@ -1,464 +1,286 @@
-'use client';
+"use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Zap, Check, Mail, Trash2, Plus, Truck, QrCode, 
-  Send, BarChart3, Globe, Cookie, ShieldCheck, LogOut, 
-  LayoutDashboard, ShieldAlert, BellRing
-} from 'lucide-react';
-import { Link, usePathname, useRouter, locales } from '@/i18n/config'; 
-import { useTranslations, useLocale } from 'next-intl';
-import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
+import { ShieldCheck, Check, Zap, Mail, Globe, Cookie, Sliders, Building, QrCode } from 'lucide-react';
 
-export default function LandingPage() {
-  const t = useTranslations('LandingPage');
-  const locale = useLocale();
-  const pathname = usePathname();
-  const router = useRouter();
-  
-  const [showNotification, setShowNotification] = useState(false);
-  const [showCookieBanner, setShowCookieBanner] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+// NOTĂ: Dacă folosești next-intl pentru i18n, asigură-te că deții configurările necesare.
+// Dacă nu folosești un hook extern, poți folosi această funcție mock sau cea nativă din proiectul tău.
+interface PricingPageProps {
+  locale?: string;
+  isLoggedIn?: boolean;
+}
 
-  // --- STATE-URI CONFIGURATOR ABONAMENTE ---
-  const [locs, setLocs] = useState(1);
-  const [stickerCount, setStickerCount] = useState(500);
-  const [isStickersAdded, setIsStickersAdded] = useState(false);
+export default function PricingPage({ locale = 'ro', isLoggedIn = false }: PricingPageProps) {
+  // --- STĂRI (STATES) ---
+  const [locs, setLocs] = useState<number>(1);
+  const [isProPlan, setIsProPlan] = useState<boolean>(true);
+  const [isStickersAdded, setIsStickersAdded] = useState<boolean>(false);
+  const [stickerCount, setStickerCount] = useState<number>(50);
+  const [showCookieBanner, setShowCookieBanner] = useState<boolean>(true);
 
-  const handleLocChange = (val: number) => {
-    setLocs(val);
-  };
+  // --- CONSTANTE ȘI LOGICĂ DE CALCUL ---
+  const proBaseCostPerLocation = 500; // Cost per locație pentru planul Pro (ex: 500 MDL)
+  const baseFixedCost = 600;          // Cost fix pentru planul Base
+  const costPerSticker = 12;          // Cost per sticker QR (ex: 12 MDL)
 
-  const validateStickers = () => {
-    if (stickerCount < 500) setStickerCount(500);
-  };
-
-  // Planul Start este strict pentru 1 singură locație
-  const isStartPlan = locs === 1;
-  // Planul Pro se activează automat dacă sunt mai multe locații
-  const isProPlan = locs > 1;
-
-  // Calcul tarife reflectând eliminarea angajaților extra
-  const startBaseCost = 650;
-  const proBaseCostPerLocation = 600;
-
-  const currentSoftwareTotal = isStartPlan 
-    ? startBaseCost 
-    : (locs * proBaseCostPerLocation);
-
-  const stickerTotal = isStickersAdded ? parseFloat((stickerCount * 0.33).toFixed(2)) : 0;
+  const currentSoftwareTotal = isProPlan ? locs * proBaseCostPerLocation : baseFixedCost;
+  const stickerTotal = isStickersAdded ? stickerCount * costPerSticker : 0;
   const grandTotal = currentSoftwareTotal + stickerTotal;
 
-  const switchLanguage = (newLocale: typeof locales[number]) => {
-    if (newLocale === locale) return;
-    router.replace(pathname, { locale: newLocale });
+  // --- MOCK TRANSLATION FUNCTION (Dacă nu este deja injectată global) ---
+  // Înlocuiește cu const t = useTranslations('pricing') dacă folosești next-intl
+  const t = (key: string) => {
+    const translations: Record<string, string> = {
+      'pricing.title': 'Alege Planul Perfect pentru Afacerea Ta',
+      'pricing.subtitle': 'Prețuri transparente, adaptate în funcție de numărul de locații fizice și obiectivele tale.',
+      'pricing.config.locations': 'Număr Locații:',
+      'pricing.config.stickers_toggle': 'Adaugă Stickere Smart QR fizice',
+      'pricing.config.stickers_count': 'Cantitate Stickere:',
+      'pricing.plans.license_monthly': 'Licență Lunarã',
+      'pricing.plans.one_location': 'Locație',
+      'pricing.plans.more_locations': 'Locații',
+      'pricing.plans.base_name': 'Planul Base',
+      'pricing.plans.pro_name': 'Planul Pro',
+      'pricing.plans.btn_activate_dashboard': 'Activează în Dashboard',
+      'pricing.btn_choose': 'Alege Planul',
+      'pricing.total.estimated_total': 'Total Estimativ',
+      'pricing.total.breakdown_part1': 'Abonament (',
+      'pricing.total.breakdown_part2': 'Stickere (',
+      'pricing.total.only_software': 'Include doar licența software (fără livrabile fizice)',
+      'pricing.plans.base_feat_1': 'Management de bază al recenziilor',
+      'pricing.plans.base_feat_2': '1 Cod QR digital generat',
+      'pricing.plans.base_feat_3': 'Rapoarte lunare simple',
+      'pricing.plans.pro_feat_1': 'Sincronizare Google Maps în timp real',
+      'pricing.plans.pro_feat_2': 'Analiză de Sentiment AI & Auto-Tagging',
+      'pricing.plans.pro_feat_3': 'Modul avansat de urmărire angajați',
+      'pricing.plans.pro_feat_4': 'Reputation Multiplier activat',
+      'pricing.plans.pro_feat_5': 'Suport Prioritar 24/7 dedicat',
+      'pricing.plans.pro_feat_6': 'Sistem antifraudă recenzii false',
+      'footer.company_name': 'QRate Tech S.R.L.',
+      'footer.location': 'Chișinău, Republica Moldova',
+      'footer.docs_title': 'Legal',
+      'footer.terms': 'Termeni și Condiții',
+      'footer.privacy': 'Politică de Confidențialitate',
+      'footer.refund_policy': 'Politică de Retur',
+      'footer.support_title': 'Suport',
+      'footer.payments_title': 'Plăți Securizate',
+      'footer.rights': 'Toate drepturile rezervate.',
+      'cookies.title': 'Politică de Cookie-uri',
+      'cookies.description': 'Utilizăm cookie-uri pentru a optimiza experiența ta pe platforma QRate.md.',
+      'cookies.btn_accept': 'Acceptă'
+    };
+    return translations[key] || key;
   };
-
-  // --- HOOK USER ȘI COOKIES ---
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (isMounted) setIsLoggedIn(!!user);
-    };
-    checkUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-      if (isMounted) setIsLoggedIn(!!session);
-    });
-
-    const consent = localStorage.getItem('qrate_cookie_consent');
-    let timer: NodeJS.Timeout;
-    if (!consent) {
-      timer = setTimeout(() => {
-        if (isMounted) setShowCookieBanner(true);
-      }, 1500);
-    }
-
-    return () => {
-      isMounted = false;
-      if (timer) clearTimeout(timer);
-      subscription.unsubscribe();
-    };
-  }, []);
 
   const handleAcceptCookies = () => {
-    localStorage.setItem('qrate_cookie_consent', 'accepted');
     setShowCookieBanner(false);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cookieConsent', 'true');
+    }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsLoggedIn(false);
-    router.refresh();
-  };
-
-  // --- HOOK NOTIFICĂRI OPTIMIZAT CU CLEANUP ---
   useEffect(() => {
-    let notificationTimer: NodeJS.Timeout;
-    
-    const interval = setInterval(() => {
-      setShowNotification(true);
-      notificationTimer = setTimeout(() => setShowNotification(false), 3500);
-    }, 5000);
-
-    return () => {
-      clearInterval(interval);
-      if (notificationTimer) clearTimeout(notificationTimer);
-    };
+    if (typeof window !== 'undefined' && localStorage.getItem('cookieConsent') === 'true') {
+      setShowCookieBanner(false);
+    }
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
-      
-      {/* HEADER SEMANTIC PENTRU SEO */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex justify-center p-2 md:p-4">
-        <nav className="max-w-7xl w-full bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[1.5rem] md:rounded-[2rem] px-4 md:px-8 h-16 md:h-20 flex items-center justify-between transition-all" aria-label="Navigare Principală">
-          
-          {/* 1. LOGO (Compact pe mobil) */}
-          <div className="flex items-center gap-1.5 md:gap-2 group cursor-pointer shrink-0">
-            <div className="bg-blue-600 p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg shadow-blue-200 group-hover:rotate-12 transition-transform duration-300">
-              <Zap className="text-white fill-white w-4 h-4 md:w-5 md:h-5" />
-            </div>
-            <span className="text-lg md:text-xl font-black uppercase tracking-tighter italic text-slate-950">
-              QRate<span className="text-blue-600 hidden sm:inline">.MD</span>
-            </span>
-          </div>
+    <div className="min-h-screen bg-slate-950 font-sans antialiased selection:bg-blue-600 selection:text-white">
+      <main className="relative z-10">
+        
+        {/* --- HERO / HEADER SECȚIUNE --- */}
+        <section className="pt-24 pb-12 text-center max-w-4xl mx-auto px-6">
+          <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight mb-6 italic">
+            QRate<span className="text-blue-500">.MD</span> Pricing
+          </h1>
+          <p className="text-slate-400 text-sm md:text-base font-medium max-w-2xl mx-auto uppercase tracking-wide leading-relaxed">
+            {t('pricing.subtitle')}
+          </p>
+        </section>
 
-          {/* 2. LINK-URI DESKTOP (Ascunse pe mobil) */}
-          <div className="hidden lg:flex items-center gap-10">
-            <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
-              <a href="#servicii" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.services')}</a>
-              <a href="#vizual-demo" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.demo')}</a>
-              <a href="#preturi" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.pricing')}</a>
-            </div>
-          </div>
-
-          {/* 3. ZONA DE ACȚIUNE: LIMBĂ + BUTOANE (Adaptate fluid) */}
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
+        {/* --- CONTROALE INTERACTIVE DE CONFIGURARE --- */}
+        <section className="max-w-3xl mx-auto px-6 mb-16 space-y-8">
+          <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 shadow-xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             
-            {/* SELECTOR LIMBĂ */}
-            <div className="flex items-center bg-slate-100/80 p-1 rounded-lg md:rounded-2xl border border-slate-200 shadow-inner">
-              <button type="button" onClick={() => switchLanguage('ro')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ro' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
-              <button type="button" onClick={() => switchLanguage('ru')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ru' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
-            </div>
-
-            {isLoggedIn ? (
-              <div className="flex items-center gap-1 md:gap-2 bg-slate-50 p-1 md:p-1.5 rounded-lg md:rounded-2xl border border-slate-200/60 shadow-sm">
-                <Link href="/dashboard" className="flex items-center gap-1.5 md:gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 px-2 md:px-4 py-1.5 md:py-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-700 transition-all text-[9px] md:text-[10px] font-black uppercase tracking-wider">
-                  <LayoutDashboard size={14} className="text-blue-600" />
-                  <span className="hidden sm:inline">{t('nav.dashboard')}</span>
-                </Link>
-                <button type="button" onClick={handleLogout} className="bg-white hover:bg-red-50 hover:text-red-600 p-1.5 md:p-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-400 transition-all active:scale-95 flex items-center justify-center" title={t('nav.logout_title')}>
-                  <LogOut size={14} />
-                </button>
+            {/* Control Locații */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest">
+                <Building size={16} className="text-blue-400" />
+                {t('pricing.config.locations')} <span className="text-white text-sm font-bold">{locs}</span>
+              </label>
+              <input 
+                type="range" 
+                min="1" 
+                max="20" 
+                value={locs} 
+                onChange={(e) => setLocs(parseInt(e.target.value))}
+                className="w-full accent-blue-500 bg-slate-800 h-2 rounded-lg cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-bold text-slate-600 uppercase">
+                <span>1 Locație</span>
+                <span>20 Locații</span>
               </div>
-            ) : (
-              <>
-                {/* LOGARE */}
-                <Link href="/auth/login" className="text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-widest text-slate-500 hover:text-blue-600 px-1 md:px-2 transition-colors whitespace-nowrap">
-                  {t('nav.login')}
-                </Link>
-                
-                {/* ÎNREGISTRARE */}
-                <Link href="/auth/register" className="relative group overflow-hidden bg-slate-950 text-white px-3 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-[0.2em] transition-all hover:shadow-xl active:scale-95 whitespace-nowrap">
-                  <span className="relative z-10">{t('nav.signup')}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                </Link>
-              </>
-            )}
-          </div>
-        </nav>
-      </header>
-
-      <main className="pt-20">
-        {/* --- HERO SECTION --- */}
-        <section className="pt-36 pb-24 px-6 text-center">
-          <div className="max-w-5xl mx-auto space-y-10">
-            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em] animate-bounce">
-              <Zap size={14} /> {t('hero.badge')}
             </div>
-            <h1 className="text-5xl md:text-7xl font-[900] tracking-tighter text-slate-950 uppercase leading-[0.9] mb-6">
-  {t('hero.title_part1')} <br />
-  <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-indigo-800 italic">{t('hero.title_part2')}</span>
-           </h1>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed italic">{t('hero.description')}</p>
-            <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link href={isLoggedIn ? "/dashboard" : "/auth/register"} className="w-full sm:w-auto bg-blue-600 text-white px-14 py-8 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_25px_50px_-12px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 transition-all text-center">
-                {isLoggedIn ? t('hero.btn_go_dashboard') : t('hero.btn_start')}
+
+            {/* Control Stickere QR */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs font-black text-slate-400 uppercase tracking-widest cursor-pointer">
+                  <QrCode size={16} className="text-blue-400" />
+                  {t('pricing.config.stickers_toggle')}
+                </label>
+                <input 
+                  type="checkbox" 
+                  checked={isStickersAdded} 
+                  onChange={(e) => setIsStickersAdded(e.target.checked)}
+                  className="w-5 h-5 accent-blue-500 cursor-pointer rounded"
+                />
+              </div>
+
+              {isStickersAdded && (
+                <div className="pt-2 border-t border-slate-800/60 animate-in fade-in duration-300">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">
+                    {t('pricing.config.stickers_count')} <span className="text-blue-400 font-bold">{stickerCount} buc.</span>
+                  </label>
+                  <input 
+                    type="range" 
+                    min="10" 
+                    max="500" 
+                    step="10"
+                    value={stickerCount} 
+                    onChange={(e) => setStickerCount(parseInt(e.target.value))}
+                    className="w-full accent-blue-400 bg-slate-800 h-1.5 rounded-lg cursor-pointer"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Selector Plan Activ (Pro vs Base Layout Toggler) */}
+          <div className="flex justify-center gap-4">
+            <button 
+              type="button"
+              onClick={() => setIsProPlan(false)}
+              className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all ${!isProPlan ? 'bg-slate-100 text-slate-950 shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'}`}
+            >
+              {t('pricing.plans.base_name')}
+            </button>
+            <button 
+              type="button"
+              onClick={() => setIsProPlan(true)}
+              className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider transition-all ${isProPlan ? 'bg-blue-600 text-white shadow-lg' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'}`}
+            >
+              {t('pricing.plans.pro_name')}
+            </button>
+          </div>
+        </section>
+
+        {/* --- CONTAINER CARDS PRICING --- */}
+        <section className="max-w-6xl mx-auto px-6 mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch mb-16">
+            
+            {/* Card 1: Planul Base */}
+            <article className={`p-12 rounded-[4rem] border-[4px] transition-all duration-500 bg-slate-950 text-white relative flex flex-col justify-between ${!isProPlan ? 'border-slate-400 shadow-2xl scale-[1.02] z-10 opacity-100' : 'border-transparent opacity-40'}`}>
+              <div>
+                <div className="flex justify-between items-start mb-6">
+                  <div className="p-3 bg-slate-800 rounded-xl text-slate-400"><Sliders size={32} /></div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-500 tracking-widest uppercase">{t('pricing.plans.license_monthly')}</p>
+                    <p className="text-4xl font-black text-slate-100">600 MDL</p>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">
+                      1 {t('pricing.plans.one_location')}
+                    </span>
+                  </div>
+                </div>
+                
+                <h3 className="text-3xl font-black uppercase tracking-widest mb-6 text-slate-200 italic">
+                  {t('pricing.plans.base_name')}
+                </h3>
+
+                <ul className="space-y-4 mb-12 text-slate-400 font-medium text-xs font-black uppercase tracking-wider">
+                  <li className="flex items-center gap-3"><Check className="text-slate-400 shrink-0" size={18}/> {t('pricing.plans.base_feat_1')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-slate-400 shrink-0" size={18}/> {t('pricing.plans.base_feat_2')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-slate-400 shrink-0" size={18}/> {t('pricing.plans.base_feat_3')}</li>
+                </ul>
+              </div>
+              <Link 
+                href={isLoggedIn ? { pathname: '/dashboard', query: { setup: 'base', locs: '1' } } : '/auth/register'}
+                className="block w-full bg-slate-800 text-white py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] hover:bg-slate-100 hover:text-slate-950 transition-all text-center"
+              >
+                {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_choose')}
               </Link>
-            </div>
-          </div>
-        </section>
+            </article>
 
-        {/* --- SECȚIUNEA SERVICII --- */}
-        <section id="servicii" className="py-24 px-6 bg-white relative overflow-hidden">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-20 space-y-4">
-              <h2 className="text-blue-600 font-black uppercase text-[11px] tracking-[0.4em]">{t('services_section.badge')}</h2>
-              <p className="text-4xl md:text-5xl font-black uppercase tracking-tighter">{t('services_section.title')}</p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-10">
-              <article className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
-                <div className="bg-blue-600 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all"><QrCode size={32}/></div>
-                <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{t('services.qr_employee.title')}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{t('services.qr_employee.desc')}</p>
-              </article>
-              <article className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
-                <div className="bg-indigo-600 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all"><Send size={32}/></div>
-                <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{t('services.telegram.title')}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{t('services.telegram.desc')}</p>
-              </article>
-              <article className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
-                <div className="bg-slate-950 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all"><BarChart3 size={32}/></div>
-                <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{t('services.management.title')}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{t('services.management.desc')}</p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-       {/* --- DEMO VIZUAL --- */}
-        <section id="vizual-demo" className="py-16 px-4 sm:px-6 md:py-32 scroll-mt-24">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-slate-950 rounded-[2.5rem] md:rounded-[4rem] px-5 py-12 sm:p-12 md:p-20 overflow-hidden relative border border-white/5 shadow-2xl">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/10 blur-[120px] -mr-64 -mt-64 rounded-full"></div>
-              
-              <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 text-left">
+            {/* Card 2: Planul Pro */}
+            <article className={`p-12 rounded-[4rem] border-[4px] transition-all duration-500 bg-slate-950 text-white relative flex flex-col justify-between ${isProPlan ? 'border-blue-500 shadow-2xl scale-[1.02] z-10 opacity-100' : 'border-transparent opacity-60'}`}>
+              <div>
+                <div className="flex justify-between items-start mb-6">
+                  <div className="p-3 bg-blue-600/20 rounded-xl text-blue-400"><ShieldCheck size={32} /></div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-500 tracking-widest uppercase">{t('pricing.plans.license_monthly')}</p>
+                    <p className="text-4xl font-black text-blue-400">
+                      {isProPlan ? `${locs * proBaseCostPerLocation} MDL` : `600 MDL`}
+                    </p>
+                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">
+                      {locs} {locs === 1 ? t('pricing.plans.one_location') : t('pricing.plans.more_locations')}
+                    </span>
+                  </div>
+                </div>
                 
-                {/* TEXTUL: Optimizat pentru ecrane mici */}
-                <div className="space-y-6 md:space-y-10">
-                  <h2 className="text-3xl sm:text-4xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] sm:leading-[0.85] break-words">
-                    {t('demo.title_1')} <br /><span className="text-blue-500 italic">{t('demo.title_2')}</span>
-                  </h2>
-                  <div className="space-y-4">
-                    {[
-                      { icon: <Zap size={20}/>, t: t('demo.feature_1_t'), d: t('demo.feature_1_d') },
-                      { icon: <ShieldAlert size={20}/>, t: t('demo.feature_2_t'), d: t('demo.feature_2_d') },
-                      { icon: <Check size={20}/>, t: t('demo.feature_3_t'), d: t('demo.feature_3_d') }
-                    ].map((step, i) => (
-                      <div key={i} className="flex gap-4 sm:gap-5 items-center bg-white/5 p-4 sm:p-6 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
-                        <div className="p-3 sm:p-4 bg-white/10 text-blue-400 rounded-xl shrink-0">{step.icon}</div>
-                        <div>
-                          <h4 className="text-white font-black uppercase text-[10px] sm:text-xs tracking-widest">{step.t}</h4>
-                          <p className="text-slate-400 text-xs sm:text-sm font-medium mt-1">{step.d}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <h3 className="text-3xl font-black uppercase tracking-widest mb-6 text-blue-400 italic">
+                  {t('pricing.plans.pro_name')}
+                </h3>
 
-                {/* TELEFONUL: Scalare fluidă (Nu mai iese din margini) */}
-                <div className="relative flex justify-center w-full layout-container">
-                  <div className="relative w-[270px] h-[550px] min-[400px]:w-[310px] min-[400px]:h-[620px] sm:w-[340px] sm:h-[680px] bg-slate-900 rounded-[2.5rem] sm:rounded-[4rem] border-[8px] sm:border-[12px] border-slate-800 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300">
-                    <div className="bg-white h-full w-full p-5 sm:p-8 flex flex-col items-center text-center justify-between relative">
-                      
-                      {/* Notificare internă optimizată */}
-                      <div className={`absolute top-4 sm:top-6 left-3 right-3 sm:left-4 sm:right-4 z-20 transition-all duration-700 transform ${showNotification ? 'translate-y-0 opacity-100 scale-100' : '-translate-y-20 opacity-0 scale-95'}`}>
-                        <div className="bg-slate-950 text-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl shadow-2xl border border-white/10 flex items-start gap-3 sm:gap-4 text-left">
-                          <div className="bg-red-500 p-2 sm:p-2.5 rounded-xl animate-pulse shrink-0"><BellRing size={16} className="text-white" /></div>
-                          <div>
-                            <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-red-500">{t('demo.notification_badge')}</p>
-                            <p className="text-[10px] sm:text-[11px] font-bold text-slate-200 leading-tight mt-0.5">{t('demo.notification_text')}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Continutul central din telefon adaptat pe înălțime */}
-                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-950 rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black italic text-xl sm:text-2xl mt-14 sm:mt-12 shadow-xl shadow-blue-100 shrink-0">Q</div>
-                      
-                      <div className="text-left w-full mt-2">
-                        <h4 className="font-black text-slate-950 text-xl sm:text-2xl uppercase tracking-tighter leading-none">{t('demo.phone_title')}</h4>
-                      </div>
-                      
-                      <div className="flex gap-1.5 sm:gap-2.5 my-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <div key={star} className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl ${star <= 2 ? 'bg-yellow-400 text-white shadow-lg shadow-yellow-100' : 'bg-slate-100 text-slate-300'}`}>★</div>
-                        ))}
-                      </div>
-                      
-                      <div className="w-full p-4 sm:p-5 bg-slate-50 rounded-2xl sm:rounded-[2rem] border border-slate-100 text-[11px] sm:text-xs text-slate-400 font-bold italic text-left flex-1 flex items-center min-h-[70px] sm:min-h-[110px] my-2">
-                        {t('demo.phone_placeholder')}
-                      </div>
-                      
-                      <button type="button" className="w-full py-4 sm:py-6 bg-red-600 text-white rounded-xl sm:rounded-[1.5rem] text-[11px] sm:text-xs font-black uppercase tracking-[0.25em] shadow-xl shadow-red-100 shrink-0 mt-auto">{t('demo.phone_btn')}</button>
-                    </div>
-                  </div>
-                </div>
-
+                <ul className="space-y-4 mb-12 text-slate-300 font-medium text-xs font-black uppercase tracking-wider">
+                  <li className="flex items-center gap-3 text-blue-400 italic"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_1')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_2')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_3')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_4')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_5')}</li>
+                  <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_6')}</li>
+                </ul>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* --- SECȚIUNEA CONFIGURATOR ȘI TARIFE --- */}
-        <section id="preturi" className="py-32 px-6 scroll-mt-24 bg-slate-50/50">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-blue-600 font-black uppercase text-[11px] tracking-[0.4em] mb-3">{t('pricing.badge')}</h2>
-              <p className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic">
-                {t('pricing.title_part1')} <span className="text-blue-600">{t('pricing.title_part2')}</span>
-              </p>
-            </div>
-
-            {/* Configurator */}
-            <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-slate-100 flex flex-col md:flex-row items-center justify-around gap-8 mb-12">
-              <div className="flex flex-col items-center w-full md:w-auto">
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-3">{t('pricing.configurator.locations')}</span>
-                <div className="flex items-center gap-4">
-                  <button type="button" onClick={() => handleLocChange(Math.max(1, locs - 1))} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black border border-slate-200 hover:bg-blue-600 hover:text-white transition-all">-</button>
-                  <span className="text-4xl font-black w-12 text-center">{locs}</span>
-                  <button type="button" onClick={() => handleLocChange(locs + 1)} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-black border border-slate-200 hover:bg-blue-600 hover:text-white transition-all">+</button>
-                </div>
-              </div>
-
-              {/* Indicator Dinamic Plan Pro */}
-              <div className={`flex flex-col items-center transition-all duration-300 ${isProPlan ? 'opacity-100 scale-110 text-blue-600' : 'opacity-20 grayscale'}`}>
-                <ShieldCheck size={40} />
-                <span className="text-[9px] font-black uppercase mt-2 tracking-tighter">PRO PLAN ACTIVATED</span>
-              </div>
-            </div>
-
-            {/* Stickere */}
-            <div className={`transition-all duration-500 p-6 rounded-[2.5rem] shadow-lg flex flex-col md:flex-row items-center gap-6 mb-12 border-b-4 ${isStickersAdded ? 'bg-blue-600 text-white border-blue-800 scale-[1.01]' : 'bg-slate-900 text-white border-slate-700'}`}>
-              <div className={`p-4 rounded-2xl ${isStickersAdded ? 'bg-white text-blue-600' : 'bg-blue-600'}`}><QrCode size={32} /></div>
-              <div className="text-left flex-1">
-                <h4 className="text-lg font-black uppercase italic tracking-tight flex items-center gap-2"><Truck size={20} /> {t('pricing.stickers.title')}</h4>
-                <p className="text-[10px] font-bold opacity-70 italic uppercase tracking-wider text-blue-100">{t('pricing.stickers.subtitle')}</p>
-              </div>
-              <div className="flex items-center gap-4 bg-black/20 p-2 rounded-xl border border-white/5">
-                <div className="flex flex-col items-center px-2">
-                  <span className="text-[8px] uppercase opacity-50 font-bold mb-1">{t('pricing.stickers.quantity')}</span>
-                  <input type="number" value={stickerCount} onChange={(e) => setStickerCount(parseInt(e.target.value) || 0)} onBlur={validateStickers} className="bg-transparent text-xl font-black w-20 text-center focus:outline-none border-b-2 border-white/20 text-white" />
-                </div>
-                <div className="text-right pr-4 border-l border-white/10 pl-4">
-                  <div className="text-md font-black">{(stickerCount * 0.33).toFixed(2)} MDL</div>
-                  <div className="text-[8px] uppercase opacity-50">{t('pricing.stickers.cost_production')}</div>
-                </div>
-                <button type="button" onClick={() => setIsStickersAdded(!isStickersAdded)} className={`p-3 rounded-lg transition-all ${isStickersAdded ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-400'}`}>
-                  {isStickersAdded ? <Trash2 size={18} /> : <Plus size={18} />}
-                </button>
-              </div>
-            </div>
-
-            {/* Grid Planuri */}
-            <div className="grid md:grid-cols-2 gap-10 items-stretch mb-16">
-              
-              {/* Card 1: Planul Start */}
-              <article className={`p-12 rounded-[4rem] border-[4px] transition-all duration-500 bg-white relative flex flex-col justify-between ${isStartPlan ? 'border-blue-600 shadow-2xl scale-[1.02] z-10 opacity-100' : 'border-slate-100 opacity-60'}`}>
-                <div>
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="p-3 bg-blue-50 rounded-xl text-blue-600"><Zap size={32} /></div>
-                    <div className="text-right">
-                      <p className="text-[9px] font-black text-slate-400 tracking-widest uppercase">{t('pricing.plans.license_monthly')}</p>
-                      <p className="text-4xl font-black text-slate-950">650 MDL</p>
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">1 {t('pricing.plans.one_location')}</span>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-3xl font-black uppercase tracking-widest mb-6 text-blue-600 italic">
-                    {t('pricing.plans.start_name')}
-                  </h3>
-
-                  <ul className="space-y-4 mb-12 text-slate-700 font-medium text-xs font-black uppercase tracking-wider">
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_1')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_2')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_3')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_4')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_5')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_6')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-600 shrink-0" size={18}/> {t('pricing.plans.start_feat_7')}</li>
-                  </ul>
-                </div>
-                <Link 
-                  href={
-                    isLoggedIn 
-                      ? { 
-                          pathname: '/dashboard', 
-                          query: { 
-                            setup: 'start', 
-                            locs: '1', 
-                            stickers: isStickersAdded ? stickerCount.toString() : '0' 
-                          } 
-                        } 
-                      : '/auth/register'
-                  } 
-                  className="block w-full bg-blue-600 text-white py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] shadow-lg shadow-blue-200 hover:bg-slate-950 transition-all text-center"
-                >
-                  {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_register')}
-                </Link>
-              </article>
-
-              {/* Card 2: Planul Pro */}
-              <article className={`p-12 rounded-[4rem] border-[4px] transition-all duration-500 bg-slate-950 text-white relative flex flex-col justify-between ${isProPlan ? 'border-blue-500 shadow-2xl scale-[1.02] z-10 opacity-100' : 'border-transparent opacity-60'}`}>
-                <div>
-                  <div className="flex justify-between items-start mb-6">
-                    <div className="p-3 bg-blue-600/20 rounded-xl text-blue-400"><ShieldCheck size={32} /></div>
-                    <div className="text-right">
-                      <p className="text-[9px] font-black text-slate-500 tracking-widest uppercase">{t('pricing.plans.license_monthly')}</p>
-                      <p className="text-4xl font-black text-blue-400">
-                        {isProPlan ? `${locs * proBaseCostPerLocation} MDL` : `600 MDL`}
-                      </p>
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">
-                        {locs} {locs === 1 ? t('pricing.plans.one_location') : t('pricing.plans.more_locations')}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-3xl font-black uppercase tracking-widest mb-6 text-blue-400 italic">
-                    {t('pricing.plans.pro_name')}
-                  </h3>
-
-                  <ul className="space-y-4 mb-12 text-slate-300 font-medium text-xs font-black uppercase tracking-wider">
-                    <li className="flex items-center gap-3 text-blue-400 italic"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_1')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_2')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_3')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_4')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_5')}</li>
-                    <li className="flex items-center gap-3"><Check className="text-blue-400 shrink-0" size={18}/> {t('pricing.plans.pro_feat_6')}</li>
-                  </ul>
-                </div>
-                <Link 
-                  href={
-                    isLoggedIn 
-                      ? {
-                          pathname: '/dashboard',
-                          query: {
-                            setup: 'pro',
-                            locs: locs.toString(),
-                            stickers: isStickersAdded ? stickerCount.toString() : '0'
-                          }
+              <Link 
+                href={
+                  isLoggedIn 
+                    ? {
+                        pathname: '/dashboard',
+                        query: {
+                          setup: 'pro',
+                          locs: locs.toString(),
+                          stickers: isStickersAdded ? stickerCount.toString() : '0'
                         }
-                      : '/auth/register'
-                  } 
-                  className="block w-full bg-white text-slate-950 py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] hover:bg-blue-600 hover:text-white transition-all text-center"
-                >
-                  {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_choose')}
-                </Link>
-              </article>
-            </div>
+                      }
+                    : '/auth/register'
+                } 
+                className="block w-full bg-white text-slate-950 py-6 rounded-3xl font-black uppercase text-xs tracking-[0.4em] hover:bg-blue-600 hover:text-white transition-all text-center"
+              >
+                {isLoggedIn ? t('pricing.plans.btn_activate_dashboard') : t('pricing.btn_choose')}
+              </Link>
+            </article>
+          </div>
 
-            {/* Total Estimativ */}
-            <div className="max-w-md mx-auto bg-slate-900 border-b-4 border-blue-600 rounded-[2rem] p-6 text-white text-center shadow-2xl">
-              <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{t('pricing.total.estimated_total')}</span>
-              <h3 className="text-4xl font-black text-white mt-1">{grandTotal.toFixed(2)} MDL</h3>
-              <p className="text-[10px] text-slate-400 font-bold mt-2 italic">
-                {isStickersAdded ? `${t('pricing.total.breakdown_part1')} ${currentSoftwareTotal} MDL + ${t('pricing.total.breakdown_part2')} ${stickerTotal} MDL)` : t('pricing.total.only_software')}
-              </p>
-            </div>
+          {/* Total Estimativ */}
+          <div className="max-w-md mx-auto bg-slate-900 border-b-4 border-blue-600 rounded-[2rem] p-6 text-white text-center shadow-2xl">
+            <span className="text-[9px] font-black uppercase tracking-[0.25em] text-slate-400">{t('pricing.total.estimated_total')}</span>
+            <h3 className="text-4xl font-black text-white mt-1">{grandTotal.toFixed(2)} MDL</h3>
+            <p className="text-[10px] text-slate-400 font-bold mt-2 italic">
+              {isStickersAdded ? `${t('pricing.total.breakdown_part1')} ${currentSoftwareTotal} MDL + ${t('pricing.total.breakdown_part2')} ${stickerTotal} MDL)` : t('pricing.total.only_software')}
+            </p>
           </div>
         </section>
       </main>
 
       {/* --- FOOTER --- */}
-      <footer className="bg-white border-t border-slate-100 pt-32 pb-16">
+      <footer className="bg-white border-t border-slate-100 pt-32 pb-16 relative z-10">
         <div className="max-w-7xl mx-auto px-10">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-20 mb-24">
             <div className="space-y-8">
               <div className="flex items-center gap-2">
                 <div className="bg-slate-950 p-2 rounded-xl"><Zap className="text-white fill-white" size={18} /></div>
-                <span className="text-xl font-black uppercase tracking-tighter italic">QRate<span className="text-blue-600">.MD</span></span>
+                <span className="text-xl font-black uppercase tracking-tighter italic text-slate-950">QRate<span className="text-blue-600">.MD</span></span>
               </div>
               <address className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] leading-relaxed italic not-italic">{t('footer.company_name')} <br />{t('footer.location')}</address>
             </div>
@@ -495,7 +317,7 @@ export default function LandingPage() {
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.payments_title')}</h4>
               <div className="space-y-6 grayscale opacity-60">
                 <div className="text-[14px] font-black text-slate-800 tracking-tighter">maib</div>
-                <div className="flex gap-4"><span className="text-[10px] font-bold">VISA</span><span className="text-[10px] font-bold">MASTERCARD</span></div>
+                <div className="flex gap-4"><span className="text-[10px] font-bold text-slate-950">VISA</span><span className="text-[10px] font-bold text-slate-950">MASTERCARD</span></div>
               </div>
             </div>
           </div>
