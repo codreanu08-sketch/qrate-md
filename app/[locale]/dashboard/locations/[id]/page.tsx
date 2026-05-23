@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Star, Trash2, Sparkles, Lock } from 'lucide-react';
+import { ArrowLeft, Star, Trash2, Sparkles, Lock, MessageCircle } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
 // Definirea tipurilor
@@ -11,6 +11,7 @@ interface Review {
   id: string;
   rating: number;
   comment: string;
+  full_name: string | null; // <-- Adăugat numele complet
   phone: string | null;
   image_url: string | null;
   video_url: string | null;
@@ -134,6 +135,30 @@ export default function LocationDetail() {
     fetchReviews();
   };
 
+  // Generator Link WhatsApp inteligent bazat pe nota clientului
+  const generateWhatsAppUrl = (phone: string, rating: number, clientName: string | null) => {
+    const cleanPhone = phone.replace(/\D/g, ''); // Elimină spații, plusuri, paranteze
+    let formattedPhone = cleanPhone;
+
+    // Adăugare prefixe automate RO / MD dacă utilizatorul scrie numărul local cu '0'
+    if (cleanPhone.startsWith('0')) {
+      if (cleanPhone.length === 10) {
+        formattedPhone = '40' + cleanPhone.substring(1); // România (ex: 07xx -> 407xx)
+      } else if (cleanPhone.length === 9) {
+        formattedPhone = '373' + cleanPhone.substring(1); // Moldova (ex: 06xx -> 3736xx)
+      }
+    }
+
+    const nameToUse = clientName || 'Stimate client';
+    
+    // Mesaje complet personalizate în funcție de rating (Premium feature)
+    const textMessage = rating <= 3
+      ? `Bună ziua, ${nameToUse}! Vă contactăm din partea echipei ${location?.name}. Am primit feedback-ul dumneavoastră de ${rating} ⭐ pe platforma QRate și ne pare nespus de rău pentru experiența neplăcută. Ne-ar ajuta foarte mult să aflăm mai multe detalii pentru a remedia situația de urgență.`
+      : `Bună ziua, ${nameToUse}! Vă mulțumim din suflet pentru recenzia pozitivă de ${rating} ⭐ oferită echipei ${location?.name} prin QRate. Ne bucurăm enorm că ați fost mulțumit și vă mai așteptăm cu drag!`;
+
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(textMessage)}`;
+  };
+
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc: number, r: Review) => acc + (r.rating || 0), 0) / reviews.length).toFixed(1)
     : '0.0';
@@ -229,34 +254,64 @@ export default function LocationDetail() {
             ) : (
               <div className="space-y-6">
                 {reviews.map((review) => (
-                  <div key={review.id} className="border border-gray-100 rounded-3xl p-8 bg-white shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            size={20}
-                            className={`${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`}
-                          />
-                        ))}
+                  <div key={review.id} className="border border-gray-100 rounded-3xl p-8 bg-white shadow-sm hover:shadow-md transition-all">
+                    
+                    {/* Headerul Recenziei: Avatar + Nume + Buton Ștergere */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-center gap-3">
+                        {/* Avatar premium din inițiala numelui */}
+                        <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 rounded-2xl flex items-center justify-center font-black uppercase text-base border border-slate-200 shadow-sm">
+                          {(review.full_name || 'A')[0]}
+                        </div>
+                        <div>
+                          <h3 className="font-black text-slate-900 text-lg leading-tight">
+                            {review.full_name || 'Client Anonim'}
+                          </h3>
+                          {/* Afișarea Stelelor sub nume */}
+                          <div className="flex gap-0.5 mt-1.5">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={16}
+                                className={`${star <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
+
                       <button
                         onClick={() => deleteReview(review.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors p-2"
+                        className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-xl transition-all"
                         title="Șterge recenzia"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
 
-                    <p className="mt-4 text-gray-700 text-lg leading-relaxed">{review.comment}</p>
+                    {/* Comentariul */}
+                    <p className="text-gray-700 text-lg leading-relaxed mt-2 pl-1">{review.comment}</p>
 
+                    {/* Zona de Contact și Acțiuni (Butonul WhatsApp integrat inteligent) */}
                     {review.phone && (
-                      <div className="mt-4 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 w-fit px-3 py-1 rounded-full">
-                        <span>📱 {review.phone}</span>
+                      <div className="mt-6 flex flex-wrap items-center gap-3 pt-4 border-t border-slate-50">
+                        <div className="flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200/60">
+                          📱 {review.phone}
+                        </div>
+                        
+                        <a
+                          href={generateWhatsAppUrl(review.phone, review.rating, review.full_name)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 px-5 py-2 rounded-xl transition-all shadow-sm active:scale-95"
+                        >
+                          <MessageCircle size={16} className="fill-current" />
+                          Răspunde pe WhatsApp
+                        </a>
                       </div>
                     )}
 
+                    {/* Imagini sau clipuri video atașate de client */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                       {review.image_url && signedUrls[review.image_url] && (
                         <img
@@ -274,8 +329,9 @@ export default function LocationDetail() {
                       )}
                     </div>
 
-                    <div className="mt-6 pt-4 border-t border-gray-50 flex justify-end">
-                      <p className="text-xs text-gray-400 font-mono">
+                    {/* Data Recenziei */}
+                    <div className="mt-6 flex justify-end">
+                      <p className="text-xs text-gray-400 font-mono font-medium">
                         {new Date(review.created_at).toLocaleDateString('ro-RO', {
                           day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
                         })}
