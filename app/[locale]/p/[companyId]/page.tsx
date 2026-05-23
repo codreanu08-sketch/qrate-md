@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function PublicProfilePage({ 
-  params 
-}: { 
-  params: { locale: string; companyId: string } 
-}) {
+export default function PublicProfilePage() {
+  const params = useParams();
+  const companyId = params.companyId as string;
+
   const [company, setCompany] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,17 +20,17 @@ export default function PublicProfilePage({
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    async function loadData() {
-      if (!params.companyId) {
-        setError("ID companie invalid");
-        setLoading(false);
-        return;
-      }
+    if (!companyId) {
+      setError("ID companie invalid");
+      setLoading(false);
+      return;
+    }
 
+    async function loadData() {
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
-        .eq('id', params.companyId)
+        .eq('id', companyId)
         .maybeSingle();
 
       if (companyError || !companyData) {
@@ -42,7 +42,7 @@ export default function PublicProfilePage({
       const { data: employeesData } = await supabase
         .from('employees')
         .select('*')
-        .eq('company_id', params.companyId);
+        .eq('company_id', companyId);
 
       setCompany(companyData);
       setEmployees(employeesData || []);
@@ -50,7 +50,7 @@ export default function PublicProfilePage({
     }
 
     loadData();
-  }, [params.companyId]);
+  }, [companyId]);
 
   const handleSubmitReview = async () => {
     if (!selectedEmployee || !rating) return;
@@ -58,7 +58,7 @@ export default function PublicProfilePage({
     setSubmitting(true);
 
     const { error } = await supabase.from('reviews').insert({
-      company_id: params.companyId,
+      company_id: companyId,
       employee_id: selectedEmployee.id,
       location_id: selectedEmployee.location_id || null,
       rating,
