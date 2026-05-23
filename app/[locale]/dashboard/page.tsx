@@ -70,7 +70,7 @@ export default function AdminDashboardPage() {
     }
   }, [selPeriod]);
 
-  // --- 2. REALTIME CHANNEL (CONECTAT LA TOATĂ COMPANIA) ---
+  // --- 2. REALTIME CHANNEL (CU FIX DE TYPESCRIPT PE PAYLOAD) ---
   useEffect(() => {
     if (!companyId) return;
 
@@ -79,7 +79,7 @@ export default function AdminDashboardPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'reviews', filter: `company_id=eq.${companyId}` },
-        async (payload) => {
+        async (payload: any) => {
           const { data, error } = await supabase
             .from('reviews')
             .select(`*, employees ( name ), locations ( name )`)
@@ -163,7 +163,6 @@ export default function AdminDashboardPage() {
       if (timelineData[dateStr] !== undefined) timelineData[dateStr]++;
     });
 
-    // Calcul Viteză
     let velocityPercent = previousCount > 0 ? Math.round(((recentCount - previousCount) / previousCount) * 100) : (recentCount > 0 ? 100 : 0);
 
     // Coordonate SVG Area Chart
@@ -175,19 +174,17 @@ export default function AdminDashboardPage() {
       return `${x},${y}`;
     }).join(' ');
 
-    // Cuvinte cheie automate
     const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt'];
     const words = allText.match(/[a-ăââîșțțz]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 4 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
     const topKeywords = Object.entries(wordFreq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([word]) => word);
 
-    // Clasament Angajați
     const leaderboard = Object.entries(empPerformance)
       .map(([name, scores]) => ({ name, avg: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1), count: scores.length }))
       .sort((a, b) => Number(b.avg) - Number(a.avg) || b.count - a.count);
 
-    // SINCRONIZARE INTELIGENTĂ CARD 4 (MVP Angajat vs Top Locație)
+    // Sincronizare inteligentă card 4 (MVP Angajat vs Top Locație)
     let dynamicCardLabel = "MVP Echipă";
     let dynamicCardValue = leaderboard[0]?.name || "N/A";
 
@@ -223,12 +220,11 @@ export default function AdminDashboardPage() {
     };
   }, [filteredReviews, selEmployee]);
 
-  // --- 5. REPLIES GENERATOR LOCAL ---
   const generateSmartReply = (rev: Review) => {
     const clientName = rev.full_name || 'Stimate Client';
     const empName = rev.employees?.name;
     if (rev.rating >= 4) {
-      return `Bună, ${clientName}! Îți mulțumim pentru recenzia de ${rev.rating} stele. Ne bucurăm că ai avut o experiență plăcută${empName ? ` alături de ${empName}` : ''}. O zi excelentă!`;
+      return `Bună, ${clientName}! Îți mulțumim pentru recenzia de ${rev.rating} stele. Ne bucurăm că ai avut o experiență plăcută${empName ? ` alături de ${empName}` : ''}. O zi excelentă! ✨`;
     } else {
       return `Bună ziua, ${clientName}. Ne pare rău că experiența nu a fost perfectă. Luăm nota de ${rev.rating}★ în serios${empName ? ` și vom discuta cu ${empName}` : ''} pentru a îmbunătăți serviciul.`;
     }
@@ -240,7 +236,6 @@ export default function AdminDashboardPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // --- INITIALIZARE CONTEXT ---
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -282,13 +277,12 @@ export default function AdminDashboardPage() {
           </button>
         </nav>
 
-        {/* CONTROALE FILTRARE REZOLVATE */}
+        {/* HEADER CONTROLS */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Panou General</h1>
             <p className="text-sm text-slate-500 font-medium italic border-l-2 border-indigo-500 pl-2 mt-1">Toate datele sunt actualizate instantaneu la filtrare</p>
           </div>
-          
           <div className="flex bg-white p-1 rounded-xl border border-slate-100 shadow-sm self-start md:self-auto">
              {['7d', '1m', 'all'].map((p) => (
                <button key={p} onClick={() => setSelPeriod(p)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${selPeriod === p ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-600'}`}>{p}</button>
@@ -296,7 +290,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* CELE 4 CARDURI COMPLET SINCRONIZATE ACUM LOCAL */}
+        {/* CARDURI STATISTICI SINCRONIZATE */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard label="Recenzii Filtrate" value={filteredReviews.length} icon={<MessageCircle size={20} className="text-blue-500" />} trend={stats.velocity !== 0 ? `${stats.velocity > 0 ? '+' : ''}${stats.velocity}%` : undefined} trendUp={stats.velocity >= 0} />
           <StatCard label="Rating pe Filtru" value={`${stats.avg} ★`} icon={<Star size={20} className="text-amber-500 fill-amber-400" />} />
@@ -304,9 +298,8 @@ export default function AdminDashboardPage() {
           <StatCard label={stats.dynamicCardLabel} value={stats.dynamicCardValue} icon={<Trophy size={20} className="text-indigo-500" />} />
         </div>
 
-        {/* BENTO ZONE */}
+        {/* BENTO GRID 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          {/* AI REPORT BOX */}
           <div className={`lg:col-span-2 rounded-[3rem] p-6 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-lg ${stats.urgent > 0 ? 'bg-red-600' : 'bg-slate-900'} text-white`}>
             <div>
               <span className="text-xs font-black uppercase tracking-[0.2em] opacity-80 block mb-4">QRate AI Intel-Report</span>
@@ -324,7 +317,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* DISTRIBUȚIE ȘI LEADERBOARD */}
           <div className="bg-white rounded-[3rem] p-8 border border-slate-100 shadow-sm flex flex-col justify-between gap-6">
             <div>
               <h3 className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-4">Grafic Distribuție Scor</h3>
@@ -356,7 +348,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* GRAFIC TENDINȚĂ & SCOPURI */}
+        {/* BENTO GRID 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="bg-white p-6 md:p-8 rounded-[3rem] border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
             <div>
@@ -407,7 +399,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* FEED SELECȚII CU SCHIMBARE LA CLICK STIL SAAS ENTERPRISE */}
+        {/* FLUX RECENZII */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 mb-6">
             <h3 className="text-xl font-black">Flux Comentarii</h3>
