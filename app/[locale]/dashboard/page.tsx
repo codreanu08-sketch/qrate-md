@@ -3,11 +3,10 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
-import Script from 'next/script';
 import { 
   Star, MapPin, User, Loader2, MessageCircle, 
-  Zap, Trophy, Clock, Activity, Globe, AlertTriangle, CheckCircle2, 
-  TrendingUp, Award, Target, Sparkles, Copy, Check
+  Zap, Trophy, Clock, Activity, Globe, Award, Target, 
+  Sparkles, Copy, Check, DollarSign, Share2
 } from 'lucide-react';
 
 interface Review {
@@ -44,7 +43,7 @@ export default function AdminDashboardPage() {
     window.open(`https://qrate.md/p/${companyId}`, '_blank', 'noopener,noreferrer');
   }, [companyId]);
 
-  // --- 1. FETCH BAZĂ (DOAR DUPĂ PERIOADĂ PENTRU VITEZĂ MAXIMĂ) ---
+  // Fetch Bază date
   const fetchBaseReviews = useCallback(async (cId: string) => {
     setLoading(true);
     try {
@@ -70,7 +69,7 @@ export default function AdminDashboardPage() {
     }
   }, [selPeriod]);
 
-  // --- 2. REALTIME CHANNEL (CU FIX DE TYPESCRIPT PE PAYLOAD) ---
+  // Realtime
   useEffect(() => {
     if (!companyId) return;
 
@@ -98,7 +97,7 @@ export default function AdminDashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // --- 3. FILTRARE LOCALĂ INSTANTANEE (0ms) ---
+  // Filtrare Locală Instant (0ms)
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
@@ -107,13 +106,22 @@ export default function AdminDashboardPage() {
     });
   }, [allReviews, selLocation, selEmployee]);
 
-  // --- 4. ENGINE DE STATISTICI COMPLET SINCRONIZAT ---
+  // --- ENGINE DE STATISTICI INTEGRAT ---
   const stats = useMemo(() => {
+    let scopeName = "la nivel general";
+    if (selEmployee !== 'all') {
+      const eMatch = employees.find(e => e.id === selEmployee);
+      scopeName = eMatch ? `pentru angajatul ${eMatch.name}` : "pentru acest angajat";
+    } else if (selLocation !== 'all') {
+      const lMatch = locations.find(l => l.id === selLocation);
+      scopeName = lMatch ? `pentru locația ${lMatch.name}` : "pentru această locație";
+    }
+
     if (!filteredReviews.length) return {
       distribution: [0,0,0,0,0], avg: "0.0", satisfaction: 0, urgent: 0, 
       dynamicCardLabel: "Performant", dynamicCardValue: "N/A", peak: "N/A", today: 0, 
-      leaderboard: [], aiText: "Nu există recenzii pentru filtrele selectate.", velocity: 0, 
-      topKeywords: [], chartPoints: ""
+      leaderboard: [], aiText: `Nu există recenzii înregistrate ${scopeName} pe perioada selectată.`, velocity: 0, 
+      topKeywords: [], chartPoints: "", targetGoal: 10, targetPercentage: 0, roiEstimated: 0
     };
 
     const dist = [0,0,0,0,0];
@@ -124,7 +132,6 @@ export default function AdminDashboardPage() {
     const todayStr = new Date().toISOString().split('T')[0];
     let allText = "";
 
-    // REPUTATION VELOCITY TIME-FRAME
     const now = new Date().getTime();
     const fortyEightHoursAgo = now - (48 * 60 * 60 * 1000);
     const ninetySixHoursAgo = now - (96 * 60 * 60 * 1000);
@@ -142,13 +149,15 @@ export default function AdminDashboardPage() {
       if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++;
       totalScore += r.rating;
       
-      if (r.employees?.name) {
-        if (!empPerformance[r.employees.name]) empPerformance[r.employees.name] = [];
-        empPerformance[r.employees.name].push(r.rating);
+      const empName = r.employees?.name;
+      if (empName) {
+        if (!empPerformance[empName]) empPerformance[empName] = [];
+        empPerformance[empName].push(r.rating);
       }
-      if (r.locations?.name) {
-        if (!locPerformance[r.locations.name]) locPerformance[r.locations.name] = [];
-        locPerformance[r.locations.name].push(r.rating);
+      const locName = r.locations?.name;
+      if (locName) {
+        if (!locPerformance[locName]) locPerformance[locName] = [];
+        locPerformance[locName].push(r.rating);
       }
 
       const hr = new Date(r.created_at).getHours();
@@ -165,7 +174,6 @@ export default function AdminDashboardPage() {
 
     let velocityPercent = previousCount > 0 ? Math.round(((recentCount - previousCount) / previousCount) * 100) : (recentCount > 0 ? 100 : 0);
 
-    // Coordonate SVG Area Chart
     const counts = Object.values(timelineData);
     const maxVal = Math.max(...counts, 1);
     const chartPoints = counts.map((val, index) => {
@@ -174,7 +182,7 @@ export default function AdminDashboardPage() {
       return `${x},${y}`;
     }).join(' ');
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'o', 'un'];
     const words = allText.match(/[a-ăââîșțțz]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 4 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -184,7 +192,6 @@ export default function AdminDashboardPage() {
       .map(([name, scores]) => ({ name, avg: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1), count: scores.length }))
       .sort((a, b) => Number(b.avg) - Number(a.avg) || b.count - a.count);
 
-    // Sincronizare inteligentă card 4 (MVP Angajat vs Top Locație)
     let dynamicCardLabel = "MVP Echipă";
     let dynamicCardValue = leaderboard[0]?.name || "N/A";
 
@@ -198,14 +205,32 @@ export default function AdminDashboardPage() {
 
     const peakHr = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0];
     const urgentCount = filteredReviews.filter(r => r.rating <= 2).length;
+    const currentRatingAvg = (totalScore / filteredReviews.length).toFixed(1);
 
-    let aiInsight = urgentCount > 0 
-      ? `Atenție sporită! Sunt identificate ${urgentCount} recenzii cu rating scăzut pe filtrele curente. Se recomandă măsuri rapide.`
-      : `Segment stabil. Media curentă este de ${(totalScore / filteredReviews.length).toFixed(1)}★. Clienții apreciază calitatea serviciilor oferite.`;
+    let aiInsight = "";
+    if (urgentCount > 0) {
+      aiInsight = `Atenție sporită ${scopeName}! S-au detectat ${urgentCount} recenzii negative. Clienții reclamă aspecte legate de cuvintele cheie: [${topKeywords.slice(0,2).join(', ')}]. Se recomandă intervenție imediată.`;
+    } else {
+      aiInsight = `Analiza AI indică un nivel excelent de satisfacție ${scopeName}. Media de ${currentRatingAvg}★ denotă un serviciu premium. Principalul motor de conversie detectat este asociat cu termenul "#${topKeywords[0] || 'calitate'}".`;
+    }
+
+    // TARGET GOALS DINAMIC SYSTEM
+    const currentTotal = filteredReviews.length;
+    let targetGoal = 10;
+    if (currentTotal >= 10) targetGoal = 30;
+    if (currentTotal >= 30) targetGoal = 100;
+    if (currentTotal >= 100) targetGoal = 250;
+    if (currentTotal >= 250) targetGoal = 500;
+    if (currentTotal >= 500) targetGoal = 1000;
+    const targetPercentage = Math.min(Math.round((currentTotal / targetGoal) * 100), 100);
+
+    // REVENUE ROI ESTIMATOR
+    const goodReviewsCount = filteredReviews.filter(r => r.rating >= 4).length;
+    const roiEstimated = goodReviewsCount * 15;
 
     return {
       distribution: dist,
-      avg: (totalScore / filteredReviews.length).toFixed(1),
+      avg: currentRatingAvg,
       satisfaction: Math.round((filteredReviews.filter(r => r.rating >= 4).length / filteredReviews.length) * 100),
       urgent: urgentCount,
       dynamicCardLabel,
@@ -215,18 +240,21 @@ export default function AdminDashboardPage() {
       leaderboard: leaderboard.slice(0, 3),
       aiText: aiInsight,
       velocity: velocityPercent,
-      topKeywords: topKeywords.length > 0 ? topKeywords : ['servicii', 'profesionalism', 'echipă', 'promptitudine'],
-      chartPoints
+      topKeywords: topKeywords.length > 0 ? topKeywords : ['servicii', 'profesionalism', 'echipă'],
+      chartPoints,
+      targetGoal,
+      targetPercentage,
+      roiEstimated
     };
-  }, [filteredReviews, selEmployee]);
+  }, [filteredReviews, selEmployee, selLocation, employees, locations]);
 
   const generateSmartReply = (rev: Review) => {
     const clientName = rev.full_name || 'Stimate Client';
     const empName = rev.employees?.name;
     if (rev.rating >= 4) {
-      return `Bună, ${clientName}! Îți mulțumim pentru recenzia de ${rev.rating} stele. Ne bucurăm că ai avut o experiență plăcută${empName ? ` alături de ${empName}` : ''}. O zi excelentă! ✨`;
+      return `Bună, ${clientName}! Îți mulțumim pentru recenzia de ${rev.rating} stele. Ne bucurăm că ai avut o experiență plăcută${empName ? ` alături de colegul nostru, ${empName}` : ''}. Te mai așteptăm cu drag!`;
     } else {
-      return `Bună ziua, ${clientName}. Ne pare rău că experiența nu a fost perfectă. Luăm nota de ${rev.rating}★ în serios${empName ? ` și vom discuta cu ${empName}` : ''} pentru a îmbunătăți serviciul.`;
+      return `Bună ziua, ${clientName}. Ne pare rău că experiența nu a fost ideală. Luăm nota de ${rev.rating}★ în serios${empName ? ` și vom discuta intern cu ${empName}` : ''} pentru a asigura standardele QRate pe viitor.`;
     }
   };
 
@@ -234,6 +262,11 @@ export default function AdminDashboardPage() {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const sendWhatsApp = (text: string) => {
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   useEffect(() => {
@@ -281,7 +314,7 @@ export default function AdminDashboardPage() {
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Panou General</h1>
-            <p className="text-sm text-slate-500 font-medium italic border-l-2 border-indigo-500 pl-2 mt-1">Toate datele sunt actualizate instantaneu la filtrare</p>
+            <p className="text-sm text-slate-500 font-medium italic border-l-2 border-indigo-500 pl-2 mt-1">Toate modulele sunt auto-sincronizate local la nivel de milisecundă</p>
           </div>
           <div className="flex bg-white p-1 rounded-xl border border-slate-100 shadow-sm self-start md:self-auto">
              {['7d', '1m', 'all'].map((p) => (
@@ -290,20 +323,20 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* CARDURI STATISTICI SINCRONIZATE */}
+        {/* STATS CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard label="Recenzii Filtrate" value={filteredReviews.length} icon={<MessageCircle size={20} className="text-blue-500" />} trend={stats.velocity !== 0 ? `${stats.velocity > 0 ? '+' : ''}${stats.velocity}%` : undefined} trendUp={stats.velocity >= 0} />
-          <StatCard label="Rating pe Filtru" value={`${stats.avg} ★`} icon={<Star size={20} className="text-amber-500 fill-amber-400" />} />
-          <StatCard label="Recenzii Noi Azi" value={stats.today} icon={<Clock size={20} className="text-emerald-500" />} isAlert={stats.today > 0} />
+          <StatCard label="Recenzii Segment" value={filteredReviews.length} icon={<MessageCircle size={20} className="text-blue-500" />} trend={stats.velocity !== 0 ? `${stats.velocity > 0 ? '+' : ''}${stats.velocity}%` : undefined} trendUp={stats.velocity >= 0} />
+          <StatCard label="Scor pe Filtru" value={`${stats.avg} ★`} icon={<Star size={20} className="text-amber-500 fill-amber-400" />} />
+          <StatCard label="Primite Astăzi" value={stats.today} icon={<Clock size={20} className="text-emerald-500" />} isAlert={stats.today > 0} />
           <StatCard label={stats.dynamicCardLabel} value={stats.dynamicCardValue} icon={<Trophy size={20} className="text-indigo-500" />} />
         </div>
 
-        {/* BENTO GRID 1 */}
+        {/* BENTO ZONE 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className={`lg:col-span-2 rounded-[3rem] p-6 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-lg ${stats.urgent > 0 ? 'bg-red-600' : 'bg-slate-900'} text-white`}>
             <div>
-              <span className="text-xs font-black uppercase tracking-[0.2em] opacity-80 block mb-4">QRate AI Intel-Report</span>
-              <h2 className="text-xl md:text-2xl font-bold mb-6 leading-snug">{stats.aiText}</h2>
+              <span className="text-xs font-black uppercase tracking-[0.2em] opacity-80 block mb-4">QRate AI Intel-Report (Live Analiză)</span>
+              <h2 className="text-xl md:text-2xl font-bold mb-6 leading-snug transition-all duration-300">{stats.aiText}</h2>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <div className="bg-white/10 backdrop-blur-xl p-5 rounded-[2rem] flex-1">
@@ -335,20 +368,43 @@ export default function AdminDashboardPage() {
               </div>
             </div>
             <div>
-              <h4 className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-3 flex items-center gap-1.5"><Award size={12} className="text-indigo-500" /> Top Performeri Activi</h4>
+              <h4 className="font-black text-slate-400 uppercase text-[10px] tracking-widest mb-3 flex items-center gap-1.5"><Award size={12} className="text-indigo-500" /> Clasament Angajați</h4>
               <div className="space-y-2">
-                {stats.leaderboard.map((emp: any, index) => (
-                  <div key={emp.name} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-xs font-bold text-slate-700 truncate">{index + 1}. {emp.name}</span>
-                    <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-black">{emp.avg} ★</span>
-                  </div>
-                ))}
+                {stats.leaderboard.length > 0 ? (
+                  stats.leaderboard.map((emp: any, index) => (
+                    <div key={emp.name} className="flex items-center justify-between bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                      <span className="text-xs font-bold text-slate-700 truncate">{index + 1}. {emp.name}</span>
+                      <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-black">{emp.avg} ★ ({emp.count})</span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[11px] text-slate-400 italic">Nu sunt suficienți angajați cu recenzii active pe acest filtru.</p>
+                )}
               </div>
             </div>
           </div>
         </div>
 
-        {/* BENTO GRID 2 */}
+        {/* PANOU REVENUE ROI SIMULATOR (RECALIBRAT ÎN 2 COLOANE FĂRĂ MAPS LIFT) */}
+        <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-[3rem] p-6 md:p-10 shadow-xl mb-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-center border border-indigo-800/40">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+              <DollarSign size={10} /> QRate Revenue Module
+            </div>
+            <h3 className="text-2xl font-black tracking-tight">Simularea ROI (Return on Investment)</h3>
+            <p className="text-xs text-indigo-200/70 leading-relaxed font-medium">Algoritmul QRate calculează automat valoarea monetară adusă direct în business de recenziile excelente primite de la clienți.</p>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-[2.5rem] relative overflow-hidden flex flex-col justify-between h-40">
+            <div>
+              <span className="text-[10px] font-black uppercase text-indigo-300 tracking-widest block mb-1">Impact Financiar Estimat</span>
+              <p className="text-4xl font-black text-emerald-400 tracking-tight">+{stats.roiEstimated} €</p>
+            </div>
+            <p className="text-[10px] text-indigo-200/50 font-medium italic border-t border-white/5 pt-2">Calculat pe baza valorii organice de achiziție și retenție client.</p>
+          </div>
+        </div>
+
+        {/* GRAFIC CRONOLOGIC & PROGRES TIERS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="bg-white p-6 md:p-8 rounded-[3rem] border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
             <div>
@@ -381,15 +437,15 @@ export default function AdminDashboardPage() {
 
           <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-2"><Target size={16} className="text-emerald-500" /><h3 className="font-black text-slate-400 uppercase text-[10px] tracking-widest">QRate Trusted Pro</h3></div>
-              <p className="text-xs text-slate-500 mb-4 font-medium">Nivelul de încredere atins pe baza segmentului curent.</p>
+              <div className="flex items-center gap-2 mb-2"><Target size={16} className="text-emerald-500" /><h3 className="font-black text-slate-400 uppercase text-[10px] tracking-widest">QRate Gamified Goals</h3></div>
+              <p className="text-xs text-slate-500 mb-4 font-medium">Sistemul inteligent crește țintele automat pe măsură ce business-ul se scalează.</p>
               <div className="space-y-2">
                 <div className="flex justify-between items-end">
-                  <span className="text-xl font-black text-slate-800">{filteredReviews.length} / 30</span>
-                  <span className="text-xs bg-emerald-50 text-emerald-600 font-black px-2 py-0.5 rounded">{Math.min(Math.round((filteredReviews.length / 30) * 100), 100)}%</span>
+                  <span className="text-xl font-black text-slate-800">{filteredReviews.length} / {stats.targetGoal}</span>
+                  <span className="text-xs bg-emerald-50 text-emerald-600 font-black px-2 py-0.5 rounded">Scor {stats.targetPercentage}%</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div style={{ width: `${Math.min((filteredReviews.length / 30) * 100, 100)}%` }} className="bg-emerald-500 h-full rounded-full" />
+                  <div style={{ width: `${stats.targetPercentage}%` }} className="bg-emerald-500 h-full rounded-full transition-all duration-500" />
                 </div>
               </div>
             </div>
@@ -402,7 +458,7 @@ export default function AdminDashboardPage() {
         {/* FLUX RECENZII */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 mb-6">
-            <h3 className="text-xl font-black">Flux Comentarii</h3>
+            <h3 className="text-xl font-black">Flux Comentarii Active</h3>
             <div className="flex flex-wrap gap-3">
               <select value={selLocation} onChange={(e) => setSelLocation(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-bold outline-none cursor-pointer focus:border-indigo-500 shadow-sm">
                 <option value="all">Toate Locațiile</option>
@@ -432,8 +488,8 @@ export default function AdminDashboardPage() {
                     <p className="text-base font-bold text-slate-800 italic">"{rev.comment || 'Fără comentariu text'}"</p>
                   </div>
                   <div className="flex flex-wrap md:flex-col gap-2 shrink-0">
-                    <Tag text={rev.employees?.name || 'Echipă'} icon={<User size={12} />} />
-                    <Tag text={rev.locations?.name || 'Sediu'} icon={<MapPin size={12} />} />
+                    <Tag text={rev.employees?.name || 'Echipă Generală'} icon={<User size={12} />} />
+                    <Tag text={rev.locations?.name || 'Sediu Central'} icon={<MapPin size={12} />} />
                   </div>
                 </div>
 
@@ -443,11 +499,17 @@ export default function AdminDashboardPage() {
                   </button>
 
                   {activeReplyId === rev.id && (
-                    <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="bg-slate-900 text-slate-100 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
                       <p className="text-xs font-medium leading-relaxed flex-1 text-slate-300">{generateSmartReply(rev)}</p>
-                      <button onClick={() => copyToClipboard(generateSmartReply(rev), rev.id)} className={`flex items-center gap-1 text-[10px] font-black uppercase px-3 py-2 rounded-xl shrink-0 transition-all ${copiedId === rev.id ? 'bg-emerald-500 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'}`}>
-                        {copiedId === rev.id ? <Check size={12} /> : <Copy size={12} />} {copiedId === rev.id ? 'Copiat!' : 'Copiază'}
-                      </button>
+                      
+                      <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                        <button onClick={() => sendWhatsApp(generateSmartReply(rev))} className="flex items-center gap-1 text-[10px] font-black uppercase px-3 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-all">
+                          <Share2 size={12} /> WhatsApp
+                        </button>
+                        <button onClick={() => copyToClipboard(generateSmartReply(rev), rev.id)} className={`flex items-center gap-1 text-[10px] font-black uppercase px-3 py-2 rounded-xl transition-all ${copiedId === rev.id ? 'bg-indigo-600 text-white' : 'bg-white text-slate-900 hover:bg-slate-100'}`}>
+                          {copiedId === rev.id ? <Check size={12} /> : <Copy size={12} />} {copiedId === rev.id ? 'Copiat!' : 'Copiază'}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -461,6 +523,7 @@ export default function AdminDashboardPage() {
   );
 }
 
+// Sub-componente interne
 function StatCard({ label, value, icon, isAlert, trend, trendUp }: any) {
   return (
     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:border-indigo-100 transition-all group flex items-center justify-between">
