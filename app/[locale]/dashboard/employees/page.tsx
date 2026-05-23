@@ -36,7 +36,6 @@ export default function EmployeesPage() {
         return;
       }
 
-      // Obținem compania asociată utilizatorului curent
       const { data: company, error: compError } = await supabase
         .from('companies')
         .select('id')
@@ -52,7 +51,6 @@ export default function EmployeesPage() {
 
       setCompanyId(company.id);
 
-      // Preluăm locațiile companiei
       const { data: locs, error: locsError } = await supabase
         .from('locations')
         .select('id, name')
@@ -62,7 +60,6 @@ export default function EmployeesPage() {
       const currentLocs = locs || [];
       setLocations(currentLocs);
       
-      // Preluăm angajații cu TOATE datele recenziilor lor
       const { data: emps, error: empsError } = await supabase
         .from('employees')
         .select(`*, reviews(*)`)
@@ -88,7 +85,6 @@ export default function EmployeesPage() {
             
             const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
 
-            // Sortăm recenziile descrescător după data creării (cele mai noi primele)
             const sortedReviews = emp.reviews ? [...emp.reviews].sort((a: any, b: any) => 
               new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
             ) : [];
@@ -302,7 +298,6 @@ export default function EmployeesPage() {
               return (
                 <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 md:p-10 relative overflow-hidden flex flex-col justify-between min-h-[370px]">
                   
-                  {/* Canvas Ascuns pentru download */}
                   <div className="hidden">
                     {qrUrl && (
                       <QRCodeCanvas 
@@ -391,17 +386,12 @@ export default function EmployeesPage() {
                               <div key={rev.id} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="min-w-0">
-                                    {/* Randul de mai jos caută toate variantele posibile de nume. Dacă nu găsește nimic, arată automat coloanele disponibile din DB ca să știi exact cum se numește */}
                                     <p className="font-black text-slate-800 text-xs truncate uppercase tracking-tight">
-                                      {rev.client_name || rev.name || rev.nume || rev.nume_client || rev.reviewer_name || rev.author_name || rev.customer_name || (
-                                        <span className="text-amber-600 font-bold text-[10px] normal-case bg-amber-50 px-1.5 py-0.5 rounded">
-                                          [Debug Coloane: {Object.keys(rev).filter(k => !['id', 'created_at', 'rating', 'text', 'comment', 'employee_id', 'company_id'].includes(k)).join(', ') || 'standard'}]
-                                        </span>
-                                      )}
+                                      {rev.full_name || rev.client_name || rev.name || rev.reviewer_name || 'Client Anonim'}
                                     </p>
-                                    {(rev.client_phone || rev.phone || rev.phone_number || rev.telefon) && (
+                                    {(rev.phone || rev.client_phone || rev.phone_number || rev.telefon) && (
                                       <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
-                                        <Phone size={10} /> {rev.client_phone || rev.phone || rev.phone_number || rev.telefon}
+                                        <Phone size={10} /> {rev.phone || rev.client_phone || rev.phone_number || rev.telefon}
                                       </p>
                                     )}
                                   </div>
