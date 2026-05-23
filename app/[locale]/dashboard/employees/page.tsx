@@ -291,6 +291,7 @@ export default function EmployeesPage() {
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
+            // Casetele (cardurile) au acum un padding mai mare (p-8 md:p-10) și o înălțime minimă crescută (min-h-[370px])
             employees.map(emp => {
               const dynamicSlug = emp.location_id || companyId || 'general';
               const qrUrl = typeof window !== 'undefined' 
@@ -300,7 +301,7 @@ export default function EmployeesPage() {
               const isExpanded = expandedEmployee === emp.id;
 
               return (
-                <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+                <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 md:p-10 relative overflow-hidden flex flex-col justify-between min-h-[370px]">
                   
                   {/* Canvas Ascuns pentru download */}
                   <div className="hidden">
@@ -349,7 +350,7 @@ export default function EmployeesPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-6 bg-slate-50/60 p-5 rounded-2xl mb-4 border border-slate-100">
+                    <div className="flex items-center justify-between gap-6 bg-slate-50/60 p-5 rounded-2xl mb-5 border border-slate-100">
                       <div className="flex flex-col gap-2 min-w-0">
                         <div className="flex items-center gap-2 text-xs font-bold text-slate-600 uppercase tracking-tight">
                           <MapPin size={16} className="text-blue-500 shrink-0" />
@@ -391,12 +392,13 @@ export default function EmployeesPage() {
                               <div key={rev.id} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="min-w-0">
+                                    {/* Adăugate multiple fallback-uri pentru a prinde orice denumire de coloană de nume din DB */}
                                     <p className="font-black text-slate-800 text-xs truncate uppercase tracking-tight">
-                                      {rev.client_name || rev.name || 'Client Anonim'}
+                                      {rev.client_name || rev.name || rev.reviewer_name || rev.author_name || rev.customer_name || 'Client Anonim'}
                                     </p>
-                                    {(rev.client_phone || rev.phone) && (
+                                    {(rev.client_phone || rev.phone || rev.phone_number) && (
                                       <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
-                                        <Phone size={10} /> {rev.client_phone || rev.phone}
+                                        <Phone size={10} /> {rev.client_phone || rev.phone || rev.phone_number}
                                       </p>
                                     )}
                                   </div>
