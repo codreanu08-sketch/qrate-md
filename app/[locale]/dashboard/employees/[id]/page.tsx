@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 import { 
   Star, ArrowLeft, User, 
-  MessageSquare, TrendingUp, Award, Clock, Loader2, Download, Send, X
+  MessageSquare, TrendingUp, Award, Clock, Loader2, Download, Send, X, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import jsPDF from 'jspdf';
@@ -17,11 +17,11 @@ export default function EmployeeStatsPage() {
   const id = params?.id;
   const t = useTranslations('EmployeeStats');
   
-  // Ref-ul este plasat doar pe zona care trebuie printată (fără butoanele de navigare)
   const reportRef = useRef<HTMLDivElement>(null);
 
   const [employee, setEmployee] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [period, setPeriod] = useState('7d');
   const [specificDate, setSpecificDate] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,6 +29,26 @@ export default function EmployeeStatsPage() {
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+
+  // Funcție pentru generarea URL-urilor securizate pentru imagini/video
+  const generateSignedUrls = async (reviewsList: any[]) => {
+    const urls: Record<string, string> = {};
+    for (const rev of reviewsList) {
+      if (rev.image_url) {
+        const { data } = await supabase.storage
+          .from('reviews')
+          .createSignedUrl(rev.image_url, 3600);
+        if (data) urls[rev.image_url] = data.signedUrl;
+      }
+      if (rev.video_url) {
+        const { data } = await supabase.storage
+          .from('reviews')
+          .createSignedUrl(rev.video_url, 3600);
+        if (data) urls[rev.video_url] = data.signedUrl;
+      }
+    }
+    setSignedUrls(urls);
+  };
 
   const fetchEmployeeData = useCallback(async () => {
     if (!id) return;
@@ -47,7 +67,7 @@ export default function EmployeeStatsPage() {
           .from('locations')
           .select('name')
           .eq('id', emp.location_id)
-          .maybeSingle(); // Modificat în maybeSingle pentru siguranță
+          .maybeSingle();
         emp.locations = locData;
       }
       setEmployee(emp);
@@ -70,7 +90,10 @@ export default function EmployeeStatsPage() {
 
       const { data: revs, error: revsError } = await query;
       if (revsError) throw revsError;
-      setReviews(revs || []);
+      
+      const reviewsData = revs || [];
+      setReviews(reviewsData);
+      await generateSignedUrls(reviewsData);
 
     } catch (err: any) {
       console.error("Eroare încărcare date:", err.message);
@@ -131,6 +154,28 @@ export default function EmployeeStatsPage() {
     }
   }
 
+  // Generator Link WhatsApp inteligent bazat pe nota clientului
+  const generateWhatsAppUrl = (phone: string, rating: number, clientName: string | null) => {
+    const cleanPhone = phone.replace(/\D/g, '');
+    let formattedPhone = cleanPhone;
+
+    if (cleanPhone.startsWith('0')) {
+      if (cleanPhone.length === 10) {
+        formattedPhone = '40' + cleanPhone.substring(1); // România
+      } else if (cleanPhone.length === 9) {
+        formattedPhone = '373' + cleanPhone.substring(1); // Moldova
+      }
+    }
+
+    const nameToUse = clientName || 'Stimate client';
+    
+    const textMessage = rating <= 3
+      ? `Bună ziua, ${nameToUse}! Vă contactăm din partea echipei ${employee?.locations?.name || 'QRate'}. Am primit feedback-ul dumneavoastră de ${rating} ⭐ oferit colegului nostru ${employee?.name || ''} și ne pare rău pentru experiența neplăcută. Ne-ar ajuta să aflăm cum putem repara lucrurile.`
+      : `Bună ziua, ${nameToUse}! Vă mulțumim din suflet pentru recenzia de ${rating} ⭐ oferită colegului nostru ${employee?.name || ''} pe platforma QRate. Ne bucurăm că ați avut o experiență excelentă la ${employee?.locations?.name || 'noi'}!`;
+
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(textMessage)}`;
+  };
+
   const avg = reviews.length > 0 
     ? (reviews.reduce((acc, c) => acc + c.rating, 0) / reviews.length).toFixed(1) 
     : "0.0";
@@ -149,7 +194,6 @@ export default function EmployeeStatsPage() {
           </Link>
           
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            {/* Selectorul de perioadă vizibil pe ecrane medii/mari */}
             <div className="hidden md:flex bg-white p-2 rounded-[2rem] shadow-sm border border-slate-100">
                {['7d', '1m', 'custom'].map(p => (
                 <button 
@@ -162,7 +206,6 @@ export default function EmployeeStatsPage() {
               ))}
             </div>
 
-            {/* Alternativă selector perioadă pentru ecrane mici (Mobile UX Improvement) */}
             <div className="flex md:hidden bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 w-full justify-around">
               {['7d', '1m', 'custom'].map(p => (
                 <button 
@@ -192,7 +235,7 @@ export default function EmployeeStatsPage() {
             <p className="font-black text-[10px] text-slate-400 uppercase tracking-widest text-center">{t('loading')}</p>
           </div>
         ) : (
-          /* DOAR ACEST CONTAINER VA FI EXPORTAT ÎN PDF */
+          /* CONTAINER PDF EXPORT */
           <div ref={reportRef} className="space-y-10 p-2 md:p-6 rounded-[3rem]">
             
             {/* CARD PROFILE ANGAJAT */}
@@ -277,21 +320,74 @@ export default function EmployeeStatsPage() {
                 ) : (
                   reviews.map((rev) => (
                     <div key={rev.id} className="bg-white p-10 rounded-[3.5rem] border border-slate-50 shadow-sm hover:shadow-xl transition-all duration-500">
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
-                        <div className="flex items-center gap-1.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={20} className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-slate-100"} />
-                          ))}
+                      
+                      {/* TOP ROW: Nume real client + Avatar premium + Dată */}
+                      <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-200 text-slate-700 rounded-2xl flex items-center justify-center font-black uppercase text-base border border-slate-200 shadow-sm">
+                            {(rev.full_name || 'A')[0]}
+                          </div>
+                          <div>
+                            <h3 className="font-black text-slate-900 text-lg leading-tight">
+                              {rev.full_name || 'Client Anonim'}
+                            </h3>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={16} className={i < rev.rating ? "fill-yellow-400 text-yellow-400" : "text-slate-100"} />
+                              ))}
+                            </div>
+                          </div>
                         </div>
                         <div className="bg-slate-50 px-5 py-2 rounded-full text-[10px] font-black text-slate-400 uppercase tracking-widest">
                           {new Date(rev.created_at).toLocaleDateString('ro-RO', { day: '2-digit', month: 'long' })}
                         </div>
                       </div>
-                      <p className="text-slate-600 text-xl font-medium leading-[1.8] italic mb-6">
+
+                      {/* TEXT COMENTARIU */}
+                      <p className="text-slate-600 text-xl font-medium leading-[1.8] italic mb-6 pl-1">
                         "{rev.comment || t('default_comment')}"
                       </p>
 
-                      <div className="pt-8 border-t border-slate-50">
+                      {/* IMAGINE / VIDEO ÎNCĂRCATĂ DE CLIENT */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+                        {rev.image_url && signedUrls[rev.image_url] && (
+                          <img
+                            src={signedUrls[rev.image_url]}
+                            alt="Review media"
+                            className="rounded-2xl w-full h-64 object-cover border border-slate-100 shadow-sm"
+                          />
+                        )}
+                        {rev.video_url && signedUrls[rev.video_url] && (
+                          <video
+                            src={signedUrls[rev.video_url]}
+                            controls
+                            className="rounded-2xl w-full h-64 object-cover border bg-black shadow-sm"
+                          />
+                        )}
+                      </div>
+
+                      {/* SECȚIUNE ACTIUNI: WHATSAPP + RĂSPUNS INTERN */}
+                      <div className="pt-6 border-t border-slate-50 space-y-4">
+                        
+                        {/* Buton WhatsApp (Apare doar dacă există număr de telefon) */}
+                        {rev.phone && (
+                          <div className="flex flex-wrap items-center gap-3 mb-4">
+                            <div className="flex items-center gap-2 text-sm font-bold text-slate-600 bg-slate-100 px-4 py-2 rounded-xl border border-slate-200/60">
+                              📱 {rev.phone}
+                            </div>
+                            <a
+                              href={generateWhatsAppUrl(rev.phone, rev.rating, rev.full_name)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 px-5 py-2 rounded-xl transition-all shadow-sm active:scale-95"
+                            >
+                              <MessageCircle size={16} className="fill-current" />
+                              Răspunde pe WhatsApp
+                            </a>
+                          </div>
+                        )}
+
+                        {/* Răspunsul din platformă */}
                         {rev.reply_text ? (
                           <div className="bg-blue-50/50 p-6 rounded-[2rem] border-l-4 border-blue-500">
                             <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2">{t('your_reply')}</p>
@@ -327,6 +423,7 @@ export default function EmployeeStatsPage() {
                           </>
                         )}
                       </div>
+
                     </div>
                   ))
                 )}
