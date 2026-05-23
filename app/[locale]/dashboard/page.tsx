@@ -97,11 +97,11 @@ export default function AdminDashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // Filtrare Locală Instant (0ms)
+  // Filtrare Locală Instant (0ms) + FIX pentru employee_id null
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
-      const matchEmp = selEmployee === 'all' || r.employee_id === selEmployee;
+      const matchEmp = selEmployee === 'all' || (r.employee_id && r.employee_id === selEmployee);
       return matchLoc && matchEmp;
     });
   }, [allReviews, selLocation, selEmployee]);
@@ -385,7 +385,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* PANOU REVENUE ROI SIMULATOR (RECALIBRAT ÎN 2 COLOANE FĂRĂ MAPS LIFT) */}
+        {/* PANOU REVENUE ROI SIMULATOR */}
         <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-[3rem] p-6 md:p-10 shadow-xl mb-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-center border border-indigo-800/40">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
