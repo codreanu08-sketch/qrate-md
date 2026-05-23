@@ -291,7 +291,6 @@ export default function EmployeesPage() {
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
-            // Casetele (cardurile) au acum un padding mai mare (p-8 md:p-10) și o înălțime minimă crescută (min-h-[370px])
             employees.map(emp => {
               const dynamicSlug = emp.location_id || companyId || 'general';
               const qrUrl = typeof window !== 'undefined' 
@@ -392,13 +391,17 @@ export default function EmployeesPage() {
                               <div key={rev.id} className="bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                                 <div className="flex items-start justify-between gap-2 mb-1.5">
                                   <div className="min-w-0">
-                                    {/* Adăugate multiple fallback-uri pentru a prinde orice denumire de coloană de nume din DB */}
+                                    {/* Randul de mai jos caută toate variantele posibile de nume. Dacă nu găsește nimic, arată automat coloanele disponibile din DB ca să știi exact cum se numește */}
                                     <p className="font-black text-slate-800 text-xs truncate uppercase tracking-tight">
-                                      {rev.client_name || rev.name || rev.reviewer_name || rev.author_name || rev.customer_name || 'Client Anonim'}
+                                      {rev.client_name || rev.name || rev.nume || rev.nume_client || rev.reviewer_name || rev.author_name || rev.customer_name || (
+                                        <span className="text-amber-600 font-bold text-[10px] normal-case bg-amber-50 px-1.5 py-0.5 rounded">
+                                          [Debug Coloane: {Object.keys(rev).filter(k => !['id', 'created_at', 'rating', 'text', 'comment', 'employee_id', 'company_id'].includes(k)).join(', ') || 'standard'}]
+                                        </span>
+                                      )}
                                     </p>
-                                    {(rev.client_phone || rev.phone || rev.phone_number) && (
+                                    {(rev.client_phone || rev.phone || rev.phone_number || rev.telefon) && (
                                       <p className="text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-0.5">
-                                        <Phone size={10} /> {rev.client_phone || rev.phone || rev.phone_number}
+                                        <Phone size={10} /> {rev.client_phone || rev.phone || rev.phone_number || rev.telefon}
                                       </p>
                                     )}
                                   </div>
@@ -407,9 +410,9 @@ export default function EmployeesPage() {
                                     <span className="text-[11px] font-black">{rev.rating}</span>
                                   </div>
                                 </div>
-                                {rev.text || rev.comment ? (
+                                {rev.text || rev.comment || rev.text_recenzie ? (
                                   <p className="text-xs text-slate-600 font-medium leading-relaxed bg-white/60 p-2.5 rounded-lg border border-slate-50 italic">
-                                    "{rev.text || rev.comment}"
+                                    "{rev.text || rev.comment || rev.text_recenzie}"
                                   </p>
                                 ) : (
                                   <p className="text-[11px] text-slate-400 italic pl-1">Fără comentariu text</p>
