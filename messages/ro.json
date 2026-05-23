@@ -269,9 +269,20 @@
       "badge": "Securizat prin Supabase",
       "title_part1": "Sistem Inteligent de Recenzii",
       "title_part2": "pentru Afacerea Ta",
-      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților,locațiilor sau a serviciului de livrare în timp real.",
+      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților, locațiilor sau a serviciului de livrare în timp real.",
       "btn_start": "Începe acum",
       "btn_go_dashboard": "Mergi la panou"
+    },
+    "hero_banner": {
+      "heading": "Tot ce ai nevoie ca antreprenor. Într-un singur panou.",
+      "feature1_title": "Monitorizare Live 24/7",
+      "feature1_desc": "Primești recenzii în timp real. Notificări instant + badge live când apare o recenzie nouă.",
+      "feature2_title": "QRate AI Intel-Report",
+      "feature2_desc": "Analiză automată a sentimentului, detectare recenzii negative, cuvinte cheie + recomandări de acțiune.",
+      "feature3_title": "Leaderboard Angajați & Locații",
+      "feature3_desc": "Clasament automat după scor mediu. Vezi cine performează și unde trebuie intervenție.",
+      "feature4_title": "Copilot Răspuns Inteligent",
+      "feature4_desc": "Generează instant răspunsuri personalizate (pozitive sau negative) + butoane directe pentru WhatsApp și copiere."
     },
     "services_section": {
       "badge": "Expertiza Noastră",
@@ -417,7 +428,7 @@
       "title_all": "Toate recenziile",
       "title_filtered": "Recenzii pentru {name}",
       "view_all": "Vezi toate",
-      "empty": "Nu s-au găsit recenzii pentru selecția curentă.",
+      "empty": "Nu s-au găut recenzii pentru selecția curentă.",
       "no_comment": "Fără comentariu"
     },
     "delete_modal": {
