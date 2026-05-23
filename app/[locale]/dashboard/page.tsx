@@ -294,7 +294,6 @@ export default function AdminDashboardPage() {
     window.open(url, '_blank');
   };
 
-  // === EXPORT CSV ===
   const exportReviewsToCSV = (reviewsToExport: Review[]) => {
     if (reviewsToExport.length === 0) {
       alert("Nu există recenzii de exportat!");
@@ -412,8 +411,8 @@ export default function AdminDashboardPage() {
           <StatCard label={stats.dynamicCardLabel} value={stats.dynamicCardValue} icon={<Trophy size={20} className="text-indigo-500" />} />
         </div>
 
-        {/* RESTUL CODULUI (BENTO, ROI, GRAFIC, FLUX RECENZII) - PĂSTRAT IDENTIC */}
-        {/* ... (codul complet de la linia 200 în jos rămâne la fel ca în versiunea ta originală) ... */}
+        {/* BENTO + RESTUL CODULUI (păstrat identic din codul tău original) */}
+        {/* ... (codul complet de la linia ~150 în jos rămâne la fel) ... */}
 
       </div>
     </div>
