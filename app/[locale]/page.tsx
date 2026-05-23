@@ -113,11 +113,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
       
-      {/* HEADER SEMANTIC PENTRU SEO */}
+      {/* HEADER */}
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-center p-2 md:p-4">
         <nav className="max-w-7xl w-full bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[1.5rem] md:rounded-[2rem] px-4 md:px-8 h-16 md:h-20 flex items-center justify-between transition-all" aria-label="Navigare Principală">
           
-          {/* 1. LOGO (Compact pe mobil) */}
           <div className="flex items-center gap-1.5 md:gap-2 group cursor-pointer shrink-0">
             <div className="bg-blue-600 p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg shadow-blue-200 group-hover:rotate-12 transition-transform duration-300">
               <Zap className="text-white fill-white w-4 h-4 md:w-5 md:h-5" />
@@ -127,7 +126,6 @@ export default function LandingPage() {
             </span>
           </div>
 
-          {/* 2. LINK-URI DESKTOP (Ascunse pe mobil) */}
           <div className="hidden lg:flex items-center gap-10">
             <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
               <a href="#servicii" className="hover:text-blue-600 hover:tracking-[0.3em] transition-all duration-300">{t('nav.services')}</a>
@@ -136,10 +134,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* 3. ZONA DE ACȚIUNE: LIMBĂ + BUTOANE (Adaptate fluid) */}
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            
-            {/* SELECTOR LIMBĂ */}
             <div className="flex items-center bg-slate-100/80 p-1 rounded-lg md:rounded-2xl border border-slate-200 shadow-inner">
               <button type="button" onClick={() => switchLanguage('ro')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ro' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
               <button type="button" onClick={() => switchLanguage('ru')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ru' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
@@ -157,12 +152,10 @@ export default function LandingPage() {
               </div>
             ) : (
               <>
-                {/* LOGARE */}
                 <Link href="/auth/login" className="text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-widest text-slate-500 hover:text-blue-600 px-1 md:px-2 transition-colors whitespace-nowrap">
                   {t('nav.login')}
                 </Link>
                 
-                {/* ÎNREGISTRARE */}
                 <Link href="/auth/register" className="relative group overflow-hidden bg-slate-950 text-white px-3 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-wider md:tracking-[0.2em] transition-all hover:shadow-xl active:scale-95 whitespace-nowrap">
                   <span className="relative z-10">{t('nav.signup')}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -175,22 +168,20 @@ export default function LandingPage() {
 
       <main className="pt-20">
         
-        {/* --- HERO SECTION CU BANNER NOU (FĂRĂ ROI) --- */}
+        {/* --- HERO SECTION CU BANNER TRADUS --- */}
         <section className="pt-36 pb-24 px-6 text-center">
           <div className="max-w-6xl mx-auto space-y-10">
             
-            {/* Badge */}
             <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em] animate-bounce">
               <Zap size={14} /> {t('hero.badge')}
             </div>
 
-            {/* Titlu principal - MAI MIC */}
             <h1 className="text-4xl md:text-6xl font-[900] tracking-tighter text-slate-950 uppercase leading-[0.9] mb-4">
               {t('hero.title_part1')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-indigo-800 italic">{t('hero.title_part2')}</span>
             </h1>
 
-            {/* === BANNER NOU - 4 FUNCTII === */}
+            {/* === BANNER NOU - TRADUS ÎN RUSĂ === */}
             <div className="max-w-5xl mx-auto">
               <div className="bg-white border border-slate-200 shadow-2xl rounded-[3.5rem] p-8 md:p-14 text-left">
                 
@@ -199,7 +190,7 @@ export default function LandingPage() {
                     <Sparkles size={14} /> POWERED BY QRATE AI
                   </div>
                   <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 mt-4">
-                    Tot ce ai nevoie ca antreprenor.<br />Într-un singur panou.
+                    {t('hero_banner.heading')}
                   </h2>
                 </div>
 
@@ -211,10 +202,8 @@ export default function LandingPage() {
                       <Activity size={28} />
                     </div>
                     <div>
-                      <h4 className="font-black text-xl tracking-tight">Monitorizare Live 24/7</h4>
-                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">
-                        Primești recenzii în timp real. Notificări instant + badge live când apare o recenzie nouă.
-                      </p>
+                      <h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature1_title')}</h4>
+                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature1_desc')}</p>
                     </div>
                   </div>
 
@@ -224,10 +213,8 @@ export default function LandingPage() {
                       <Star size={28} />
                     </div>
                     <div>
-                      <h4 className="font-black text-xl tracking-tight">QRate AI Intel-Report</h4>
-                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">
-                        Analiză automată a sentimentului, detectare recenzii negative, cuvinte cheie + recomandări de acțiune.
-                      </p>
+                      <h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature2_title')}</h4>
+                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature2_desc')}</p>
                     </div>
                   </div>
 
@@ -237,10 +224,8 @@ export default function LandingPage() {
                       <Trophy size={28} />
                     </div>
                     <div>
-                      <h4 className="font-black text-xl tracking-tight">Leaderboard Angajați & Locații</h4>
-                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">
-                        Clasament automat după scor mediu. Vezi cine performează și unde trebuie intervenție.
-                      </p>
+                      <h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature3_title')}</h4>
+                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature3_desc')}</p>
                     </div>
                   </div>
 
@@ -250,10 +235,8 @@ export default function LandingPage() {
                       <Sparkles size={28} />
                     </div>
                     <div>
-                      <h4 className="font-black text-xl tracking-tight">Copilot Răspuns Inteligent</h4>
-                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">
-                        Generează instant răspunsuri personalizate (pozitive sau negative) + butoane directe pentru WhatsApp și copiere.
-                      </p>
+                      <h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature4_title')}</h4>
+                      <p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature4_desc')}</p>
                     </div>
                   </div>
 
@@ -261,12 +244,10 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Descriere scurtă */}
             <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed italic mt-6">
               {t('hero.description')}
             </p>
 
-            {/* CTA */}
             <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link 
                 href={isLoggedIn ? "/dashboard" : "/auth/register"} 
@@ -314,7 +295,6 @@ export default function LandingPage() {
               
               <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center relative z-10 text-left">
                 
-                {/* TEXTUL */}
                 <div className="space-y-6 md:space-y-10">
                   <h2 className="text-3xl sm:text-4xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] sm:leading-[0.85] break-words">
                     {t('demo.title_1')} <br /><span className="text-blue-500 italic">{t('demo.title_2')}</span>
@@ -336,7 +316,6 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                {/* TELEFONUL */}
                 <div className="relative flex justify-center w-full layout-container">
                   <div className="relative w-[270px] h-[550px] min-[400px]:w-[310px] min-[400px]:h-[620px] sm:w-[340px] sm:h-[680px] bg-slate-900 rounded-[2.5rem] sm:rounded-[4rem] border-[8px] sm:border-[12px] border-slate-800 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden transition-all duration-300">
                     <div className="bg-white h-full w-full p-5 sm:p-8 flex flex-col items-center text-center justify-between relative">
