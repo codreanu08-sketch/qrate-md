@@ -11,7 +11,7 @@ const supabase = createClient(
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
-  searchParams: Promise<{ employeeId?: string }>; // <--- Pasul 1: Captăm parametrii opționali din URL (?employeeId=...)
+  searchParams: Promise<{ employee?: string }>; // <-- Fixat: Schimbat în 'employee' pentru a se potrivi exact cu QR-ul (?employee=...)
 }
 
 // 1. GENERATOR DINAMIC DE METADATE SEO (Executat pe Server)
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: PageProps) {
 export default async function PublicFeedbackPage({ params, searchParams }: PageProps) {
   // Pasul 2: Așteptăm (await) rezolvarea ambelor promisiuni din Next.js
   const { slug, locale } = await params;
-  const { employeeId } = await searchParams;
+  const { employee: employeeId } = await searchParams; // <-- Fixat: Citim cheia 'employee' din URL și o redenumim ca 'employeeId'
 
   // Validare limbă acceptată
   if (locale !== 'ro' && locale !== 'ru') {
@@ -76,7 +76,7 @@ export default async function PublicFeedbackPage({ params, searchParams }: PageP
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       
-      {/* Pasul 3: Pasăm employeeId primit din URL direct în componenta client */}
+      {/* Pasul 3: Pasăm employeeId primit corect din URL în componenta client */}
       <FeedbackForm 
         slug={slug} 
         locale={locale as 'ro' | 'ru'} 
