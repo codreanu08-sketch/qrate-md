@@ -3,7 +3,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
-export default function PublicProfilePage({ params }: { params: { companyId: string } }) {
+export default function PublicProfilePage({ 
+  params 
+}: { 
+  params: { locale: string; companyId: string } 
+}) {
   const [company, setCompany] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,33 +21,32 @@ export default function PublicProfilePage({ params }: { params: { companyId: str
 
   useEffect(() => {
     async function loadData() {
-      try {
-        // Căutăm compania
-        const { data: companyData, error: companyError } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', params.companyId)
-          .maybeSingle();
-
-        if (companyError || !companyData) {
-          setError("Compania nu a fost găsită sau link-ul este invalid.");
-          setLoading(false);
-          return;
-        }
-
-        // Căutăm angajații
-        const { data: employeesData } = await supabase
-          .from('employees')
-          .select('*')
-          .eq('company_id', params.companyId);
-
-        setCompany(companyData);
-        setEmployees(employeesData || []);
-      } catch (err) {
-        setError("Eroare la încărcarea datelor.");
-      } finally {
+      if (!params.companyId) {
+        setError("ID companie invalid");
         setLoading(false);
+        return;
       }
+
+      const { data: companyData, error: companyError } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', params.companyId)
+        .maybeSingle();
+
+      if (companyError || !companyData) {
+        setError("Compania nu a fost găsită sau link-ul este invalid.");
+        setLoading(false);
+        return;
+      }
+
+      const { data: employeesData } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('company_id', params.companyId);
+
+      setCompany(companyData);
+      setEmployees(employeesData || []);
+      setLoading(false);
     }
 
     loadData();
@@ -72,7 +75,7 @@ export default function PublicProfilePage({ params }: { params: { companyId: str
         setSelectedEmployee(null);
       }, 2500);
     } else {
-      alert("Eroare la trimiterea recenziei.");
+      alert("Eroare la trimiterea recenziei");
     }
     setSubmitting(false);
   };
@@ -86,8 +89,7 @@ export default function PublicProfilePage({ params }: { params: { companyId: str
       <div className="max-w-md mx-auto p-8 text-center">
         <div className="text-6xl mb-4">😕</div>
         <h2 className="text-2xl font-bold mb-2">Link invalid</h2>
-        <p className="text-slate-600">{error || "Compania nu a fost găsită."}</p>
-        <p className="text-sm text-slate-400 mt-4">Verifică link-ul sau contactează administratorul.</p>
+        <p className="text-slate-600">{error}</p>
       </div>
     );
   }
@@ -100,8 +102,6 @@ export default function PublicProfilePage({ params }: { params: { companyId: str
       </div>
 
       <div className="bg-white rounded-3xl border p-8 shadow-sm">
-        {/* Restul codului pentru formular rămâne la fel ca în mesajul anterior */}
-        
         <div className="mb-6">
           <label className="block text-sm font-bold mb-2">Selectează angajatul</label>
           <select
@@ -124,7 +124,11 @@ export default function PublicProfilePage({ params }: { params: { companyId: str
               <label className="block text-sm font-bold mb-3">Câte stele dai?</label>
               <div className="flex gap-2 text-5xl">
                 {[1,2,3,4,5].map((star) => (
-                  <button key={star} onClick={() => setRating(star)} className={star <= rating ? 'text-yellow-400' : 'text-slate-200'}>
+                  <button 
+                    key={star} 
+                    onClick={() => setRating(star)} 
+                    className={star <= rating ? 'text-yellow-400' : 'text-slate-200'}
+                  >
                     ★
                   </button>
                 ))}
@@ -149,7 +153,11 @@ export default function PublicProfilePage({ params }: { params: { companyId: str
               {submitting ? "Se trimite..." : "Trimite recenzia"}
             </button>
 
-            {success && <div className="mt-6 text-center text-emerald-600 font-bold">✅ Mulțumim! Recenzia a fost salvată.</div>}
+            {success && (
+              <div className="mt-6 text-center text-emerald-600 font-bold text-lg">
+                ✅ Mulțumim! Recenzia a fost salvată.
+              </div>
+            )}
           </>
         )}
       </div>
