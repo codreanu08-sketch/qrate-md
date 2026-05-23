@@ -33,7 +33,6 @@ export default function AdminDashboardPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
-  // Filtre UI
   const [selLocation, setSelLocation] = useState('all');
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
@@ -43,7 +42,6 @@ export default function AdminDashboardPage() {
     window.open(`https://qrate.md/p/${companyId}`, '_blank', 'noopener,noreferrer');
   }, [companyId]);
 
-  // Fetch Bază date
   const fetchBaseReviews = useCallback(async (cId: string) => {
     setLoading(true);
     try {
@@ -69,7 +67,6 @@ export default function AdminDashboardPage() {
     }
   }, [selPeriod]);
 
-  // Realtime
   useEffect(() => {
     if (!companyId) return;
 
@@ -97,7 +94,6 @@ export default function AdminDashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // Filtrare Locală Instant (0ms) + FIX pentru employee_id null
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
@@ -106,7 +102,6 @@ export default function AdminDashboardPage() {
     });
   }, [allReviews, selLocation, selEmployee]);
 
-  // --- ENGINE DE STATISTICI INTEGRAT ---
   const stats = useMemo(() => {
     let scopeName = "la nivel general";
     if (selEmployee !== 'all') {
@@ -214,7 +209,6 @@ export default function AdminDashboardPage() {
       aiInsight = `Analiza AI indică un nivel excelent de satisfacție ${scopeName}. Media de ${currentRatingAvg}★ denotă un serviciu premium. Principalul motor de conversie detectat este asociat cu termenul "#${topKeywords[0] || 'calitate'}".`;
     }
 
-    // TARGET GOALS DINAMIC SYSTEM
     const currentTotal = filteredReviews.length;
     let targetGoal = 10;
     if (currentTotal >= 10) targetGoal = 30;
@@ -224,7 +218,6 @@ export default function AdminDashboardPage() {
     if (currentTotal >= 500) targetGoal = 1000;
     const targetPercentage = Math.min(Math.round((currentTotal / targetGoal) * 100), 100);
 
-    // REVENUE ROI ESTIMATOR
     const goodReviewsCount = filteredReviews.filter(r => r.rating >= 4).length;
     const roiEstimated = goodReviewsCount * 15;
 
@@ -294,7 +287,6 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 font-sans pb-24 text-slate-900">
       <div className="max-w-7xl mx-auto">
         
-        {/* NAV BAR */}
         <nav className={`bg-white/80 backdrop-blur-md sticky top-2 z-50 rounded-[1.5rem] p-3 mb-8 border flex items-center justify-between shadow-sm transition-all duration-500 ${liveEvent ? 'border-emerald-500 ring-4 ring-emerald-100' : 'border-slate-100'}`}>
           <div className="flex items-center gap-2 px-2">
             <div className="bg-slate-900 p-2 rounded-xl text-white"><Zap size={16} /></div>
@@ -310,7 +302,6 @@ export default function AdminDashboardPage() {
           </button>
         </nav>
 
-        {/* HEADER CONTROLS */}
         <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 px-2">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-slate-900">Panou General</h1>
@@ -323,7 +314,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* STATS CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard label="Recenzii Segment" value={filteredReviews.length} icon={<MessageCircle size={20} className="text-blue-500" />} trend={stats.velocity !== 0 ? `${stats.velocity > 0 ? '+' : ''}${stats.velocity}%` : undefined} trendUp={stats.velocity >= 0} />
           <StatCard label="Scor pe Filtru" value={`${stats.avg} ★`} icon={<Star size={20} className="text-amber-500 fill-amber-400" />} />
@@ -331,7 +321,6 @@ export default function AdminDashboardPage() {
           <StatCard label={stats.dynamicCardLabel} value={stats.dynamicCardValue} icon={<Trophy size={20} className="text-indigo-500" />} />
         </div>
 
-        {/* BENTO ZONE 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className={`lg:col-span-2 rounded-[3rem] p-6 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-lg ${stats.urgent > 0 ? 'bg-red-600' : 'bg-slate-900'} text-white`}>
             <div>
@@ -385,7 +374,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* PANOU REVENUE ROI SIMULATOR */}
         <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white rounded-[3rem] p-6 md:p-10 shadow-xl mb-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-center border border-indigo-800/40">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
@@ -404,7 +392,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* GRAFIC CRONOLOGIC & PROGRES TIERS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           <div className="bg-white p-6 md:p-8 rounded-[3rem] border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between">
             <div>
@@ -455,7 +442,6 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* FLUX RECENZII */}
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-4 mb-6">
             <h3 className="text-xl font-black">Flux Comentarii Active</h3>
@@ -523,7 +509,6 @@ export default function AdminDashboardPage() {
   );
 }
 
-// Sub-componente interne
 function StatCard({ label, value, icon, isAlert, trend, trendUp }: any) {
   return (
     <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:border-indigo-100 transition-all group flex items-center justify-between">
