@@ -260,19 +260,24 @@ export default function AllReviewsDashboard() {
               </button>
             </header>
 
+            {/* FILTRU */}
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                
                 <FilterGroup label={t('labels.location')} icon={<MapPin size={15}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
                 <FilterGroup label={t('labels.employee')} icon={<User size={15}/>} value={selectedEmployee} onChange={setSelectedEmployee} options={employees} allLabel={t('options.all_emps')} />
                 
+                {/* PERIOADĂ - FIX TEXT SUPRAPUNERE */}
                 <div className="flex flex-col gap-2 w-full">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Период' : 'Perioada'}</span>
-                  <div className="grid grid-cols-4 gap-1.5 w-full bg-gray-50 p-1.5 rounded-xl border border-gray-200/60 h-12 items-center">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">
+                    {locale === 'ru' ? 'Период' : 'Perioada'}
+                  </span>
+                  <div className="grid grid-cols-4 gap-1 w-full bg-gray-50 p-1 rounded-xl border border-gray-200/60 h-11 items-center">
                     {['7d', '1m', '3m', 'all'].map((period) => (
                       <button 
                         key={period} 
                         onClick={() => { setTimeFilter(period as any); setCustomDate(''); }} 
-                        className={`h-full rounded-lg text-[10px] font-black uppercase tracking-tight transition-all flex items-center justify-center text-center px-1.5 whitespace-nowrap ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`h-full rounded-lg text-[9px] font-black uppercase tracking-tight transition-all flex items-center justify-center text-center px-1 whitespace-nowrap ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                         {t(`options.${period}`)}
                       </button>
@@ -280,9 +285,12 @@ export default function AllReviewsDashboard() {
                   </div>
                 </div>
 
+                {/* CALENDAR */}
                 <div className="flex flex-col gap-2 w-full">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Календарь' : 'Alege Data'}</span>
-                  <div className={`flex items-center gap-2.5 px-3.5 rounded-xl border transition-all h-12 w-full ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">
+                    {locale === 'ru' ? 'Календарь' : 'Alege Data'}
+                  </span>
+                  <div className={`flex items-center gap-2.5 px-3.5 rounded-xl border transition-all h-11 w-full ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
                      <CalendarIcon size={15} className={timeFilter === 'custom' ? 'text-blue-600' : 'text-gray-400'} />
                      <input 
                        type="date" 
@@ -295,12 +303,14 @@ export default function AllReviewsDashboard() {
               </div>
             </div>
 
+            {/* STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <StatCard label={tCommon('stats.avg_rating')} value={`${smartStats.avg}/5.0`} icon={<Star className="text-yellow-400 fill-yellow-400" size={18} />} />
               <StatCard label={tCommon('stats.hero_day')} value={smartStats.bestEmp} icon={<Trophy className="text-orange-500" size={18} />} />
               <StatCard label={tStats('volume')} value={smartStats.count.toString()} icon={<MessageSquare className="text-blue-600" size={18} />} />
             </div>
 
+            {/* LISTA RECENZII */}
             <div className="space-y-4">
                {loading ? (
                  <div className="py-20 flex flex-col items-center justify-center">
@@ -331,6 +341,7 @@ export default function AllReviewsDashboard() {
                )}
             </div>
 
+            {/* PAGINARE */}
             {reviews.length > ITEMS_PER_PAGE && (
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl z-40 flex items-center gap-1 border border-white/10">
                 <button 
@@ -356,6 +367,7 @@ export default function AllReviewsDashboard() {
         )}
       </div>
 
+      {/* MODAL FOTO */}
       {activePhoto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setActivePhoto(null)}>
           <div className="relative max-w-3xl w-full max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
