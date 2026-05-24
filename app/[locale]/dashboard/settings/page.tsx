@@ -28,6 +28,7 @@ export default function SettingsPage() {
   const [downloading, setDownloading] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
+  const [userIdKey, setUserIdKey] = useState<'owner_id' | 'user_id'>('owner_id'); // Identificăm dinamic cheia corectă
 
   const [isLegalEntity, setIsLegalEntity] = useState(false);
   const [billingData, setBillingData] = useState({
@@ -49,27 +50,37 @@ export default function SettingsPage() {
       if (session) {
         setUserEmail(session.user.email || '');
         
-        // Căutăm direct în tabela 'companies' pe baza utilizatorului logat
-        const { data, error } = await supabase
+        // Încercăm mai întâi cu 'owner_id' deoarece 'user_id' a dat eroare
+        let { data, error } = await supabase
           .from('companies')
           .select('*')
-          .eq('user_id', session.user.id) // Schimbă în 'owner_id' dacă așa se numește coloana la tine
+          .eq('owner_id', session.user.id)
           .maybeSingle();
         
-        if (data && !error) {
+        // Dacă dă eroare că owner_id nu există, încercăm cu user_id ca fallback secundar
+        if (error && error.message.includes('owner_id')) {
+          const fallback = await supabase
+            .from('companies')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+          if (fallback.data) {
+            data = fallback.data;
+            setUserIdKey('user_id');
+          }
+        }
+
+        if (data) {
           setTelegramId(data.telegram_chat_id || '');
           setIsLegalEntity(data.is_legal_entity || false);
-          
-          // Extragem datele din obiectul JSONB salvat în siguranță
-          const details = data.billing_details || {};
           setBillingData({
-            company_name: details.company_name || '',
-            idno: details.idno || '',
-            vat_code: details.vat_code || '',
-            company_address: details.company_address || '',
-            company_bank_account: details.company_bank_account || '',
-            company_bank_name: details.company_bank_name || '',
-            billing_email: data.billing_email || details.billing_email || ''
+            company_name: data.company_name || '',
+            idno: data.idno || '',
+            vat_code: data.vat_code || '',
+            company_address: data.company_address || '',
+            company_bank_account: data.company_bank_account || '',
+            company_bank_name: data.company_bank_name || '',
+            billing_email: data.billing_email || ''
           });
         }
       }
@@ -84,27 +95,24 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // Construim structura curată pentru baza de date
+      // Mapăm datele direct pe coloanele tale din bază, indiferent de tipul entității
       const updatePayload = { 
         telegram_chat_id: telegramId,
         is_legal_entity: isLegalEntity,
-        billing_email: billingData.billing_email,
-        billing_details: {
-          company_name: billingData.company_name,
-          idno: billingData.idno,
-          vat_code: billingData.vat_code,
-          company_address: billingData.company_address,
-          company_bank_account: billingData.company_bank_account,
-          company_bank_name: billingData.company_bank_name,
-          billing_email: billingData.billing_email
-        }
+        company_name: billingData.company_name,
+        idno: billingData.idno,
+        vat_code: billingData.vat_code,
+        company_address: billingData.company_address,
+        company_bank_account: billingData.company_bank_account,
+        company_bank_name: billingData.company_bank_name,
+        billing_email: billingData.billing_email
       };
 
-      // Salvăm direct în tabela 'companies'
+      // Salvăm folosind cheia corectă (owner_id sau user_id) determinată la încărcare
       const { error } = await supabase
         .from('companies')
         .update(updatePayload)
-        .eq('user_id', session.user.id);
+        .eq(userIdKey, session.user.id);
 
       if (error) throw error;
       
@@ -258,21 +266,22 @@ export default function SettingsPage() {
             <div className="grid md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
               {isLegalEntity && (
                 <>
-                  <BillingInput label={t?.billing?.labels?.company || "Denumire Companie"} value={billingData.company_name} onChange={(v) => setBillingData({...billingData, company_name: v})} placeholder={locale === 'ru' ? "Пример: QRate Solutions S.R.L." : "Ex: QRate Solutions S.R.L."} />
-                  <BillingInput label={t?.billing?.labels?.idno || "IDNO"} value={billingData.idno} onChange={(v) => setBillingData({...billingData, idno: v})} placeholder="10XXXXXXXXXXX" />
-                  <BillingInput label={t?.billing?.labels?.vat || "Cod TVA"} value={billingData.vat_code} onChange={(v) => setBillingData({...billingData, vat_code: v})} placeholder={locale === 'ru' ? "Пример: 06XXXXX" : "Ex: 06XXXXX"} />
-                  <BillingInput label={t?.billing?.labels?.iban || "Cont Bancar (IBAN)"} value={billingData.company_bank_account} onChange={(v) => setBillingData({...billingData, company_bank_account: v})} placeholder="MD24XXXXXXXXXXXXXXXXXXXX" />
-                  <BillingInput label={t?.billing?.labels?.bank_name || "Numele Băncii"} value={billingData.company_bank_name} onChange={(v) => setBillingData({...billingData, company_bank_name: v})} placeholder={locale === 'ru' ? "Пример: maib" : "Ex: maib"} />
+                  <BillingInput label="Denumirea companiei" value={billingData.company_name} onChange={(v) => setBillingData({...billingData, company_name: v})} placeholder="Ex: QRate Solutions S.R.L." />
+                  <BillingInput label="IDNO / Cod Fiscal" value={billingData.idno} onChange={(v) => setBillingData({...billingData, idno: v})} placeholder="10XXXXXXXXXXX" />
+                  <BillingInput label="Cod TVA" value={billingData.vat_code} onChange={(v) => setBillingData({...billingData, vat_code: v})} placeholder="Ex: 06XXXXX" />
+                  <BillingInput label="Cont bancar (IBAN)" value={billingData.company_bank_account} onChange={(v) => setBillingData({...billingData, company_bank_account: v})} placeholder="MD24XXXXXXXXXXXXXXXXXXXX" />
+                  <BillingInput label="Numele băncii" value={billingData.company_bank_name} onChange={(v) => setBillingData({...billingData, company_bank_name: v})} placeholder="Ex: maib" />
                 </>
               )}
               
+              {/* Input-ul de email rămâne completat și vizibil în ambele moduri */}
               <div className={isLegalEntity ? "" : "md:col-span-2"}>
-                <BillingInput label={t?.billing?.labels?.billing_email || "Email Trimitere Automată Facturi"} value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder="contabil@firma.md sau email personal" icon={<Mail size={16} />} />
+                <BillingInput label="Email pentru contabilitate / facturi" value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder="contabil@firma.md sau email personal" icon={<Mail size={16} />} />
               </div>
 
               {isLegalEntity && (
                 <div className="md:col-span-2">
-                  <BillingInput label={t?.billing?.labels?.address || "Adresă Juridică"} value={billingData.company_address} onChange={(v) => setBillingData({...billingData, company_address: v})} placeholder={locale === 'ru' ? "Пример: Кишинев, ул. Пример 12" : "Mun. Chișinău, str. Exemplu 12"} />
+                  <BillingInput label="Adresa juridică" value={billingData.company_address} onChange={(v) => setBillingData({...billingData, company_address: v})} placeholder="Mun. Chișinău, str. Exemplu 12" />
                 </div>
               )}
             </div>
@@ -283,7 +292,7 @@ export default function SettingsPage() {
                   <Sparkles size={32} />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-blue-900 uppercase tracking-widest">{t?.billing?.individual || "Abonament activ ca Persoană Fizică"}</p>
+                  <p className="text-sm font-black text-blue-900 uppercase tracking-widest">Abonament activ ca Persoană Fizică</p>
                   <p className="text-blue-600 font-bold mt-1 text-lg">{userEmail}</p>
                 </div>
               </div>
