@@ -428,7 +428,7 @@
       "title_all": "Toate recenziile",
       "title_filtered": "Recenzii pentru {name}",
       "view_all": "Vezi toate",
-      "empty": "Nu s-au găut recenzii pentru selecția curentă.",
+      "empty": "Nu s-au găsit recenzii pentru selecția curentă.",
       "no_comment": "Fără comentariu"
     },
     "delete_modal": {
