@@ -135,7 +135,7 @@
     "feedEmp": "Angajat",
     "feedLoc": "Locație",
     "feedNoComment": "Fără comentariu",
-    "btnAction": "Răspuns AI",
+    "btnAction": "AI Răspuns",
     "btnCopied": "Copiat!",
     "btnCopy": "Copiază",
     "btnCancel": "Anulează",
@@ -154,7 +154,8 @@
     "cardTodayFeedback": "Astăzi",
     "wordQuality": "calitate",
     "wordGood": "bine",
-    "wordTime": "timp"
+    "wordTime": "timp",
+    "reply_whatsapp": "Răspunde pe WhatsApp"
   },
   "Settings": {
     "title": "Setări cont",
@@ -473,12 +474,19 @@
     "description": "Selectează o locație pentru a vedea recenziile sau pentru a descărca codul QR.",
     "success_added": "Locația a fost adăugată cu succes!",
     "form": {
-      "placeholder_name": "Numele locației",
-      "placeholder_address": "Adresă",
-      "type_physical": "📍 Fizică",
-      "type_delivery": "🛵 Livrare / Delivery",
-      "change_logo": "Schimbă Logo-ul",
-      "submit_btn": "Adaugă locația"
+      "title": "Adaugă locație nouă",
+      "name_label": "NUMELE LOCAȚIEI *",
+      "type_label": "TIP LOCAȚIE",
+      "type_physical": "Fizică (Restaurant, Magazin)",
+      "type_delivery": "Livrare / Online",
+      "address_label": "ADRESĂ (opțional)",
+      "logo_label": "LOGO (opțional)",
+      "upload_logo": "Încarcă logo",
+      "welcome_label": "MESAJ DE BUN VENIT (opțional)",
+      "welcome_placeholder": "Ajută-ne să fim mai buni!",
+      "submit_btn": "Adaugă locație",
+      "placeholder_name": "Ex: Filiala Centru",
+      "placeholder_address": "Str. Ștefan cel Mare 45"
     },
     "card": {
       "status_active": "Activă",
@@ -530,7 +538,9 @@
       "subtitle": "Ești sigur că vrei să ștergi",
       "cancel": "Anulează",
       "confirm": "Șterge"
-    }
+    },
+    "toggle_reviews_show": "Vezi recenzii",
+    "toggle_reviews_hide": "Ascunde recenziile"
   },
   "EmployeeStats": {
     "nav_back": "Înapoi la echipă",

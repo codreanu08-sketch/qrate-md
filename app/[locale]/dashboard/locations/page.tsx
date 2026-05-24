@@ -44,7 +44,7 @@ export default function LocationsPage() {
   const [newAddress, setNewAddress] = useState('');
   const [type, setType] = useState('Physical');
   const [logoUrl, setLogoUrl] = useState(''); 
-  const [welcomeMessage, setWelcomeMessage] = useState('Ajută-ne să fim mai buni!'); 
+  const [welcomeMessage, setWelcomeMessage] = useState(''); 
   const [showDeleteModal, setShowDeleteModal] = useState<{id: string, name: string} | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -65,11 +65,11 @@ export default function LocationsPage() {
       setLastReviews(revsRes.data || []);
     } catch (err: any) {
       console.error("Eroare fetch date:", err);
-      setErrorMessage(`Nu s-au putut încărca locațiile: ${err.message}`);
+      setErrorMessage(locale === 'ru' ? `Не удалось загрузить локации: ${err.message}` : `Nu s-au putut încărca locațiile: ${err.message}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     async function getInitialData() {
@@ -97,15 +97,15 @@ export default function LocationsPage() {
         }
       } catch (err: any) {
         console.error("Eroare inițializare pagină:", err);
-        setErrorMessage(err.message || "Nu s-a putut încărca compania.");
+        setErrorMessage(err.message || (locale === 'ru' ? "Не удалось загрузить компанию." : "Nu s-a putut încărca compania."));
         setLoading(false);
       }
     }
     getInitialData();
-  }, [fetchData]);
+  }, [fetchData, locale]);
 
   const handleCreateCompany = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault(); // Corectat aici: adăugat e.
     if (!newCompanyName.trim()) return;
 
     try {
@@ -113,7 +113,7 @@ export default function LocationsPage() {
       setErrorMessage(null);
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) throw new Error("Utilizator neautentificat.");
+      if (!user) throw new Error(locale === 'ru' ? "Пользователь не авторизован." : "Utilizator neautentificat.");
 
       const generatedSlug = newCompanyName
         .trim()
@@ -140,13 +140,13 @@ export default function LocationsPage() {
 
       if (data) {
         setCompanyId(data.id);
-        setSuccessMessage("Compania a fost înregistrată cu succes!");
+        setSuccessMessage(locale === 'ru' ? "Компания успешно зарегистрирована!" : "Compania a fost înregistrată cu succes!");
         setTimeout(() => setSuccessMessage(null), 4000);
         await fetchData(data.id);
       }
     } catch (err: any) {
       console.error("Eroare la crearea companiei:", err);
-      setErrorMessage(err.message || "Nu s-a putut crea compania.");
+      setErrorMessage(err.message || (locale === 'ru' ? "Не удалось создать компанию." : "Nu s-a putut crea compania."));
     } finally {
       setCreatingCompany(false);
     }
@@ -155,7 +155,7 @@ export default function LocationsPage() {
   const downloadQR = (id: string, name: string, locLogo: string) => {
     const qrCanvas = document.getElementById(`qr-${id}`) as HTMLCanvasElement;
     if (!qrCanvas) {
-      alert("Eroare la generarea codului QR.");
+      alert(locale === 'ru' ? "Ошибка при генерации QR-кода." : "Eroare la generarea codului QR.");
       return;
     }
 
@@ -240,7 +240,7 @@ export default function LocationsPage() {
       
       await supabase.from('companies').update({ logo_url: publicUrl }).eq('id', companyId);
     } catch (error: any) { 
-      setErrorMessage("Eroare la upload logo: " + error.message); 
+      setErrorMessage(locale === 'ru' ? "Ошибка загрузки логотипа: " + error.message : "Eroare la upload logo: " + error.message); 
     } finally { 
       setUploading(false); 
     }
@@ -253,13 +253,13 @@ export default function LocationsPage() {
     setIsAdding(true);
 
     if (!newName.trim()) {
-      setErrorMessage("Numele locației este obligatoriu.");
+      setErrorMessage(locale === 'ru' ? "Название локации обязательно." : "Numele locației este obligatoriu.");
       setIsAdding(false);
       return;
     }
 
     if (!companyId) {
-      setErrorMessage("Eroare: Nu s-a putut identifica compania. Reîmprospătează pagina.");
+      setErrorMessage(locale === 'ru' ? "Ошибка: Не удалось определить компанию. Обновите страницу." : "Eroare: Nu s-a putut identifica compania. Reîmprospătează pagina.");
       setIsAdding(false);
       return;
     }
@@ -281,12 +281,12 @@ export default function LocationsPage() {
       setNewAddress('');
       setLogoUrl(''); 
       if (fileInputRef.current) fileInputRef.current.value = ''; 
-      setSuccessMessage("Locația a fost adăugată cu succes!");
+      setSuccessMessage(t('success_added'));
       setTimeout(() => setSuccessMessage(null), 4000);
       await fetchData(companyId);
     } else {
       console.error("Supabase Insert Error:", error);
-      setErrorMessage(`Eroare la salvare: ${error.message}`);
+      setErrorMessage(locale === 'ru' ? `Ошибка сохранения: ${error.message}` : `Eroare la salvare: ${error.message}`);
     }
     setIsAdding(false);
   };
@@ -299,7 +299,7 @@ export default function LocationsPage() {
       if (selectedLocationId === id) setSelectedLocationId(null);
       await fetchData(companyId);
     } else {
-      setErrorMessage("Nu s-a putut șterge locația: " + error.message);
+      setErrorMessage(locale === 'ru' ? "Не удалось удалить локацию: " + error.message : "Nu s-a putut șterge locația: " + error.message);
     }
   };
 
@@ -322,9 +322,11 @@ export default function LocationsPage() {
           <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-100">
             <Building2 size={30} />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2">Configurează Compania</h2>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">
+            {locale === 'ru' ? "Настройка Компании" : "Configurează Compania"}
+          </h2>
           <p className="text-slate-500 mb-6 text-sm leading-relaxed">
-            Pentru a accesa panoul de administrare, introdu numele companiei tale.
+            {locale === 'ru' ? "Для доступа к панели администратора введите название вашей компании." : "Pentru a accesa panoul de administrare, introdu numele companiei tale."}
           </p>
 
           {errorMessage && (
@@ -336,7 +338,7 @@ export default function LocationsPage() {
           <form onSubmit={handleCreateCompany} className="space-y-4">
             <input 
               type="text"
-              placeholder="Ex: Restaurantul Meu SRL"
+              placeholder={locale === 'ru' ? "Например: Мой Ресторан SRL" : "Ex: Restaurantul Meu SRL"}
               value={newCompanyName}
               onChange={(e) => setNewCompanyName(e.target.value)}
               className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent"
@@ -351,10 +353,10 @@ export default function LocationsPage() {
               {creatingCompany ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Se salvează...
+                  {locale === 'ru' ? "Сохранение..." : "Se salvează..."}
                 </>
               ) : (
-                "Creează Companie"
+                locale === 'ru' ? "Создать Компанию" : "Creează Companie"
               )}
             </button>
           </form>
@@ -389,15 +391,15 @@ export default function LocationsPage() {
 
         {/* FORMULAR ADĂUGARE LOCAȚIE */}
         <form onSubmit={handleAddLocation} className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-100 mb-12">
-          <h3 className="text-xl font-black text-slate-900 mb-6">Adaugă locație nouă</h3>
+          <h3 className="text-xl font-black text-slate-900 mb-6">{t('form.title')}</h3>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5">NUMELE LOCAȚIEI *</label>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">{t('form.name_label')}</label>
                 <input 
                   type="text"
-                  placeholder="Ex: Filiala Centru" 
+                  placeholder={t('form.placeholder_name')} 
                   value={newName} 
                   onChange={(e) => setNewName(e.target.value)} 
                   className="w-full bg-slate-50 rounded-2xl py-3.5 px-5 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent" 
@@ -406,22 +408,22 @@ export default function LocationsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5">TIP LOCAȚIE</label>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">{t('form.type_label')}</label>
                 <select 
                   value={type} 
                   onChange={(e) => setType(e.target.value)} 
                   className="w-full bg-slate-50 rounded-2xl py-3.5 px-5 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent"
                 >
-                  <option value="Physical">Fizică (Restaurant, Magazin)</option>
-                  <option value="Delivery">Livrare / Online</option>
+                  <option value="Physical">{t('form.type_physical')}</option>
+                  <option value="Delivery">{t('form.type_delivery')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5">ADRESĂ (opțional)</label>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">{t('form.address_label')}</label>
                 <input 
                   type="text"
-                  placeholder="Str. Ștefan cel Mare 45" 
+                  placeholder={t('form.placeholder_address')} 
                   value={newAddress} 
                   onChange={(e) => setNewAddress(e.target.value)} 
                   className="w-full bg-slate-50 rounded-2xl py-3.5 px-5 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent" 
@@ -431,7 +433,7 @@ export default function LocationsPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5">LOGO (opțional)</label>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">{t('form.logo_label')}</label>
                 <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-200">
                   <div className="w-14 h-14 rounded-xl bg-white overflow-hidden flex items-center justify-center border shadow-sm shrink-0">
                     {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" size={22} />}
@@ -443,15 +445,15 @@ export default function LocationsPage() {
                     className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-slate-800 disabled:opacity-50 transition-colors flex-1"
                     disabled={uploading}
                   >
-                    {uploading ? "Se încarcă..." : "Încarcă logo"}
+                    {uploading ? (locale === 'ru' ? "Загрузка..." : "Se încarcă...") : t('form.upload_logo')}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-500 mb-1.5">MESAJ DE BUN VENIT (opțional)</label>
+                <label className="block text-xs font-black text-slate-500 mb-1.5">{t('form.welcome_label')}</label>
                 <textarea 
-                  placeholder="Ajută-ne să fim mai buni!" 
+                  placeholder={t('form.welcome_placeholder')} 
                   value={welcomeMessage} 
                   onChange={(e) => setWelcomeMessage(e.target.value)} 
                   className="w-full bg-slate-50 rounded-2xl p-4 font-bold text-slate-800 outline-none resize-none focus:ring-2 focus:ring-blue-500 border border-transparent" 
@@ -469,18 +471,20 @@ export default function LocationsPage() {
             {isAdding ? (
               <>
                 <Loader2 size={18} className="animate-spin" />
-                Se adaugă...
+                {locale === 'ru' ? "Добавление..." : "Se adaugă..."}
               </>
             ) : (
-              "Adaugă locație"
+              t('form.submit_btn')
             )}
           </button>
         </form>
 
         {/* Grid Locații */}
         {locations.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-bold mb-12">
-            Nu ai nicio locație adăugată pentru această companie. Folosește formularul de mai sus.
+          <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-bold mb-12 px-4">
+            {locale === 'ru' 
+              ? "У вас нет добавленных локаций для этой компании. Используйте форму выше." 
+              : "Nu ai nicio locație adăugată pentru această companie. Folosește formularul de mai sus."}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
@@ -500,12 +504,12 @@ export default function LocationsPage() {
                       {loc.type === 'Delivery' ? (
                         <>
                           <Truck size={12} className="text-blue-500" />
-                          Livrare / Online
+                          {t('form.type_delivery')}
                         </>
                       ) : (
                         <>
                           <MapPin size={12} className="text-emerald-500" />
-                          Fizică
+                          {t('form.type_physical')}
                         </>
                       )}
                     </div>
@@ -571,10 +575,14 @@ export default function LocationsPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
             <div>
               <h3 className="text-2xl font-black text-slate-900">
-                {selectedLocationId ? `Recenzii: ${selectedLocationObj?.name}` : "Toate recenziile companiei"}
+                {selectedLocationId 
+                  ? t('reviews_section.title_filtered', { name: selectedLocationObj?.name })
+                  : (locale === 'ru' ? t('reviews_section.title_all') : "Toate recenziile companiei")}
               </h3>
               <p className="text-xs text-slate-400 font-bold uppercase mt-1">
-                {selectedLocationId ? "Filtru activat pe această locație" : "Apasă pe o locație de mai sus pentru a filtra"}
+                {selectedLocationId 
+                  ? (locale === 'ru' ? "Фильтр активен для этой локации" : "Filtru activat pe această locație") 
+                  : (locale === 'ru' ? "Нажмите на локацию выше, чтобы отфильтровать" : "Apasă pe o locație de mai sus pentru a filtra")}
               </p>
             </div>
             {selectedLocationId && (
@@ -582,7 +590,7 @@ export default function LocationsPage() {
                 onClick={() => setSelectedLocationId(null)}
                 className="flex items-center gap-1.5 text-xs font-black uppercase bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-2 rounded-xl transition-colors"
               >
-                <X size={14} /> Resetează filtru
+                <X size={14} /> {locale === 'ru' ? "Сбросить фильтр" : "Resetează filtru"}
               </button>
             )}
           </div>
@@ -590,8 +598,8 @@ export default function LocationsPage() {
           {filteredReviews.length === 0 ? (
             <div className="text-center py-12 text-slate-400 font-bold bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
               {selectedLocationId 
-                ? "Această locație nu are încă nicio recenzie înregistrată." 
-                : "Compania dumneavoastră nu a primit nicio recenzie deocamdată."}
+                ? t('reviews_section.empty')
+                : (locale === 'ru' ? "У вашей компании пока нет зарегистрированных отзывов." : "Compania dumneavoastră nu a primit nicio recenzie deocamdată.")}
             </div>
           ) : (
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
@@ -611,7 +619,7 @@ export default function LocationsPage() {
                         ))}
                       </div>
                       <span className="text-xs bg-white text-slate-600 border px-2 py-0.5 rounded-md font-black uppercase text-[10px]">
-                        {review.locations?.name || "Locație ștearsă"}
+                        {review.locations?.name || (locale === 'ru' ? "Удаленная локация" : "Locație ștearsă")}
                       </span>
 
                       {review.name && (
@@ -631,7 +639,7 @@ export default function LocationsPage() {
                     </div>
                     
                     <p className="text-base font-semibold text-slate-700 italic tracking-wide mt-1">
-                      {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal text-sm">Fără comentariu lăsat</span>}
+                      {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal text-sm">{t('reviews_section.no_comment')}</span>}
                     </p>
                   </div>
                   
@@ -646,16 +654,22 @@ export default function LocationsPage() {
 
       </div>
 
-      {/* MODAL DETALII ȘTERGERE */}
+      {/* MODAL ȘTERGERE */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-2xl max-w-sm w-full border border-slate-100 text-center">
             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100">
               <AlertTriangle size={24} />
             </div>
-            <h4 className="text-xl font-black text-slate-900 mb-2">Ștergi locația?</h4>
+            <h4 className="text-xl font-black text-slate-900 mb-2">
+              {t('delete_modal.title', { name: showDeleteModal.name })}
+            </h4>
             <p className="text-slate-500 text-xs font-medium mb-6 leading-relaxed">
-              Sigur vrei să ștergi <strong className="text-slate-800 font-bold">„{showDeleteModal.name}”</strong>? Toate codurile QR și datele asociate vor deveni inaccesibile.
+              {locale === 'ru' ? (
+                t('delete_modal.subtitle')
+              ) : (
+                <>Sigur vrei să ștergi această locație? Toate codurile QR și datele asociate vor deveni inaccesibile.</>
+              )}
             </p>
             <div className="flex gap-3">
               <button 
@@ -663,14 +677,14 @@ export default function LocationsPage() {
                 onClick={() => setShowDeleteModal(null)}
                 className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors"
               >
-                Anulează
+                {t('delete_modal.cancel')}
               </button>
               <button 
                 type="button"
                 onClick={() => deleteLocation(showDeleteModal.id)}
                 className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors shadow-lg shadow-rose-100"
               >
-                Șterge
+                {t('delete_modal.confirm')}
               </button>
             </div>
           </div>
