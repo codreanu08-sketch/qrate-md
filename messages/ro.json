@@ -580,9 +580,9 @@
       "all": "Toată perioada",
       "all_locs": "Toate locațiile",
       "all_emps": "Toți angajații",
-      "7d": "Ultimele 7 zile",
-      "1m": "Ultima lună",
-      "3m": "Ultimele 3 luni",
+      "7d": "7 zile",
+      "1m": "1 lună",
+      "3m": "3 luni",
       "custom": "Dată specifică"
     }
   }
