@@ -37,7 +37,6 @@ export default function AdminDashboardPage() {
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
 
-  // === FUNCȚII DE BAZĂ ===
   const calculateChurnRisk = () => {
     const negative = allReviews.filter(r => r.rating <= 2).length;
     return allReviews.length > 0 ? ((negative / allReviews.length) * 100).toFixed(0) : 0;
@@ -50,13 +49,12 @@ export default function AdminDashboardPage() {
     const { data } = await supabase.from('reviews').select('id').eq('company_id', companyId);
     if (data && data.length !== allReviews.length) {
       await fetchBaseReviews(companyId);
-      alert(t('syncSuccess') || "Date sincronizate!");
+      alert(t('syncSuccess'));
     } else {
-      alert(t('syncUpToDate') || "Sistemul este la zi!");
+      alert(t('syncUpToDate'));
     }
   };
 
-  // === RĂSPUNS SMART ===
   const generateSmartReply = (rev: Review) => {
     const clientName = rev.full_name || t('anonClient');
     const empName = rev.employees?.name;
@@ -80,7 +78,7 @@ export default function AdminDashboardPage() {
 
   const exportReviewsToCSV = (reviewsToExport: Review[]) => {
     if (reviewsToExport.length === 0) {
-      alert(t('noReviewsExport') || "Nu există recenzii!");
+      alert(t('noReviewsExport'));
       return;
     }
     const headers = [t('csvDate'), t('csvEmp'), t('csvLoc'), t('csvRating'), t('csvComment'), t('csvClient')];
@@ -105,7 +103,6 @@ export default function AdminDashboardPage() {
     URL.revokeObjectURL(url);
   };
 
-  // === PRELUARE DATE (FETCH) ===
   const fetchBaseReviews = useCallback(async (cId: string) => {
     setLoading(true);
     try {
@@ -131,7 +128,6 @@ export default function AdminDashboardPage() {
     }
   }, [selPeriod]);
 
-  // === REALTIME SUPABASE ===
   useEffect(() => {
     if (!companyId) return;
     const channel = supabase
@@ -157,7 +153,6 @@ export default function AdminDashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // === FILTRARE LOCALĂ ===
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
@@ -166,7 +161,6 @@ export default function AdminDashboardPage() {
     });
   }, [allReviews, selLocation, selEmployee]);
 
-  // === STATISTICI AVANSATE & ANALIZĂ AI ===
   const analytics = useMemo(() => {
     if (!filteredReviews.length) return { 
       avg: "0.0", today: 0, velocity: 0, 
@@ -217,7 +211,7 @@ export default function AdminDashboardPage() {
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'вам', 'ведь', 'там', 'едва', 'какой', 'до', 'один', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'один', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -237,7 +231,6 @@ export default function AdminDashboardPage() {
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, employees, locations, t]);
 
-  // === INITIALIZARE ===
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -277,7 +270,7 @@ export default function AdminDashboardPage() {
           </div>
           
           <div className="flex items-center gap-2">
-            <button onClick={runAudit} title={t('syncTooltip') || "Sync"} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center">
+            <button onClick={runAudit} title={t('syncTooltip')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center">
               <RefreshCw size={18}/>
             </button>
             <button onClick={() => exportReviewsToCSV(filteredReviews)} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-200 hover:shadow-lg hover:-translate-y-0.5">
