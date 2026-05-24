@@ -171,18 +171,35 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         employee_id: employeeId || null
       };
 
-      console.log("DEBUG - Trimit obiectul acesta la Supabase:", reviewData);
+      console.log("DEBUG - Trimit obiectul la tabela reviews:", reviewData);
 
-      const { data: insertedReview, error: dbError } = await supabase
+      // 1. Salvăm recenzia în tabela principală din Supabase
+      const { error: dbError } = await supabase
         .from('reviews')
-        .insert([reviewData])
-        .select()
-        .single();
+        .insert([reviewData]);
 
       if (dbError) throw dbError;
 
-      if (rating <= 3 && insertedReview) {
-        await supabase.from('telegram_messages_queue').insert([{ review_id: insertedReview.id, status: 'pending' }]);
+      // 2. CONECTARE API TELEGRAM: Dacă ratingul este mic (1, 2 sau 3 stele), apelăm API-ul nostru local
+      if (rating <= 3) {
+        console.log("DEBUG - Rating mic detectat (<=3). Trimit datele către /api/send-review...");
+        
+        const apiResponse = await fetch('/api/send-review', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            reviewData: {
+              ...reviewData,
+              admin_chat_id: '890236835' // ID-ul tău implicit (va fi suprascris de cel din profiles dacă există în API)
+            }
+          }),
+        });
+
+        if (!apiResponse.ok) {
+          console.error("⚠️ API-ul send-review a returnat o eroare la adăugarea în coadă.");
+        }
       }
 
       setSubmitted(true);
@@ -253,7 +270,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             <textarea placeholder={t.placeholder_comment} rows={5} className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all resize-none" value={formData.comment} onChange={(e) => setFormData({...formData, comment: e.target.value})} />
           </section>
 
-          {/* SECȚIUNEA 3: Atașează o poză (opțional) */}
+          {/* SECȚIUNEA 3: Atașează o poză */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step3}</label>
             
@@ -332,7 +349,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             )}
           </button>
         </form>
-      </div>
+      </header>
     </div>
   );
 }
