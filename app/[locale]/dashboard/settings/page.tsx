@@ -59,14 +59,17 @@ export default function SettingsPage() {
         if (data && !error) {
           setTelegramId(data.telegram_chat_id || '');
           setIsLegalEntity(data.is_legal_entity || false);
+          
+          // Extragem datele din obiectul JSONB salvat în siguranță
+          const details = data.billing_details || {};
           setBillingData({
-            company_name: data.company_name || '',
-            idno: data.idno || '',
-            vat_code: data.vat_code || '',
-            company_address: data.company_address || '',
-            company_bank_account: data.company_bank_account || '',
-            company_bank_name: data.company_bank_name || '',
-            billing_email: data.billing_email || ''
+            company_name: details.company_name || '',
+            idno: details.idno || '',
+            vat_code: details.vat_code || '',
+            company_address: details.company_address || '',
+            company_bank_account: details.company_bank_account || '',
+            company_bank_name: details.company_bank_name || '',
+            billing_email: data.billing_email || details.billing_email || '' // fallback din ambele surse
           });
         }
       }
@@ -81,20 +84,23 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // Construim pachetul de date complet (salvăm acum și billing_email în companies)
+      // Împachetăm toate datele într-un singur payload sigur
       const updatePayload = { 
         telegram_chat_id: telegramId,
         is_legal_entity: isLegalEntity,
-        company_name: billingData.company_name,
-        idno: billingData.idno,
-        vat_code: billingData.vat_code,
-        company_address: billingData.company_address,
-        company_bank_account: billingData.company_bank_account,
-        company_bank_name: billingData.company_bank_name,
-        billing_email: billingData.billing_email
+        billing_email: billingData.billing_email, // coloana creată la pasul anterior
+        billing_details: {
+          company_name: billingData.company_name,
+          idno: billingData.idno,
+          vat_code: billingData.vat_code,
+          company_address: billingData.company_address,
+          company_bank_account: billingData.company_bank_account,
+          company_bank_name: billingData.company_bank_name,
+          billing_email: billingData.billing_email
+        }
       };
 
-      // Salvăm direct în tabela 'companies' indiferent de tipul entității
+      // Salvăm totul într-un mod flexibil în tabela 'companies'
       const { error } = await supabase
         .from('companies')
         .update(updatePayload)
@@ -226,7 +232,7 @@ export default function SettingsPage() {
             <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-5 rounded-[1.5rem] border border-blue-100 flex items-center self-end h-[68px]">
               ✨ {locale === 'ru' 
                 ? 'После сохранения вы будете получать мгновенные уведомления о качестве сервиса.' 
-                : 'После сохранения вы будете получать мгновенные уведомления о качестве сервиса.'}
+                : 'După salvare, vei primi notificări instantanee despre calitatea serviciilor tale.'}
             </div>
           </div>
         </div>
@@ -260,7 +266,6 @@ export default function SettingsPage() {
                 </>
               )}
               
-              {/* Input-ul de email rămâne vizibil mereu pentru a asigura trimiterea automată a facturilor */}
               <div className={isLegalEntity ? "" : "md:col-span-2"}>
                 <BillingInput label={t?.billing?.labels?.billing_email || "Email Trimitere Automată Facturi"} value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder="contabil@firma.md sau email personal" icon={<Mail size={16} />} />
               </div>
