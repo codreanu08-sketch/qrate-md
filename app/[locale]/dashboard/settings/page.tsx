@@ -69,7 +69,7 @@ export default function SettingsPage() {
             company_address: details.company_address || '',
             company_bank_account: details.company_bank_account || '',
             company_bank_name: details.company_bank_name || '',
-            billing_email: data.billing_email || details.billing_email || '' // fallback din ambele surse
+            billing_email: data.billing_email || details.billing_email || ''
           });
         }
       }
@@ -84,11 +84,11 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // Împachetăm toate datele într-un singur payload sigur
+      // Construim structura curată pentru baza de date
       const updatePayload = { 
         telegram_chat_id: telegramId,
         is_legal_entity: isLegalEntity,
-        billing_email: billingData.billing_email, // coloana creată la pasul anterior
+        billing_email: billingData.billing_email,
         billing_details: {
           company_name: billingData.company_name,
           idno: billingData.idno,
@@ -100,7 +100,7 @@ export default function SettingsPage() {
         }
       };
 
-      // Salvăm totul într-un mod flexibil în tabela 'companies'
+      // Salvăm direct în tabela 'companies'
       const { error } = await supabase
         .from('companies')
         .update(updatePayload)
