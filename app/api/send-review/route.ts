@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Valori fallback de siguranță pentru a preveni eroarea la build pe Vercel
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build'; 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -11,20 +10,39 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const reviewData = body.reviewData || body;
-    
-    const CHAT_ID = reviewData.telegram_chat_id || reviewData.admin_chat_id || '890236835'; 
 
+    // === 1. GĂSEȘTE CHAT ID-UL CORECT AL ADMINISTRATORULUI ===
+    let CHAT_ID = reviewData.telegram_chat_id || reviewData.admin_chat_id;
+
+    // Dacă nu avem Chat ID în recenzie, îl luăm din tabelul companies
+    if (!CHAT_ID && reviewData.company_id) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('telegram_chat_id')
+        .eq('id', reviewData.company_id)
+        .maybeSingle();
+
+      if (company?.telegram_chat_id) {
+        CHAT_ID = company.telegram_chat_id;
+      }
+    }
+
+    // Fallback de siguranță (doar pentru testare)
+    if (!CHAT_ID) {
+      CHAT_ID = '890236835'; // ← Poți șterge asta în producție
+    }
+
+    // === 2. RESTUL CODULUI (PĂSTRAT APROAPE IDENTIC) ===
     const ratingValue = Number(reviewData.rating) || 5;
     const stars = '⭐️'.repeat(ratingValue);
     const hasPhoto = !!reviewData.photo_url;
     const companyName = (reviewData.company_slug || 'QRATE').toUpperCase();
 
-    // Inițializăm variabilele pentru textul final
     let employeeName = null;
     let locationName = null;
     let targetLocationId = reviewData.location_id;
 
-    // 1. REZOLVARE ANGAJAT: Dacă avem employee_id, îi aflăm numele și location_id-ul asociat
+    // Rezolvăm numele angajatului
     if (reviewData.employee_id) {
       const { data: empData } = await supabase
         .from('employees')
@@ -34,16 +52,15 @@ export async function POST(request: Request) {
 
       if (empData) {
         employeeName = empData.name;
-        // Dacă recenzia n-a trimis direct un location_id, îl împrumutăm pe cel de la angajat
         if (!targetLocationId && empData.location_id) {
           targetLocationId = empData.location_id;
         }
-      } else if (typeof reviewData.employee_id === 'string' && reviewData.employee_id.length > 5 && !/^\d+$/.test(reviewData.employee_id)) {
-        employeeName = reviewData.employee_id; // Fallback text direct
+      } else if (typeof reviewData.employee_id === 'string' && reviewData.employee_id.length > 5) {
+        employeeName = reviewData.employee_id;
       }
     }
 
-    // 2. REZOLVARE LOCAȚIE: Dacă avem un location_id (venit din formular sau de la angajat), îi aflăm numele real
+    // Rezolvăm numele locației
     if (targetLocationId) {
       const { data: locData } = await supabase
         .from('locations')
@@ -51,23 +68,14 @@ export async function POST(request: Request) {
         .eq('id', targetLocationId)
         .maybeSingle();
 
-      if (locData) {
-        locationName = locData.name;
-      } else if (typeof targetLocationId === 'string' && targetLocationId.length > 5 && !/^\d+$/.test(targetLocationId)) {
-        locationName = targetLocationId; // Fallback text direct
-      }
+      if (locData) locationName = locData.name;
     }
 
-    // 3. CONSTRUIRE REZUMAT TOP (Afacere, Locație, Angajat)
+    // Construim mesajul
     let infoTarget = `🏢 <b>Afacere:</b> ${companyName}`;
-    if (locationName) {
-      infoTarget += `\n📍 <b>Locație:</b> ${locationName}`;
-    }
-    if (employeeName) {
-      infoTarget += `\n👤 <b>Angajat:</b> ${employeeName}`;
-    }
+    if (locationName) infoTarget += `\n📍 <b>Locație:</b> ${locationName}`;
+    if (employeeName) infoTarget += `\n👤 <b>Angajat:</b> ${employeeName}`;
 
-    // Mesajul formatat profesional în HTML fără cifre sau ID-uri ciudate
     const messageContent = `
 ⚠️ <b>REVIEW NOU - QRate.md</b>
 ==========================
@@ -80,7 +88,7 @@ ${reviewData.phone ? `📞 <b>Tel:</b> ${reviewData.phone}` : ''}
 ${hasPhoto ? '🖼️ <i>Imagine atașată mai jos</i>' : ''}
     `.trim();
 
-    // Salvăm recenzia formatată curat în coada din Supabase cu statusul 'pending'
+    // Salvăm în coada Telegram
     const { error: queueError } = await supabase
       .from('telegram_messages_queue')
       .insert({
@@ -92,9 +100,16 @@ ${hasPhoto ? '🖼️ <i>Imagine atașată mai jos</i>' : ''}
 
     if (queueError) throw queueError;
 
-    return NextResponse.json({ success: true, message: "Review-ul a fost procesat și adăugat cu text curat în coadă." });
+    return NextResponse.json({ 
+      success: true, 
+      message: "Review trimis corect către administratorul companiei." 
+    });
+
   } catch (error: any) {
     console.error("💥 Eroare în send-review API:", error);
-    return NextResponse.json({ error: 'Eroare la server', details: error?.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Eroare la server', 
+      details: error?.message 
+    }, { status: 500 });
   }
 }
