@@ -1,47 +1,47 @@
 {
   "Auth": {
     "login_title": "Bine ai revenit",
-    "login_subtitle": "Introdu datele pentru acces",
+    "login_subtitle": "Introdu datele pentru a accesa contul",
     "register_title": "Creează un cont",
-    "register_subtitle": "Completează datele pentru a înregistra afacerea ta",
+    "register_subtitle": "Completează datele pentru a-ți înregistra afacerea",
     "labels": {
-      "name": "Numele Tău",
+      "name": "Numele tău",
       "company_name": "Numele companiei",
-      "email": "Email Business",
+      "email": "Email de afaceri",
       "password": "Parolă",
       "confirm_password": "Confirmă parola"
     },
     "placeholders": {
-      "name": "Andrei Ionescu",
+      "name": "Ion Ivanov",
       "company_name": "S.R.L. My Business",
       "email": "name@mail.com",
       "password": "••••••••"
     },
     "forgot_password": "Ai uitat parola?",
-    "submit_button": "Abonare / Conectare",
+    "submit_button": "Conectează-te",
     "submit_register_button": "Înregistrează-te",
-    "no_account": "Nu ai cont?",
+    "no_account": "Nu ai un cont?",
     "has_account": "Ai deja un cont?",
     "register_link": "Înregistrează-te",
-    "login_link": "Autentifică-te",
+    "login_link": "Autentificare",
     "errors": {
       "invalid_credentials": "Email sau parolă incorectă.",
-      "email_required": "Introdu adresa de email.",
-      "password_mismatch": "Parolele nu coincid.",
+      "email_required": "Te rugăm să introduci adresa de email.",
+      "password_mismatch": "Parolele nu se potrivesc.",
       "password_too_short": "Parola trebuie să aibă cel puțin 6 caractere.",
-      "reset_failed": "Eroare la trimiterea link-ului.",
+      "reset_failed": "Eroare la trimiterea link-ului de resetare.",
       "register_failed": "Eroare la înregistrare. Încearcă din nou."
     },
     "messages": {
-      "reset_sent": "Link-ul pentru resetare a fost trimis.",
-      "register_success": "Înregistrare reușită! Verifică poșta pentru confirmare."
+      "reset_sent": "Link-ul pentru resetarea parolei a fost trimis.",
+      "register_success": "Înregistrare reușită! Verifică poșta electronică pentru confirmare."
     }
   },
   "Dashboard": {
     "admin_panel": "Panou Administrator",
     "view_profile": "Profil",
     "live_on": "Mod Live",
-    "title": "Panou",
+    "title": "Tablou de bord",
     "subtitle": "Analizează recenziile și eficiența în timp real",
     "periods": {
       "7d": "7 zile",
@@ -49,18 +49,18 @@
       "all": "Toată perioada"
     },
     "stats": {
-      "avg_rating": "Rating mediu",
+      "avg_rating": "Nota medie",
       "hero_day": "Eroul zilei",
       "peak_hour": "Vârf de activitate",
       "new_reviews": "Recenzii noi",
-      "team": "Echipă"
+      "team": "Echipa"
     },
     "ai_report": {
       "title": "Raport AI",
       "high": "Raport AI: Performanță excelentă",
       "mid": "Raport AI: Performanță medie",
       "urgent": "Atenție: {count, plural, one {# recenzie critică necesită} few {# recenzii critice necesită} other {# de recenzii critice necesită}} răspuns!",
-      "optimal": "Toți indicatorii sunt în normă. Calitatea deservirii este la nivel înalt.",
+      "optimal": "Toți indicatorii sunt în normă. Calitatea deservirii este la un nivel înalt.",
       "satisfaction": "Satisfacție",
       "momentum": "Dinamică"
     },
@@ -73,7 +73,7 @@
       "all_employees": "Toți angajații",
       "loading": "Se încarcă recenziile...",
       "empty": "Momentan nu există recenzii",
-      "no_comment": "Clientul nu a lăsat un comentariu",
+      "no_comment": "Clientul nu a lăsat un comentariu text",
       "score": "Rating: {score}★",
       "central_location": "Oficiul Central"
     },
@@ -84,104 +84,104 @@
         "employees": "Angajați",
         "reviews": "Recenzii",
         "settings": "Setări",
-        "billing": "Plată"
+        "billing": "Plăți"
       },
       "trial": {
         "title": "Perioadă de probă",
-        "days_left": "{days, plural, =1 {A rămas 1 zi} one {A mai rămas # zi} few {Au mai rămas # zile} other {Au mai rămas # de zile}}",
+        "days_left": "{days, plural, =1 {A mai rămas o zi} one {A mai rămas # zi} few {Au mai rămas # zile} other {Au mai rămas # de zile}}",
         "upgrade_btn": "Actualizează planul"
       }
     },
-
     "navExportBtn": "Export CSV",
     "syncTooltip": "Sincronizează datele",
     "syncSuccess": "Date sincronizate!",
-    "syncUpToDate": "Sistemul este la zi!",
-    "aiNoData": "Nu există date pentru analiză.",
+    "syncUpToDate": "Sistemul este actualizat la zi!",
+    "aiNoData": "Nu există suficiente date pentru analiză.",
     "aiGeneralLevel": "la nivel general",
-    "aiExcellentPrefix": "Lucrare excelentă",
-    "aiExcellentMiddle": "Clienții apreciază în special",
-    "aiExcellentSuffix": "Continuați tot așa!",
-    "aiModeratePrefix": "Rezultat bun",
-    "aiModerateMiddle": "Recomandăm să acordați atenție",
+    "aiExcellentPrefix": "O treabă excelentă",
+    "aiExcellentMiddle": "Clienții apreciază în mod deosebit",
+    "aiExcellentSuffix": "Continuați în același ritm!",
+    "aiModeratePrefix": "Un rezultat bun",
+    "aiModerateMiddle": "Vă recomandăm să acordați atenție la",
     "aiCriticalPrefix": "Atenție",
-    "aiCriticalSuffix": "Este necesară îmbunătățirea urgentă!",
+    "aiCriticalSuffix": "Este necesară o îmbunătățire urgentă a calității!",
     "aiKeywords": "Cuvinte cheie",
     "aiNoKeywords": "Date insuficiente",
     "replyPositivePrefix": "Bună ziua",
     "replyPositiveStars": "Vă mulțumim pentru evaluarea de",
     "replyPositiveStarsEnd": "stele",
-    "replyWithEmp": "cu colegul nostru",
-    "replyPositiveSuffix": "Vă așteptăm din nou!",
+    "replyWithEmp": "oferită colegului nostru",
+    "replyPositiveSuffix": "Vă mai așteptăm pe la noi!",
     "replyNegativePrefix": "Bună ziua",
-    "replyNegativeSuffix": "ne pare rău că ați acordat",
-    "replyNegativeMiddle": "stele. Luăm acest lucru foarte în serios",
-    "replyNegativeEmp": "și vom discuta cu angajatul",
-    "replyNegativeEnd": "Vă mulțumim pentru feedback!",
-    "csvDate": "Data",
-    "csvEmp": "Angajat",
-    "csvLoc": "Locație",
-    "csvRating": "Evaluare",
-    "csvComment": "Comentariu",
-    "csvClient": "Client",
-    "noReviewsExport": "Nu există recenzii pentru export!",
-    "anonClient": "Client anonim",
-    "mvpCardLabel": "MVP Echipă",
-    "empReviewsLabel": "Recenzii angajat",
-    "aiTitle": "Analiză AI",
-    "chartTitle": "Distribuția notelor",
-    "feedTitle": "Ultimele recenzii",
-    "feedClient": "Client",
-    "feedEmp": "Angajat",
-    "feedLoc": "Locație",
-    "feedNoComment": "Fără comentariu",
-    "btnAction": "AI Răspuns",
-    "btnCopied": "Copiat!",
-    "btnCopy": "Copiază",
-    "btnCancel": "Anulează",
-    "noDataTitle": "Nu există recenzii",
-    "noDataSub": "Nu există recenzii pentru filtrele selectate.",
-    "periodAll": "Toată perioada",
-    "filterAllLocations": "Toate locațiile",
-    "filterAllEmployees": "Toți angajații",
-    "headerTitle": "Panou General",
-    "headerROI": "ROI",
-    "headerChurn": "Risc de pierdere clienți",
-    "navLiveEvent": "Recenzie nouă!",
-    "navSubTitle": "Panou Administrator",
-    "cardTotalReviews": "Total recenzii",
-    "cardGlobalScore": "Scor global",
-    "cardTodayFeedback": "Astăzi",
-    "wordQuality": "calitate",
-    "wordGood": "bine",
-    "wordTime": "timp",
-    "reply_whatsapp": "Răspunde pe WhatsApp"
+    "replyNegativeSuffix": "ne pare rău că ne-ați oferit doar",
+    "replyNegativeMiddle": "stele. Luăm acest feedback foarte în serios",
+    "replyNegativeEmp": "și vom discuta neapărat cu angajatul",
+    "replyNegativeEnd": "Vă mulțumim pentru feedback!"
   },
+  "csvDate": "Data",
+  "csvEmp": "Angajat",
+  "csvLoc": "Locație",
+  "csvRating": "Notă",
+  "csvComment": "Comentariu",
+  "csvClient": "Client",
+  "noReviewsExport": "Nu există recenzii pentru export!",
+  "anonClient": "Client Anonim",
+  "mvpCardLabel": "MVP-ul Echipei",
+  "empReviewsLabel": "Recenziile angajatului",
+  "aiTitle": "Analiză AI",
+  "chartTitle": "Distribuția notelor",
+  "feedTitle": "Ultimele recenzii",
+  "feedClient": "Client",
+  "feedEmp": "Angajat",
+  "feedLoc": "Locație",
+  "feedNoComment": "Fără comentariu",
+  "btnAction": "Răspuns AI",
+  "btnCopied": "Copiat!",
+  "btnCopy": "Copiază",
+  "btnCancel": "Anulează",
+  "noDataTitle": "Nu sunt recenzii",
+  "noDataSub": "Nu s-au găsit recenzii conform filtrelor selectate.",
+  "periodAll": "Toată perioada",
+  "filterAllLocations": "Toate locațiile",
+  "filterAllEmployees": "Toți angajații",
+  "headerTitle": "Panou de control",
+  "headerROI": "ROI",
+  "headerChurn": "Risc de abandon",
+  "navLiveEvent": "Recenzie nouă!",
+  "navSubTitle": "Panou administrator",
+  "cardTotalReviews": "Total recenzii",
+  "cardGlobalScore": "Nota medie",
+  "cardTodayFeedback": "Astăzi",
+  "wordQuality": "calitate",
+  "wordGood": "bine",
+  "wordTime": "timp",
+  "reply_whatsapp": "Răspunde pe WhatsApp",
+  "ai_reply": "Răspuns AI",
   "Settings": {
     "title": "Setări cont",
     "subtitle": "Gestionează profilul, notificările și datele fiscale.",
     "save_btn": "Salvează modificările",
     "telegram": {
       "title": "Notificări Telegram",
-      "desc": "Primește alerte instantanee despre recenziile noi.",
-      "bot_info": "Află Chat ID-ul tău trimitând un mesaj botului"
+      "desc": "Primești alerte instantanee despre recenziile noi.",
+      "bot_info": "Află Chat ID-ul tău trimițând un mesaj botului"
     },
     "billing": {
-      "title": "Date de plată",
-      "desc": "Aceste date vor fi incluse în invoncurile tale.",
+      "title": "Date de facturare",
+      "desc": "Aceste date vor fi incluse în facturile tale (invoice).",
       "legal_toggle": "Persoană juridică",
       "individual": "Persoană fizică",
-      "send_test": "Trimite factură test",
-      "download_latest": "Descarcă ultima chitanță (PDF)",
+      "send_test": "Trimite factură de test",
+      "download_latest": "Descarcă ultima factură (PDF)",
       "download_refund": "Descarcă chitanța de retur (PDF)",
       "labels": {
-        "company": "Numele companiei",
-        "idno": "IDNO / Cod fiscal",
+        "company": "Denumirea companiei",
+        "idno": "IDNO / Cod Fiscal",
         "vat": "Cod TVA",
         "iban": "Cont bancar (IBAN)",
         "billing_email": "Email pentru contabilitate / facturi",
         "bank_name": "Numele băncii",
-        "address": "Adresă juridică"
+        "address": "Adresa juridică"
       }
     },
     "security": {
@@ -203,20 +203,20 @@
     "configurator": {
       "locations_label": "NUMĂR LOCAȚII",
       "extra_employees_label": "ANGAJAȚI SUPLIMENTARI",
-      "enterprise_mode": "MODUL PRO ESTE ACTIVAT"
+      "enterprise_mode": "PLAN PRO ACTIVAT"
     },
     "plans": {
       "standard": {
         "name": "Plan Start",
         "price_label": "LICENȚĂ LUNARĂ",
-        "desc": "{count, plural, =1 {locație} one {locație} few {locații} other {locații}}",
+        "desc": "{count, plural, one {# locație} few {# locații} other {# de locații}}",
         "features": {
           "locations": "1 Locație unică",
           "employees": "Maximum 4 angajați activi în sistem",
-          "qr_collection": "Colectare simplă de recenzii prin cod QR",
-          "telegram_alerts": "Notificări instantanee în Telegram la fiecare recenzie",
+          "qr_collection": "Colectare simplă a recenziilor prin cod QR",
+          "telegram_alerts": "Notificări instantanee pe Telegram la fiecare recenzie",
           "dashboard": "Panou de control de bază pentru vizualizarea datelor",
-          "secure_auth": "Profil administrator securizat (Supabase Auth)",
+          "secure_auth": "Profil de administrator securizat (Supabase Auth)",
           "email_support": "Suport tehnic prin email"
         }
       },
@@ -224,9 +224,9 @@
         "name": "Plan Pro",
         "price_label": "LICENȚĂ LUNARĂ",
         "features": {
-          "all_start": "Toate funcțiile planului Start sunt incluse",
-          "management": "Gestionarea filialelor (Adăugarea și controlul mai multor locații)",
-          "unlimited_employees": "Număr complet nelimitat de angajați",
+          "all_start": "Toate funcționalitățile planului Start sunt incluse",
+          "management": "Managementul filialelor (Adăugarea și controlul mai multor locații)",
+          "unlimited_employees": "Număr absolut nelimitat de angajați",
           "realtime_stats": "Statistici în timp real și grafice inteligente de eficiență",
           "negative_filter": "Filtrare inteligentă a recenziilor negative (Scut de protecție a reputației)",
           "priority_support": "Suport prioritar din partea echipei + integrare rapidă în locații"
@@ -236,12 +236,12 @@
     "pricing": {
       "plans": {
         "month": "lună",
-        "one_location": "Locație",
+        "one_location": "locație",
         "license_monthly": "Licență lunară"
       }
     },
     "stickers": {
-      "title": "STICKERE ȘI SUPORTURI QR",
+      "title": "STICKERE QR ȘI SUPORTURI",
       "subtitle": "MATERIALE FIZICE PENTRU LOCAȚII",
       "quantity": "CANTITATE",
       "total_pay": "TOTAL SPRE PLATĂ"
@@ -249,43 +249,43 @@
     "summary": {
       "title": "DETALII COMANDĂ",
       "subscription_item": "Licență lunară {plan}",
-      "locations_active": "{count, plural, =1 {1 locație} one {{count} locație} few {{count} locații} other {{count} locații}}",
+      "locations_active": "{count, plural, one {# locație} few {# locații} other {# de locații}}",
       "extra_emps_item": "Angajați suplimentari",
       "stickers_item": "Stickere QR",
       "stickers_desc": "{count, plural, one {# bucată} few {# bucăți} other {# de bucăți}} incluse în comandă",
       "total_today": "TOTAL SPRE PLATĂ ASTĂZI",
-      "refunded_total": "TOTAL RETURNAT",
+      "refunded_total": "SUMĂ RAMBURSATĂ",
       "confirm_btn": "CONFIRMĂ COMANDA",
       "footer_brand": "QRATE.MD — TOATE DREPTURILE REZERVATE"
     },
     "ConfiguratorUI": {
       "page_main_title": "Abonament QRate",
-      "page_main_subtitle": "Gestionare Configurație și Billing",
+      "page_main_subtitle": "Gestionare Configurație și Facturare",
       "status_banner_title": "Status Cont",
       "status_expired_no_card": "Cont Blocat (Perioada de probă a expirat)",
       "status_expired_desc": "Selectează locația pe care dorești să o păstrezi activă pentru deblocare imediată.",
-      "status_active_desc": "Următoarea plată automată de pe card va fi retrasă peste: {days} zile.",
+      "status_active_desc": "Următoarea plată automată de pe card va fi debitată peste: {days} zile.",
       "sync_banner_title": "Sincronizare Date Filtru Securizat",
       "sync_banner_desc": "În contul tău sunt înregistrate: {locsCount} locații și {empsCount} angajați în baza de date.",
       "locations_block_title": "1. Distribuirea Licențelor Active pentru Locații",
-      "locations_block_subtitle": "Selectează locațiile care vor rămână active în limita pachetului: {limit}.",
+      "locations_block_subtitle": "Alege locațiile care vor rămâne active în limita pachetului: {limit}.",
       "locations_selected_badge": "Selectat: {selected} / {total}",
-      "employees_block_title": "2. Control Suspendare Personal",
-      "employees_block_subtitle": "Gestionarea personalului în locațiile active.",
+      "employees_block_title": "2. Controlul Suspendării Personalului",
+      "employees_block_subtitle": "Gestionarea personalului din locațiile active.",
       "employees_active_badge": "Activi: {count}",
-      "employee_inactive_parent": "Locație inactivă (Auto-suspendare)",
+      "employee_inactive_parent": "Locația este inactivă (Suspendare automată)",
       "employee_no_location": "Locație nespecificată",
       "employee_badge_active": "Activ",
       "employee_badge_suspended": "Suspendat",
-      "stickers_block_title": "Comandă Materiale Fizice",
-      "stickers_block_subtitle": "Livrăm seturi gata pregătite de coduri QR autoadezive direct la locație",
+      "stickers_block_title": "Comandă de Materiale Fizice",
+      "stickers_block_subtitle": "Livrăm seturi gata pregătite de coduri QR auto-adezive direct la locație",
       "stickers_logo_label": "Design Logo QR (Opțional)",
-      "stickers_logo_select": "Selectează fișierul logo",
+      "stickers_logo_select": "Selectează fișierul logo-ului",
       "stickers_logo_delete": "Șterge imaginea",
-      "stickers_notes_label": "Date pentru Facturare și Adresă de Livrare",
+      "stickers_notes_label": "Date pentru Facturare și Adresa de Livrare",
       "stickers_notes_placeholder": "Introdu adresa completă pentru livrarea stickerelor prin curier...",
-      "invoice_title": "Raport Detaliat Total",
-      "invoice_next_cost": "Costul noului abonament (auto-retragere din luna următoare):",
+      "invoice_title": "Raport Sumar Detaliat",
+      "invoice_next_cost": "Costul noului abonament (auto-debitare din luna următoare):",
       "invoice_software_pack": "Pachet Software QRate",
       "invoice_total_today": "TOTAL SPRE PLATĂ ASTĂZI",
       "btn_pay_difference": "Plătește diferența",
@@ -294,31 +294,31 @@
     }
   },
   "Refund": {
-    "title": "Solicitare de returnare a fondurilor",
-    "subtitle": "Te rugăm să specifici motivul returului pentru a procesa cererea ta.",
+    "title": "Cerere de rambursare",
+    "subtitle": "Te rugăm să indici motivul returului pentru procesarea cererii tale.",
     "status": {
-      "label": "Status retur",
+      "label": "Status rambursare",
       "pending": "În procesare",
       "approved": "Aprobat",
       "rejected": "Respins",
-      "credited": "Fonduri returnate"
+      "credited": "Fonduri rambursate"
     },
     "form": {
-      "reason_label": "Motivul returului",
-      "reason_placeholder": "Descrie în detaliu motivul pentru care soliciți returnarea banilor...",
-      "amount_to_refund": "Suma spre returnare",
-      "submit_btn": "Trimite solicitarea",
-      "cancel_btn": "Anulează"
+      "reason_label": "Motivul rambursării",
+      "reason_placeholder": "Descrie în detaliu motivul pentru care dorești să soliciți returnarea banilor...",
+      "amount_to_refund": "Suma spre rambursare",
+      "submit_btn": "Trimite cererea",
+      "cancel_btn": "Anulare"
     },
     "alerts": {
-      "success": "Solicitarea de retur a fost trimisă cu succes! Te vom contacta în cel mai scurt timp.",
-      "failed": "Eroare la trimiterea solicitării. Te rugăm să contactezi serviciul suport.",
-      "policy_note": "Returnarea materialelor fizice (stickere QR) este posibilă doar înainte de începerea procesului de tipărire."
+      "success": "Cererea de rambursare a fost trimisă cu succes! Te vom contacta în cel mai scurt timp.",
+      "failed": "Eroare la trimiterea cererii. Te rugăm să contactezi serviciul suport.",
+      "policy_note": "Rambursarea pentru materialele fizice (stickere QR) este posibilă doar înainte de începerea procesului de tipărire."
     }
   },
   "LandingPage": {
     "seo": {
-      "h1": "QRate.md — Sistem de recenzii prin QR și evaluare angajați în Moldova"
+      "h1": "QRate.md — Sistem de recenzii prin QR și evaluare a angajaților în Moldova"
     },
     "nav": {
       "services": "Servicii",
@@ -330,23 +330,23 @@
       "logout_title": "Ieșire"
     },
     "hero": {
-      "badge": "Securizat prin Supabase",
+      "badge": "Securizat cu Supabase",
       "title_part1": "Sistem Inteligent de Recenzii",
       "title_part2": "pentru Afacerea Ta",
-      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților, locațiilor sau a serviciului de livrare în timp real.",
+      "description": "Colectează recenzii reale de la clienți, urmărește eficiența angajaților și a locațiilor în timp real.",
       "btn_start": "Începe acum",
       "btn_go_dashboard": "Mergi la panou"
     },
     "hero_banner": {
-      "heading": "Tot ce ai nevoie ca antreprenor. Într-un singur panou.",
-      "feature1_title": "Monitorizare Live 24/7",
-      "feature1_desc": "Primești recenzii în timp real. Notificări instant + badge live când apare o recenzie nouă.",
-      "feature2_title": "QRate AI Intel-Report",
-      "feature2_desc": "Analiză automată a sentimentului, detectare recenzii negative, cuvinte cheie + recomandări de acțiune.",
-      "feature3_title": "Leaderboard Angajați & Locații",
-      "feature3_desc": "Clasament automat după scor mediu. Vezi cine performează și unde trebuie intervenție.",
-      "feature4_title": "Copilot Răspuns Inteligent",
-      "feature4_desc": "Generează instant răspunsuri personalizate (pozitive sau negative) + butoane directe pentru WhatsApp și copiere."
+      "heading": "Tot ce are nevoie un antreprenor. Într-un singur panou.",
+      "feature1_title": "Monitorizare în timp real 24/7",
+      "feature1_desc": "Primești recenzii instantaneu. Notificări imediate + live-badge la fiecare feedback nou.",
+      "feature2_title": "Raport Inteligent QRate AI",
+      "feature2_desc": "Analiză automată a sentimentului, detectarea recenziilor negative, cuvinte cheie + recomandări de acțiune.",
+      "feature3_title": "Topul angajaților și locațiilor",
+      "feature3_desc": "Clasament automat bazat pe nota medie. Vezi clar cine performează și unde este nevoie de intervenție.",
+      "feature4_title": "Copilot Inteligent pentru Răspunsuri",
+      "feature4_desc": "Generează instant răspunsuri personalizate (pozitive sau negative) + butoane directe pentru WhatsApp și copiere rapidă."
     },
     "services_section": {
       "badge": "Expertiza Noastră",
@@ -355,26 +355,26 @@
     "services": {
       "qr_employee": {
         "title": "QR pentru Angajat",
-        "desc": "Coduri unice pentru fiecare locație sau angajat pentru urmărirea eficienței în timp real."
+        "desc": "Coduri unice pentru fiecare punct de vânzare sau angajat, pentru a monitoriza performanța în timp real."
       },
       "telegram": {
-        "title": "Alerte Telegram",
-        "desc": "Clienții lasă recenzii în două click-uri, iar managerii primesc notificări instantaneu."
+        "title": "Alerte pe Telegram",
+        "desc": "Clienții lasă recenzii în doar două click-uri, iar managerii primesc notificări pe loc."
       },
       "management": {
         "title": "Management Centralizat",
-        "desc": "Rapoarte detaliate despre activitatea afacerii tale în timp real."
+        "desc": "Rapoarte detaliate și analitice despre activitatea business-ului tău în timp real."
       }
     },
     "demo": {
       "title_1": "Cum funcționează",
       "title_2": "sistemul nostru",
-      "feature_1_t": "Coduri QR inteligente",
-      "feature_1_d": "Coduri unice pentru fiecare locație sau angajat individual.",
+      "feature_1_t": "Coduri QR Inteligente",
+      "feature_1_d": "Coduri unice pentru fiecare locație sau pentru fiecare angajat în parte.",
       "feature_2_t": "Recenzii Instantanee",
-      "feature_2_d": "Clienții lasă feedback în doar două click-uri.",
-      "feature_3_t": "Analize",
-      "feature_3_d": "Rapoarte detaliate despre activitatea business-ului în timp real.",
+      "feature_2_d": "Clienții oferă feedback simplu și rapid, în doar două click-uri.",
+      "feature_3_t": "Analitică",
+      "feature_3_d": "Rapoarte detaliate despre activitatea afacerii tale în timp real.",
       "notification_badge": "Alertă Recenzie",
       "notification_text": "Notificare instantanee pe Telegram.",
       "phone_title": "Lasă o recenzie",
@@ -382,26 +382,26 @@
       "phone_btn": "Trimite recenzia"
     },
     "sectors_section": {
-      "badge": "Sectoare de activitate",
-      "title": "Se potrivește perfect pentru afacerea ta"
+      "badge": "Domenii de activitate",
+      "title": "Se potrivește perfect afacerii tale"
     },
     "sectors": {
       "restaurants": {
         "title": "Restaurante",
-        "desc": "Îmbunătățește serviciul pe baza recenziilor reale și controlează activitatea ospătarilor."
+        "desc": "Îmbunătățește serviciile pe baza recenziilor reale și controlează activitatea chelnerilor."
       },
       "retail": {
         "title": "Retail / Comerț cu amănuntul",
-        "desc": "Controlează calitatea deservirii în fiecare punct de vânzare."
+        "desc": "Monitorizează calitatea deservirii în fiecare punct de vânzare."
       },
       "delivery": {
         "title": "Livrare",
-        "desc": "Obține feedback rapid după livrare cu ajutorul stickerelor pe ambalaj."
+        "desc": "Obține feedback instantaneu după livrare folosind stickere aplicate pe ambalaj."
       }
     },
     "pricing": {
       "badge": "Tarife",
-      "title_part1": "Configurația",
+      "title_part1": "Configurație",
       "title_part2": "QRate.md",
       "btn_choose": "Alege planul",
       "btn_contact": "Contactează-ne",
@@ -412,10 +412,10 @@
         "enterprise_activated": "Modul Pro este Activat"
       },
       "stickers": {
-        "title": "Comandă Stickere QR Fizice",
-        "subtitle": "Tipărire coduri unice de la 500 bucăți (0.33 MDL / sticker)",
+        "title": "Comandă Material Fizic",
+        "subtitle": "Tipărire coduri unice de la 500 de bucăți (0.33 MDL / sticker)",
         "quantity": "Cantitate",
-        "cost_production": "Cost de Producție"
+        "cost_production": "Cost Producție"
       },
       "plans": {
         "license_monthly": "Licență lunară",
@@ -423,70 +423,70 @@
         "more_locations": "Locații",
         "month": "lună",
         "btn_activate_dashboard": "Activează în Panou",
-        "btn_send_request": "Trimite solicitare pentru planul Pro",
+        "btn_send_request": "Trimite cerere pentru planul Pro",
         "start_name": "Plan Start",
         "start_feat_1": "1 Locație unică",
         "start_feat_2": "Maximum 4 angajați activi în sistem",
-        "start_feat_3": "Colectare simplă de recenzii prin cod QR",
-        "start_feat_4": "Notificări instantanee în Telegram la fiecare recenzie",
+        "start_feat_3": "Colectare simplă a recenziilor prin cod QR",
+        "start_feat_4": "Notificări instantanee pe Telegram la fiecare recenzie",
         "start_feat_5": "Panou de control de bază pentru vizualizarea datelor",
-        "start_feat_6": "Profil administrator securizat (Supabase Auth)",
+        "start_feat_6": "Profil de administrator securizat (Supabase Auth)",
         "start_feat_7": "Suport tehnic prin email",
         "pro_name": "Plan Pro",
-        "pro_feat_1": "Toate funcțiile planului Start sunt incluse",
-        "pro_feat_2": "Gestionarea filialelor (Adăugarea și controlul mai multor locații)",
-        "pro_feat_3": "Număr complet nelimitat de angajați",
+        "pro_feat_1": "Toate funcționalitățile planului Start sunt incluse",
+        "pro_feat_2": "Managementul filialelor (Adăugarea și controlul mai multor locații)",
+        "pro_feat_3": "Număr absolut nelimitat de angajați",
         "pro_feat_4": "Statistici în timp real și grafice inteligente de eficiență",
         "pro_feat_5": "Filtrare inteligentă a recenziilor negative (Scut de protecție a reputației)",
         "pro_feat_6": "Suport prioritar din partea echipei + integrare rapidă în locații",
         "enterprise_per_loc": "600 MDL",
         "enterprise_auto_unlock": "Toate avantajele planului Pro se deblochează automat",
-        "enterprise_feat_1": "Gestionare avansată a filialelor inclusă",
-        "enterprise_feat_2": "Urmărire live a eficienței (Angajați nelimitați)",
+        "enterprise_feat_1": "Management avansat al filialelor inclus",
+        "enterprise_feat_2": "Tracking live al eficienței (Angajați nelimitați)",
         "enterprise_feat_3": "Filtrare inteligentă a recenziilor primite"
       },
       "total": {
         "estimated_total": "Sumă estimată spre plată",
         "breakdown_part1": "(Abonament:",
         "breakdown_part2": "+ Tipar:",
-        "only_software": "(Include doar licența periodică de software)"
+        "only_software": "(Include doar licența software recurentă)"
       }
     },
     "footer": {
       "company_name": "S.R.L. \"QR SOLUTIONS GROUP\"",
       "location": "Republica Moldova, Chișinău",
       "docs_title": "Documente",
-      "terms": "Termeni de utilizare",
+      "terms": "Termeni și condiții",
       "privacy": "Confidențialitate",
-      "refund_policy": "Politica de retur",
+      "refund_policy": "Politica de rambursare",
       "support_title": "Suport",
       "payments_title": "Plăți Securizate",
       "rights": "Toate drepturile rezervate"
     },
     "cookies": {
       "title": "Politica de utilizare Cookie",
-      "description": "QRate.md folosește fișiere cookie tehnice obligatorii pentru protecția sesiunii tale și funcționarea corectă a panoului de administrator.",
-      "btn_accept": "Acceptă"
+      "description": "QRate.md folosește cookie-uri tehnice obligatorii pentru protejarea sesiunii tale și funcționarea corectă a panoului de administrare.",
+      "btn_accept": "Accept"
     }
   },
   "Locations": {
     "title": "Locații și QR",
-    "description": "Selectează o locație pentru a vedea recenziile sau pentru a descărca codul QR.",
+    "description": "Selectează o locație pentru a vizualiza recenziile sau pentru a descărca codul QR.",
     "success_added": "Locația a fost adăugată cu succes!",
     "form": {
-      "title": "Adaugă locație nouă",
-      "name_label": "NUMELE LOCAȚIEI *",
-      "type_label": "TIP LOCAȚIE",
+      "title": "Adaugă o locație nouă",
+      "name_label": "DENUMIREA LOCAȚIEI *",
+      "type_label": "TIPUL LOCAȚIEI",
       "type_physical": "Fizică (Restaurant, Magazin)",
       "type_delivery": "Livrare / Online",
-      "address_label": "ADRESĂ (opțional)",
+      "address_label": "ADRESA (opțional)",
       "logo_label": "LOGO (opțional)",
       "upload_logo": "Încarcă logo",
-      "welcome_label": "MESAJ DE BUN VENIT (opțional)",
-      "welcome_placeholder": "Ajută-ne să fim mai buni!",
-      "submit_btn": "Adaugă locație",
-      "placeholder_name": "Ex: Filiala Centru",
-      "placeholder_address": "Str. Ștefan cel Mare 45"
+      "welcome_label": "MESAJ DE ÎNTÂMPINARE (opțional)",
+      "welcome_placeholder": "Ajută-ne să devenim mai buni!",
+      "submit_btn": "Adaugă locația",
+      "placeholder_name": "De exemplu: Filiala Centrală",
+      "placeholder_address": "Bd. Ștefan cel Mare și Sfânt 45"
     },
     "card": {
       "status_active": "Activă",
@@ -496,16 +496,16 @@
       "delete_loc": "Șterge locația"
     },
     "reviews_section": {
-      "title_all": "Toate recenziile",
+      "title_all": "Toate recenziile companiei",
       "title_filtered": "Recenzii pentru {name}",
       "view_all": "Vezi toate",
-      "empty": "Nu s-au găsit recenzii pentru selecția curentă.",
+      "empty": "Nu s-au găsit recenzii pentru această locație.",
       "no_comment": "Fără comentariu"
     },
     "delete_modal": {
       "title": "Ștergi {name}?",
-      "subtitle": "Această acțiune este ireversibilă.",
-      "cancel": "Anulează",
+      "subtitle": "Această acțiune este ireversibilă. Toate codurile QR și datele asociate vor deveni indisponibile.",
+      "cancel": "Anulare",
       "confirm": "Șterge"
     }
   },
@@ -513,17 +513,17 @@
     "title": "Echipa Ta",
     "subtitle": "Gestionarea eficienței angajaților în timp real.",
     "loading": "Sincronizarea datelor echipei...",
-    "empty": "Lista angajaților este goală.",
+    "empty": "Lista de angajați este goală.",
     "form": {
       "header": "Înregistrare Nouă",
-      "subheader": "Completează datele pentru generarea unui cod QR unic.",
+      "subheader": "Completează datele pentru a genera un cod QR unic.",
       "label_name": "Nume Complet",
       "placeholder_name": "Exemplu: Andrei Ionescu",
       "label_position": "Rol / Funcție",
-      "placeholder_position": "Exemplu: Ospătar Senior",
+      "placeholder_position": "Exemplu: Chelner Principal",
       "label_location": "Locație alocată",
       "mobile_option": "Locație mobilă (Toate)",
-      "upload_photo": "Încarcă foto de profil",
+      "upload_photo": "Încarcă foto profil",
       "submit_btn": "Finalizează înregistrarea"
     },
     "card": {
@@ -535,49 +535,61 @@
     },
     "delete_modal": {
       "title": "Șterge profilul",
-      "subtitle": "Ești sigur că vrei să ștergi",
-      "cancel": "Anulează",
+      "subtitle": "Ești sigur că dorești să ștergi acest profil?",
+      "cancel": "Anulare",
       "confirm": "Șterge"
     },
-    "toggle_reviews_show": "Vezi recenzii",
+    "toggle_reviews_show": "Afișează recenziile",
     "toggle_reviews_hide": "Ascunde recenziile"
   },
   "EmployeeStats": {
-    "nav_back": "Înapoi la echipă",
+    "nav_back": "Înapoi la angajați",
     "export_btn": "Export PDF",
-    "loading": "Sincronizarea datelor...",
-    "badge_elite": "Active Elite",
-    "no_name": "Nume indisponibil",
-    "default_pos": "Specialist",
-    "no_loc": "Locație nespecificată",
-    "reviews_title": "Ultima activitate",
-    "no_reviews": "Nu au fost înregistrate recenzii.",
-    "default_comment": "Clientul a apreciat înalt serviciile, fără a lăsa un comentariu text.",
-    "your_reply": "Răspunsul tău",
-    "reply_btn": "Răspunde acestui client",
-    "reply_placeholder": "Scrie un răspuns...",
-    "send_btn": "Trimite",
+    "loading": "Se încarcă datele...",
+    "badge_elite": "Elită",
+    "no_name": "Fără nume",
+    "default_pos": "Angajat",
+    "no_loc": "Fără locație",
+    "reviews_title": "Recenziile clienților",
+    "no_reviews": "Nu există recenzii pentru această perioadă",
+    "default_comment": "Fără comentariu",
     "distribution_title": "Distribuția notelor",
-    "stars": "Stele",
+    "stars": "stele",
     "performance_status": "Status eficiență",
     "periods": {
-      "7d": "7 Zile",
-      "1m": "1 Lună",
-      "custom": "Filtru date"
+      "7d": "7 zile",
+      "1m": "1 lună",
+      "custom": "Perioadă"
     },
     "stats": {
-      "volume": "Volum recenzii",
-      "positive": "Scor pozitiv",
+      "volume": "Total recenzii",
+      "positive": "Pozitive",
       "last_vote": "Ultimul vot"
-    }
+    },
+    "btnAction": "Răspuns AI",
+    "btnCancel": "Anulează",
+    "btnCopy": "Copiază",
+    "btnCopied": "Copiat!",
+    "reply_whatsapp": "Răspunde pe WhatsApp",
+    "anonClient": "Client",
+    "replyPositivePrefix": "Bună ziua",
+    "replyPositiveStars": "Vă mulțumim pentru evaluarea de",
+    "replyPositiveStarsEnd": "stele",
+    "replyWithEmp": "oferită colegului nostru",
+    "replyPositiveSuffix": "Vă mai așteptăm pe la noi!",
+    "replyNegativePrefix": "Bună ziua",
+    "replyNegativeSuffix": "ne pare rău că ne-ați oferit o notă de",
+    "replyNegativeMiddle": "Luăm acest lucru foarte în serios",
+    "replyNegativeEmp": "și vom discuta neapărat acest aspect cu angajatul",
+    "replyNegativeEnd": "Vă mulțumim pentru feedback!"
   },
   "AdminReviews": {
     "title": "Recenziile Clienților",
     "subtitle": "Gestionarea eficienței în timp real.",
     "export_btn": "Export date",
     "filter_title": "Filtrează",
-    "loading": "Se căuta în baza de date...",
-    "loading_db": "Se căuta în baza de date...",
+    "loading": "Căutare în baza de date...",
+    "loading_db": "Căutare în baza de date...",
     "no_results": "Nu s-au găsit recenzii conform filtrelor selectate.",
     "page_label": "Pagina",
     "general_tag": "Generale",
@@ -587,7 +599,7 @@
       "period": "Interval de timp"
     },
     "options": {
-      "all": "Toate",
+      "all": "Tot",
       "all_locs": "Toate locațiile",
       "all_emps": "Toți angajații",
       "7d": "7 zile",
