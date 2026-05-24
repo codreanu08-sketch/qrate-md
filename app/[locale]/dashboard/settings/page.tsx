@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { 
   Settings, Shield, Smartphone, Save, 
-  Loader2, CheckCircle, Sparkles, Building2, Download, Mail
+  Loader2, CheckCircle, Sparkles, Building2, Download, Mail, Send
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -40,6 +40,9 @@ export default function SettingsPage() {
     billing_email: ''
   });
 
+  // Înlocuiește AICI cu username-ul real al botului tău QRate (fără @)
+  const BOT_USERNAME = "QRateBot"; 
+
   useEffect(() => {
     async function loadSettings() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -54,7 +57,6 @@ export default function SettingsPage() {
         if (data && !error) {
           setTelegramId(data.telegram_chat_id || '');
           setIsLegalEntity(data.is_legal_entity || false);
-          // Corectat: mapare exactă cu numele coloanelor trimise la update
           setBillingData({
             company_name: data.company_name || '',
             idno: data.idno || '',
@@ -155,29 +157,76 @@ export default function SettingsPage() {
       <div className="space-y-8">
         
         {/* TELEGRAM */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-4 bg-blue-50 rounded-2xl text-blue-600 shadow-sm"><Smartphone size={28} /></div>
             <div>
               <h2 className="text-xl font-black uppercase tracking-tight">{t?.telegram?.title || "Notificări Telegram"}</h2>
-              <p className="text-sm text-slate-500 font-medium">{t?.telegram?.desc || "Primește alerte instatanee pe Telegram"}</p>
+              <p className="text-sm text-slate-500 font-medium">{t?.telegram?.desc || "Primește alerte instantanee la fiecare recenzie nouă"}</p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            <input 
-              type="text" value={telegramId}
-              onChange={(e) => setTelegramId(e.target.value)}
-              placeholder="Chat ID (Ex: 890236835)"
-              className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:border-blue-500 focus:ring-4 ring-blue-500/10 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner"
-            />
-            <div className="text-xs font-bold text-slate-400 bg-slate-50 p-5 rounded-[1.5rem] border border-dashed border-slate-200 flex items-center">
-              {t?.telegram?.bot_info || "Află Chat ID-ul tău trimițând un mesaj la botul"} <a href="https://t.me/userinfobot" target="_blank" className="text-blue-600 underline ml-1">@userinfobot</a>
+
+          {/* Ghid pași Telegram */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8 bg-slate-50/60 p-6 rounded-[1.8rem] border border-slate-100">
+            <div className="space-y-2">
+              <span className="inline-block px-3 py-1 bg-blue-600 text-white font-black text-[10px] uppercase rounded-full tracking-wider">
+                {locale === 'ru' ? 'Шаг 1' : 'Pasul 1'}
+              </span>
+              <p className="text-sm font-bold text-slate-700">
+                {locale === 'ru' 
+                  ? 'Активируйте нашего бота, чтобы он имел разрешение отправлять вам сообщения.' 
+                  : 'Activează botul nostru de Telegram pentru a-i permite să îți trimită mesaje.'}
+              </p>
+              <a 
+                href={`https://t.me/${BOT_USERNAME}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 mt-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95"
+              >
+                <Send size={14} />
+                {locale === 'ru' ? 'Запустить Бота (START)' : 'Pornește Botul (START)'}
+              </a>
+            </div>
+
+            <div className="space-y-2 border-t md:border-t-0 md:border-l border-slate-200/80 pt-4 md:pt-0 md:pl-8">
+              <span className="inline-block px-3 py-1 bg-slate-800 text-white font-black text-[10px] uppercase rounded-full tracking-wider">
+                {locale === 'ru' ? 'Шаг 2' : 'Pasul 2'}
+              </span>
+              <p className="text-sm font-bold text-slate-700">
+                {locale === 'ru'
+                  ? 'Узнайте свой уникальный Chat ID и вставьте его в поле рядом.'
+                  : 'Află Chat ID-ul tău unic și introduce-l în câmpul alăturat.'}
+              </p>
+              <p className="text-xs text-slate-400 font-medium">
+                {locale === 'ru' ? 'Отправьте любое сообщение боту' : 'Trimite orice mesaj la botul'}{' '}
+                <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-blue-600 underline font-bold">@userinfobot</a>
+                {locale === 'ru' ? ', чтобы получить цифровой ID.' : ' pentru a primi ID-ul tău numeric.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-2">
+                {locale === 'ru' ? 'Ваш Telegram Chat ID' : 'Telegram Chat ID-ul tău'}
+              </label>
+              <input 
+                type="text" value={telegramId}
+                onChange={(e) => setTelegramId(e.target.value)}
+                placeholder="Ex: 890236835"
+                className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:border-blue-500 focus:ring-4 ring-blue-500/10 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner"
+              />
+            </div>
+            <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-5 rounded-[1.5rem] border border-blue-100 flex items-center self-end h-[68px]">
+              ✨ {locale === 'ru' 
+                ? 'После сохранения вы будете получать мгновенные уведомления о качестве сервиса.' 
+                : 'După salvare, vei primi notificări instantanee despre calitatea serviciilor tale.'}
             </div>
           </div>
         </div>
 
         {/* DATE FACTURARE */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10">
+        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
               <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600 shadow-sm"><Building2 size={28} /></div>
@@ -196,23 +245,17 @@ export default function SettingsPage() {
           {isLegalEntity ? (
             <div className="space-y-8 animate-in zoom-in-95 duration-300">
               <div className="grid md:grid-cols-2 gap-8">
-                {/* Corectat structura de mapare la t.billing.labels */}
                 <BillingInput label={t?.billing?.labels?.company || "Denumire Companie"} value={billingData.company_name} onChange={(v) => setBillingData({...billingData, company_name: v})} placeholder={locale === 'ru' ? "Пример: QRate Solutions S.R.L." : "Ex: QRate Solutions S.R.L."} />
                 <BillingInput label={t?.billing?.labels?.idno || "IDNO"} value={billingData.idno} onChange={(v) => setBillingData({...billingData, idno: v})} placeholder="10XXXXXXXXXXX" />
                 <BillingInput label={t?.billing?.labels?.vat || "Cod TVA"} value={billingData.vat_code} onChange={(v) => setBillingData({...billingData, vat_code: v})} placeholder={locale === 'ru' ? "Пример: 06XXXXX" : "Ex: 06XXXXX"} />
                 <BillingInput label={t?.billing?.labels?.iban || "Cont Bancar (IBAN)"} value={billingData.company_bank_account} onChange={(v) => setBillingData({...billingData, company_bank_account: v})} placeholder="MD24XXXXXXXXXXXXXXXXXXXX" />
-                
-                {/* EMAIL FACTURARE */}
                 <BillingInput label={t?.billing?.labels?.billing_email || "Email Facturare / Contabilitate"} value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder={locale === 'ru' ? "Пример: accountant@firma.md" : "Ex: contabil@firma.md"} icon={<Mail size={16} />} />
-                
                 <BillingInput label={t?.billing?.labels?.bank_name || "Numele Băncii"} value={billingData.company_bank_name} onChange={(v) => setBillingData({...billingData, company_bank_name: v})} placeholder={locale === 'ru' ? "Пример: maib" : "Ex: maib"} />
-                
                 <div className="md:col-span-2">
                   <BillingInput label={t?.billing?.labels?.address || "Adresă Juridică"} value={billingData.company_address} onChange={(v) => setBillingData({...billingData, company_address: v})} placeholder={locale === 'ru' ? "Пример: Кишинев, ул. Пример 12" : "Mun. Chișinău, str. Exemplu 12"} />
                 </div>
               </div>
 
-              {/* BUTON DESCARCARE */}
               <div className="pt-6 border-t border-slate-100 flex justify-start">
                 <button
                   type="button"
