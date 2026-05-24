@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Folosim Service Role Key pentru a avea permisiuni de scriere sigure în baza de date
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || ''; 
+// Adăugăm valori fallback de siguranță pentru a preveni eroarea "supabaseKey is required" la build-ul pe Vercel
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder-url.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key-for-build'; 
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: Request) {
