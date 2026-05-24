@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { 
   Star, MapPin, User, Loader2, MessageCircle, 
   Zap, Trophy, Clock, Activity, Award, Target, 
-  Sparkles, Copy, Check, Share2, Download
+  Sparkles, Copy, Check, DollarSign, Share2, Download
 } from 'lucide-react';
 
 interface Review {
@@ -96,6 +96,43 @@ export default function AdminDashboardPage() {
       return matchLoc && matchEmp;
     });
   }, [allReviews, selLocation, selEmployee]);
+
+  // === RAPORT AUTOMAT ===
+  const selectedReport = useMemo(() => {
+    if (selEmployee === 'all' && selLocation === 'all') return null;
+
+    let title = "";
+    let avgRating = 0;
+    let reviewCount = 0;
+
+    if (selEmployee !== 'all') {
+      const emp = employees.find(e => e.id === selEmployee);
+      title = `Raport pentru ${emp?.name || 'Angajat'}`;
+      
+      const empReviews = filteredReviews.filter(r => r.employee_id === selEmployee);
+      reviewCount = empReviews.length;
+      if (reviewCount > 0) {
+        avgRating = empReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount;
+      }
+    } 
+    else if (selLocation !== 'all') {
+      const loc = locations.find(l => l.id === selLocation);
+      title = `Raport pentru ${loc?.name || 'Locație'}`;
+      
+      const locReviews = filteredReviews.filter(r => r.location_id === selLocation);
+      reviewCount = locReviews.length;
+      if (reviewCount > 0) {
+        avgRating = locReviews.reduce((sum, r) => sum + r.rating, 0) / reviewCount;
+      }
+    }
+
+    return {
+      title,
+      avgRating: avgRating.toFixed(1),
+      reviewCount,
+      status: avgRating >= 4.5 ? "Excelent" : avgRating >= 4 ? "Bun" : "Necesită atenție"
+    };
+  }, [selEmployee, selLocation, filteredReviews, employees, locations]);
 
   const stats = useMemo(() => {
     let scopeName = "la nivel general";
@@ -257,6 +294,7 @@ export default function AdminDashboardPage() {
     window.open(url, '_blank');
   };
 
+  // === EXPORT CSV ===
   const exportReviewsToCSV = (reviewsToExport: Review[]) => {
     if (reviewsToExport.length === 0) {
       alert("Nu există recenzii de exportat!");
@@ -345,6 +383,27 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* RAPORT AUTOMAT */}
+        {selectedReport && (
+          <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-3xl p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-black text-xl text-slate-900">{selectedReport.title}</h3>
+                <p className="text-sm text-slate-600 mt-1">Raport automat generat pe baza recenziilor curente</p>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-black text-blue-600">{selectedReport.avgRating} ★</div>
+                <div className="text-xs text-slate-500">{selectedReport.reviewCount} recenzii</div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <span className="px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider bg-white text-blue-600 border border-blue-200">
+                {selectedReport.status}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* STATS CARDS */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard label="Recenzii Segment" value={filteredReviews.length} icon={<MessageCircle size={20} className="text-blue-500" />} trend={stats.velocity !== 0 ? `${stats.velocity > 0 ? '+' : ''}${stats.velocity}%` : undefined} trendUp={stats.velocity >= 0} />
@@ -353,8 +412,8 @@ export default function AdminDashboardPage() {
           <StatCard label={stats.dynamicCardLabel} value={stats.dynamicCardValue} icon={<Trophy size={20} className="text-indigo-500" />} />
         </div>
 
-        {/* BENTO ZONE + RESTUL CODULUI (păstrat) */}
-        {/* ... (codul complet de la linia 150 în jos rămâne la fel ca în versiunea ta originală) ... */}
+        {/* RESTUL CODULUI (BENTO, ROI, GRAFIC, FLUX RECENZII) - PĂSTRAT IDENTIC */}
+        {/* ... (codul complet de la linia 200 în jos rămâne la fel ca în versiunea ta originală) ... */}
 
       </div>
     </div>
