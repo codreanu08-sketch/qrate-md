@@ -28,7 +28,7 @@ export default function SettingsPage() {
   const [downloading, setDownloading] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const [userIdKey, setUserIdKey] = useState<'owner_id' | 'user_id'>('owner_id'); // Identificăm dinamic cheia corectă
+  const [userIdKey, setUserIdKey] = useState<'owner_id' | 'user_id'>('owner_id'); 
 
   const [isLegalEntity, setIsLegalEntity] = useState(false);
   const [billingData, setBillingData] = useState({
@@ -41,7 +41,6 @@ export default function SettingsPage() {
     billing_email: ''
   });
 
-  // Înlocuiește AICI cu username-ul real al botului tău QRate (fără @)
   const BOT_USERNAME = "QRateBot"; 
 
   useEffect(() => {
@@ -50,15 +49,15 @@ export default function SettingsPage() {
       if (session) {
         setUserEmail(session.user.email || '');
         
-        // Încercăm mai întâi cu 'owner_id' deoarece 'user_id' a dat eroare
+        // Încercăm prima dată cu owner_id
         let { data, error } = await supabase
           .from('companies')
           .select('*')
           .eq('owner_id', session.user.id)
           .maybeSingle();
         
-        // Dacă dă eroare că owner_id nu există, încercăm cu user_id ca fallback secundar
-        if (error && error.message.includes('owner_id')) {
+        // Fallback pe user_id dacă owner_id e inexistent sau returnează eroare de structură
+        if ((error && error.message.includes('owner_id')) || (!data && !error)) {
           const fallback = await supabase
             .from('companies')
             .select('*')
@@ -95,24 +94,23 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // Mapăm datele direct pe coloanele tale din bază, indiferent de tipul entității
+      // Construim payload-ul direct pe structura standard indicată
       const updatePayload = { 
+        [userIdKey]: session.user.id, // Ne asigurăm că cheia de legătură este inclusă corect
         telegram_chat_id: telegramId,
         is_legal_entity: isLegalEntity,
         company_name: billingData.company_name,
         idno: billingData.idno,
         vat_code: billingData.vat_code,
-        company_address: billingData.company_address,
+        company_address: billingData.company_address, // Verifică dacă în DB este exact această denumire
         company_bank_account: billingData.company_bank_account,
         company_bank_name: billingData.company_bank_name,
         billing_email: billingData.billing_email
       };
 
-      // Salvăm folosind cheia corectă (owner_id sau user_id) determinată la încărcare
       const { error } = await supabase
         .from('companies')
-        .update(updatePayload)
-        .eq(userIdKey, session.user.id);
+        .upsert(updatePayload, { onConflict: userIdKey }); // Folosim upsert defensiv pentru a preveni blocajele de cache pe update
 
       if (error) throw error;
       
@@ -186,7 +184,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Ghid pași Telegram */}
           <div className="grid md:grid-cols-2 gap-8 mb-8 bg-slate-50/60 p-6 rounded-[1.8rem] border border-slate-100">
             <div className="space-y-2">
               <span className="inline-block px-3 py-1 bg-blue-600 text-white font-black text-[10px] uppercase rounded-full tracking-wider">
@@ -274,7 +271,6 @@ export default function SettingsPage() {
                 </>
               )}
               
-              {/* Input-ul de email rămâne completat și vizibil în ambele moduri */}
               <div className={isLegalEntity ? "" : "md:col-span-2"}>
                 <BillingInput label="Email pentru contabilitate / facturi" value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder="contabil@firma.md sau email personal" icon={<Mail size={16} />} />
               </div>
