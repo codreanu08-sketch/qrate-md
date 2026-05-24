@@ -94,7 +94,7 @@ export default function EmployeesPage() {
               reviews: sortedReviews,
               avgRating: avg.toFixed(1), 
               totalReviews,
-              location_name: locationData ? locationData.name : (t.has('card.mobile_location') ? t('card.mobile_location') : 'Fără locație (Mobil)')
+              location_name: locationData ? locationData.name : 'Fără locație'
             };
           });
           
@@ -250,7 +250,7 @@ export default function EmployeesPage() {
                   onChange={e => setForm({...form, location_id: e.target.value})}
                   className="w-full bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl p-5 text-base font-bold outline-none transition-all appearance-none shadow-sm cursor-pointer"
                 >
-                  <option value="">{t('form.mobile_option') || 'Fără locație (Mobil)'}</option>
+                  <option value="">Selectează locația</option>
                   {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
                 </select>
               </div>
@@ -374,7 +374,7 @@ export default function EmployeesPage() {
                       >
                         <span className="flex items-center gap-2">
                           <MessageSquare size={14} className="text-blue-500" />
-                          {isExpanded ? 'Ascunde recenziile' : `Vezi recenzii (${emp.totalReviews})`}
+                          {isExpanded ? t('toggle_reviews_hide') : `${t('toggle_reviews_show')} (${emp.totalReviews})`}
                         </span>
                         {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                       </button>
