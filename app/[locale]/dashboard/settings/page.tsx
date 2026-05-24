@@ -48,11 +48,13 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUserEmail(session.user.email || '');
+        
+        // Căutăm direct în tabela 'companies' pe baza utilizatorului logat
         const { data, error } = await supabase
-          .from('profiles')
+          .from('companies')
           .select('*')
-          .eq('id', session.user.id)
-          .single();
+          .eq('user_id', session.user.id) // ⚠️ Schimbă în 'owner_id' dacă așa se numește coloana la tine
+          .maybeSingle();
         
         if (data && !error) {
           setTelegramId(data.telegram_chat_id || '');
@@ -79,8 +81,9 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
+      // Actualizăm direct tabela 'companies' ca să goliți coada de Telegram corect
       const { error } = await supabase
-        .from('profiles')
+        .from('companies')
         .update({ 
           telegram_chat_id: telegramId,
           is_legal_entity: isLegalEntity,
@@ -92,7 +95,7 @@ export default function SettingsPage() {
           company_bank_name: isLegalEntity ? billingData.company_bank_name : '',
           billing_email: isLegalEntity ? billingData.billing_email : ''
         })
-        .eq('id', session.user.id);
+        .eq('user_id', session.user.id); // ⚠️ Potrivește numele coloanei (user_id sau owner_id)
 
       if (error) throw error;
       
