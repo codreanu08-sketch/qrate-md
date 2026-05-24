@@ -11,11 +11,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const reviewData = body.reviewData || body;
 
-    // === 1. GĂSEȘTE CHAT ID-UL CORECT AL ADMINISTRATORULUI ===
-    let CHAT_ID = reviewData.telegram_chat_id || reviewData.admin_chat_id;
+    let CHAT_ID = null;
 
-    // Dacă nu avem Chat ID în recenzie, îl luăm din tabelul companies
-    if (!CHAT_ID && reviewData.company_id) {
+    // === 1. Căutăm în companies folosind company_id ===
+    if (reviewData.company_id) {
       const { data: company } = await supabase
         .from('companies')
         .select('telegram_chat_id')
@@ -27,12 +26,34 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fallback de siguranță (doar pentru testare)
-    if (!CHAT_ID) {
-      CHAT_ID = '890236835'; // ← Poți șterge asta în producție
+    // === 2. Dacă nu avem company_id, încercăm prin location_id ===
+    if (!CHAT_ID && reviewData.location_id) {
+      const { data: location } = await supabase
+        .from('locations')
+        .select('company_id')
+        .eq('id', reviewData.location_id)
+        .maybeSingle();
+
+      if (location?.company_id) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('telegram_chat_id')
+          .eq('id', location.company_id)
+          .maybeSingle();
+
+        if (company?.telegram_chat_id) {
+          CHAT_ID = company.telegram_chat_id;
+        }
+      }
     }
 
-    // === 2. RESTUL CODULUI (PĂSTRAT APROAPE IDENTIC) ===
+    // === 3. Fallback (doar pentru testare) ===
+    if (!CHAT_ID) {
+      CHAT_ID = '890236835';
+      console.log("⚠️ Folosim Chat ID de fallback");
+    }
+
+    // === Construim mesajul ===
     const ratingValue = Number(reviewData.rating) || 5;
     const stars = '⭐️'.repeat(ratingValue);
     const hasPhoto = !!reviewData.photo_url;
@@ -40,38 +61,25 @@ export async function POST(request: Request) {
 
     let employeeName = null;
     let locationName = null;
-    let targetLocationId = reviewData.location_id;
 
-    // Rezolvăm numele angajatului
     if (reviewData.employee_id) {
-      const { data: empData } = await supabase
+      const { data: emp } = await supabase
         .from('employees')
-        .select('name, location_id')
+        .select('name')
         .eq('id', reviewData.employee_id)
         .maybeSingle();
-
-      if (empData) {
-        employeeName = empData.name;
-        if (!targetLocationId && empData.location_id) {
-          targetLocationId = empData.location_id;
-        }
-      } else if (typeof reviewData.employee_id === 'string' && reviewData.employee_id.length > 5) {
-        employeeName = reviewData.employee_id;
-      }
+      if (emp) employeeName = emp.name;
     }
 
-    // Rezolvăm numele locației
-    if (targetLocationId) {
-      const { data: locData } = await supabase
+    if (reviewData.location_id) {
+      const { data: loc } = await supabase
         .from('locations')
         .select('name')
-        .eq('id', targetLocationId)
+        .eq('id', reviewData.location_id)
         .maybeSingle();
-
-      if (locData) locationName = locData.name;
+      if (loc) locationName = loc.name;
     }
 
-    // Construim mesajul
     let infoTarget = `🏢 <b>Afacere:</b> ${companyName}`;
     if (locationName) infoTarget += `\n📍 <b>Locație:</b> ${locationName}`;
     if (employeeName) infoTarget += `\n👤 <b>Angajat:</b> ${employeeName}`;
@@ -89,27 +97,17 @@ ${hasPhoto ? '🖼️ <i>Imagine atașată mai jos</i>' : ''}
     `.trim();
 
     // Salvăm în coada Telegram
-    const { error: queueError } = await supabase
-      .from('telegram_messages_queue')
-      .insert({
-        chat_id: CHAT_ID,
-        message_text: messageContent,
-        photo_url: reviewData.photo_url || null,
-        status: 'pending'
-      });
-
-    if (queueError) throw queueError;
-
-    return NextResponse.json({ 
-      success: true, 
-      message: "Review trimis corect către administratorul companiei." 
+    await supabase.from('telegram_messages_queue').insert({
+      chat_id: CHAT_ID,
+      message_text: messageContent,
+      photo_url: reviewData.photo_url || null,
+      status: 'pending'
     });
 
+    return NextResponse.json({ success: true });
+
   } catch (error: any) {
-    console.error("💥 Eroare în send-review API:", error);
-    return NextResponse.json({ 
-      error: 'Eroare la server', 
-      details: error?.message 
-    }, { status: 500 });
+    console.error("Eroare API:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
