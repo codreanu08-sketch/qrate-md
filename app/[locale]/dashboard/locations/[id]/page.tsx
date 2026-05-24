@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, Star, Trash2, Sparkles, Lock } from 'lucide-react';
+import { ArrowLeft, Star, Trash2, Sparkles, Lock, MessageSquare } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
+import { useTranslations } from 'next-intl';
 
 // Definirea tipurilor
 interface Review {
@@ -24,6 +25,8 @@ interface LocationData {
 }
 
 export default function LocationDetail() {
+  const t = useTranslations('Dashboard'); // Folosim namespace-ul Dashboard pentru traducerile generale
+  const tLocations = useTranslations('Locations'); // Folosim pentru elementele specifice locației
   const params = useParams();
   const id = params?.id as string;
   const locale = (params?.locale as string) || 'ro';
@@ -132,6 +135,19 @@ export default function LocationDetail() {
     if (review?.video_url) await supabase.storage.from('reviews').remove([review.video_url]);
     await supabase.from('reviews').delete().eq('id', reviewId);
     fetchReviews();
+  };
+
+  // Funcție pentru deschiderea ferestrei de WhatsApp cu un mesaj predefinit
+  const handleWhatsAppReply = (phone: string, rating: number) => {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    
+    // Generăm un mesaj politicos automat în funcție de limbă și nota acordată
+    const defaultText = locale === 'ru' 
+      ? `Здравствуйте! Спасибо за ваш отзыв (${rating} звезд) на QRate.md.` 
+      : `Bună ziua! Vă mulțumim pentru recenzia oferită (${rating} stele) pe QRate.md.`;
+      
+    const encodedText = encodeURIComponent(defaultText);
+    window.open(`https://wa.me/${cleanPhone}?text=${encodedText}`, '_blank');
   };
 
   const averageRating = reviews.length > 0 
@@ -249,13 +265,26 @@ export default function LocationDetail() {
                       </button>
                     </div>
 
-                    <p className="mt-4 text-gray-700 text-lg leading-relaxed">{review.comment}</p>
+                    <p className="mt-4 text-gray-700 text-lg leading-relaxed">{review.comment || <span className="text-gray-400 italic">{tLocations('reviews_section.no_comment')}</span>}</p>
 
-                    {review.phone && (
-                      <div className="mt-4 flex items-center gap-2 text-sm text-gray-500 bg-gray-50 w-fit px-3 py-1 rounded-full">
-                        <span>📱 {review.phone}</span>
-                      </div>
-                    )}
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {review.phone && (
+                        <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 w-fit px-3 py-1 rounded-full">
+                          <span>📱 {review.phone}</span>
+                        </div>
+                      )}
+                      
+                      {/* Butonul dinamic de WhatsApp adăugat conform cerinței */}
+                      {review.phone && (
+                        <button
+                          onClick={() => handleWhatsAppReply(review.phone!, review.rating)}
+                          className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors px-3 py-1 rounded-full border border-emerald-100"
+                        >
+                          <MessageSquare size={12} className="fill-emerald-600" />
+                          {t('reply_whatsapp')}
+                        </button>
+                      )}
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                       {review.image_url && signedUrls[review.image_url] && (
