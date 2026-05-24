@@ -72,23 +72,22 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // ==================== HANDLE SAVE CU FIX PENTRU SLUG ====================
+  // ==================== HANDLE SAVE CU FIX PENTRU NAME + SLUG ====================
   const handleSave = async () => {
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // 1. Obținem slug-ul existent (dacă există)
+      // 1. Obținem datele curente ale companiei
       const { data: currentCompany } = await supabase
         .from('companies')
-        .select('slug')
+        .select('slug, name')
         .eq('owner_id', session.user.id)
         .maybeSingle();
 
+      // 2. Generăm slug dacă nu există
       let slug = currentCompany?.slug;
-
-      // 2. Dacă nu există slug, generăm unul nou
       if (!slug) {
         const { data: { user } } = await supabase.auth.getUser();
         const companyName = billingData.company_name || user?.email?.split('@')[0] || 'qrate-company';
@@ -104,7 +103,10 @@ export default function SettingsPage() {
           "-" + Math.random().toString(36).substring(2, 8);
       }
 
-      // 3. Pregătim datele
+      // 3. Determinăm numele companiei
+      const companyName = billingData.company_name || currentCompany?.name || "Compania Mea";
+
+      // 4. Pregătim datele
       const billingPayload = {
         is_legal_entity: isLegalEntity,
         company_name: billingData.company_name,
@@ -118,6 +120,7 @@ export default function SettingsPage() {
 
       const updatePayload = { 
         [userIdKey]: session.user.id,
+        name: companyName,                    // ← FIX PENTRU EROAREA "name"
         telegram_chat_id: telegramId,
         billing_details: billingPayload,
         slug: slug
