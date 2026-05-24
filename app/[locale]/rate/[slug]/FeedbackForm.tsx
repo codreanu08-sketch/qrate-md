@@ -173,14 +173,12 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       console.log("DEBUG - Trimit obiectul la tabela reviews:", reviewData);
 
-      // 1. Salvăm recenzia în tabela principală din Supabase
       const { error: dbError } = await supabase
         .from('reviews')
         .insert([reviewData]);
 
       if (dbError) throw dbError;
 
-      // 2. CONECTARE API TELEGRAM: Dacă ratingul este mic (1, 2 sau 3 stele), apelăm API-ul nostru local
       if (rating <= 3) {
         console.log("DEBUG - Rating mic detectat (<=3). Trimit datele către /api/send-review...");
         
@@ -192,7 +190,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
           body: JSON.stringify({
             reviewData: {
               ...reviewData,
-              admin_chat_id: '890236835' // ID-ul tău implicit (va fi suprascris de cel din profiles dacă există în API)
+              admin_chat_id: '890236835'
             }
           }),
         });
@@ -349,7 +347,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             )}
           </button>
         </form>
-      </header>
+      </div>
     </div>
   );
 }
