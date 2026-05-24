@@ -8,18 +8,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-// Importăm traducerile
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
 
 export default function SettingsPage() {
   const params = useParams();
   const locale = (params?.locale as 'ro' | 'ru') || 'ro';
-  
-  // Încarcă dicționarul în mod stabil
   const messages = useMemo(() => (locale === 'ru' ? ru : ro), [locale]);
-  
-  // Securizăm obiectul 't' ca să nu mai fie undefined sub nicio formă
   const t = useMemo(() => messages?.Settings || {}, [messages]);
 
   const [telegramId, setTelegramId] = useState('');
@@ -28,7 +23,9 @@ export default function SettingsPage() {
   const [downloading, setDownloading] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
-  const [userIdKey, setUserIdKey] = useState<'owner_id' | 'user_id'>('owner_id'); 
+  
+  // Din imagini știm sigur că cheia ta este 'owner_id'
+  const userIdKey = 'owner_id'; 
 
   const [isLegalEntity, setIsLegalEntity] = useState(false);
   const [billingData, setBillingData] = useState({
@@ -49,37 +46,26 @@ export default function SettingsPage() {
       if (session) {
         setUserEmail(session.user.email || '');
         
-        // Încercăm prima dată cu owner_id
-        let { data, error } = await supabase
+        const { data, error } = await supabase
           .from('companies')
           .select('*')
           .eq('owner_id', session.user.id)
           .maybeSingle();
-        
-        // Fallback pe user_id dacă owner_id e inexistent sau returnează eroare de structură
-        if ((error && error.message.includes('owner_id')) || (!data && !error)) {
-          const fallback = await supabase
-            .from('companies')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .maybeSingle();
-          if (fallback.data) {
-            data = fallback.data;
-            setUserIdKey('user_id');
-          }
-        }
 
         if (data) {
           setTelegramId(data.telegram_chat_id || '');
-          setIsLegalEntity(data.is_legal_entity || false);
+          
+          // Extragem datele din coloana JSONB dacă ele există
+          const savedBilling = data.billing_details || {};
+          setIsLegalEntity(savedBilling.is_legal_entity || false);
           setBillingData({
-            company_name: data.company_name || '',
-            idno: data.idno || '',
-            vat_code: data.vat_code || '',
-            company_address: data.company_address || '',
-            company_bank_account: data.company_bank_account || '',
-            company_bank_name: data.company_bank_name || '',
-            billing_email: data.billing_email || ''
+            company_name: savedBilling.company_name || '',
+            idno: savedBilling.idno || '',
+            vat_code: savedBilling.vat_code || '',
+            company_address: savedBilling.company_address || '',
+            company_bank_account: savedBilling.company_bank_account || '',
+            company_bank_name: savedBilling.company_bank_name || '',
+            billing_email: savedBilling.billing_email || ''
           });
         }
       }
@@ -94,23 +80,27 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // Construim payload-ul direct pe structura standard indicată
-      const updatePayload = { 
-        [userIdKey]: session.user.id, // Ne asigurăm că cheia de legătură este inclusă corect
-        telegram_chat_id: telegramId,
+      // Împachetăm toate datele fiscale în obiectul JSONB
+      const billingPayload = {
         is_legal_entity: isLegalEntity,
         company_name: billingData.company_name,
         idno: billingData.idno,
         vat_code: billingData.vat_code,
-        company_address: billingData.company_address, // Verifică dacă în DB este exact această denumire
+        company_address: billingData.company_address,
         company_bank_account: billingData.company_bank_account,
         company_bank_name: billingData.company_bank_name,
         billing_email: billingData.billing_email
       };
 
+      const updatePayload = { 
+        [userIdKey]: session.user.id,
+        telegram_chat_id: telegramId,
+        billing_details: billingPayload // Salvăm curat ca JSONB
+      };
+
       const { error } = await supabase
         .from('companies')
-        .upsert(updatePayload, { onConflict: userIdKey }); // Folosim upsert defensiv pentru a preveni blocajele de cache pe update
+        .upsert(updatePayload, { onConflict: userIdKey });
 
       if (error) throw error;
       
