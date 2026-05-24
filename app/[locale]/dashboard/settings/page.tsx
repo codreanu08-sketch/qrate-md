@@ -53,7 +53,7 @@ export default function SettingsPage() {
         const { data, error } = await supabase
           .from('companies')
           .select('*')
-          .eq('user_id', session.user.id) // ⚠️ Schimbă în 'owner_id' dacă așa se numește coloana la tine
+          .eq('user_id', session.user.id) // Schimbă în 'owner_id' dacă așa se numește coloana la tine
           .maybeSingle();
         
         if (data && !error) {
@@ -81,21 +81,24 @@ export default function SettingsPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // Actualizăm direct tabela 'companies' ca să goliți coada de Telegram corect
+      // Construim pachetul de date complet (salvăm acum și billing_email în companies)
+      const updatePayload = { 
+        telegram_chat_id: telegramId,
+        is_legal_entity: isLegalEntity,
+        company_name: billingData.company_name,
+        idno: billingData.idno,
+        vat_code: billingData.vat_code,
+        company_address: billingData.company_address,
+        company_bank_account: billingData.company_bank_account,
+        company_bank_name: billingData.company_bank_name,
+        billing_email: billingData.billing_email
+      };
+
+      // Salvăm direct în tabela 'companies' indiferent de tipul entității
       const { error } = await supabase
         .from('companies')
-        .update({ 
-          telegram_chat_id: telegramId,
-          is_legal_entity: isLegalEntity,
-          company_name: isLegalEntity ? billingData.company_name : '',
-          idno: isLegalEntity ? billingData.idno : '',
-          vat_code: isLegalEntity ? billingData.vat_code : '',
-          company_address: isLegalEntity ? billingData.company_address : '',
-          company_bank_account: isLegalEntity ? billingData.company_bank_account : '',
-          company_bank_name: isLegalEntity ? billingData.company_bank_name : '',
-          billing_email: isLegalEntity ? billingData.billing_email : ''
-        })
-        .eq('user_id', session.user.id); // ⚠️ Potrivește numele coloanei (user_id sau owner_id)
+        .update(updatePayload)
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
       
@@ -223,7 +226,7 @@ export default function SettingsPage() {
             <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-5 rounded-[1.5rem] border border-blue-100 flex items-center self-end h-[68px]">
               ✨ {locale === 'ru' 
                 ? 'После сохранения вы будете получать мгновенные уведомления о качестве сервиса.' 
-                : 'După salvare, vei primi notificări instantanee despre calitatea serviciilor tale.'}
+                : 'После сохранения вы будете получать мгновенные уведомления о качестве сервиса.'}
             </div>
           </div>
         </div>
@@ -245,20 +248,43 @@ export default function SettingsPage() {
             </label>
           </div>
 
-          {isLegalEntity ? (
-            <div className="space-y-8 animate-in zoom-in-95 duration-300">
-              <div className="grid md:grid-cols-2 gap-8">
-                <BillingInput label={t?.billing?.labels?.company || "Denumire Companie"} value={billingData.company_name} onChange={(v) => setBillingData({...billingData, company_name: v})} placeholder={locale === 'ru' ? "Пример: QRate Solutions S.R.L." : "Ex: QRate Solutions S.R.L."} />
-                <BillingInput label={t?.billing?.labels?.idno || "IDNO"} value={billingData.idno} onChange={(v) => setBillingData({...billingData, idno: v})} placeholder="10XXXXXXXXXXX" />
-                <BillingInput label={t?.billing?.labels?.vat || "Cod TVA"} value={billingData.vat_code} onChange={(v) => setBillingData({...billingData, vat_code: v})} placeholder={locale === 'ru' ? "Пример: 06XXXXX" : "Ex: 06XXXXX"} />
-                <BillingInput label={t?.billing?.labels?.iban || "Cont Bancar (IBAN)"} value={billingData.company_bank_account} onChange={(v) => setBillingData({...billingData, company_bank_account: v})} placeholder="MD24XXXXXXXXXXXXXXXXXXXX" />
-                <BillingInput label={t?.billing?.labels?.billing_email || "Email Facturare / Contabilitate"} value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder={locale === 'ru' ? "Пример: accountant@firma.md" : "Ex: contabil@firma.md"} icon={<Mail size={16} />} />
-                <BillingInput label={t?.billing?.labels?.bank_name || "Numele Băncii"} value={billingData.company_bank_name} onChange={(v) => setBillingData({...billingData, company_bank_name: v})} placeholder={locale === 'ru' ? "Пример: maib" : "Ex: maib"} />
+          <div className="space-y-8">
+            <div className="grid md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
+              {isLegalEntity && (
+                <>
+                  <BillingInput label={t?.billing?.labels?.company || "Denumire Companie"} value={billingData.company_name} onChange={(v) => setBillingData({...billingData, company_name: v})} placeholder={locale === 'ru' ? "Пример: QRate Solutions S.R.L." : "Ex: QRate Solutions S.R.L."} />
+                  <BillingInput label={t?.billing?.labels?.idno || "IDNO"} value={billingData.idno} onChange={(v) => setBillingData({...billingData, idno: v})} placeholder="10XXXXXXXXXXX" />
+                  <BillingInput label={t?.billing?.labels?.vat || "Cod TVA"} value={billingData.vat_code} onChange={(v) => setBillingData({...billingData, vat_code: v})} placeholder={locale === 'ru' ? "Пример: 06XXXXX" : "Ex: 06XXXXX"} />
+                  <BillingInput label={t?.billing?.labels?.iban || "Cont Bancar (IBAN)"} value={billingData.company_bank_account} onChange={(v) => setBillingData({...billingData, company_bank_account: v})} placeholder="MD24XXXXXXXXXXXXXXXXXXXX" />
+                  <BillingInput label={t?.billing?.labels?.bank_name || "Numele Băncii"} value={billingData.company_bank_name} onChange={(v) => setBillingData({...billingData, company_bank_name: v})} placeholder={locale === 'ru' ? "Пример: maib" : "Ex: maib"} />
+                </>
+              )}
+              
+              {/* Input-ul de email rămâne vizibil mereu pentru a asigura trimiterea automată a facturilor */}
+              <div className={isLegalEntity ? "" : "md:col-span-2"}>
+                <BillingInput label={t?.billing?.labels?.billing_email || "Email Trimitere Automată Facturi"} value={billingData.billing_email} onChange={(v) => setBillingData({...billingData, billing_email: v})} placeholder="contabil@firma.md sau email personal" icon={<Mail size={16} />} />
+              </div>
+
+              {isLegalEntity && (
                 <div className="md:col-span-2">
                   <BillingInput label={t?.billing?.labels?.address || "Adresă Juridică"} value={billingData.company_address} onChange={(v) => setBillingData({...billingData, company_address: v})} placeholder={locale === 'ru' ? "Пример: Кишинев, ул. Пример 12" : "Mun. Chișinău, str. Exemplu 12"} />
                 </div>
-              </div>
+              )}
+            </div>
 
+            {!isLegalEntity && (
+              <div className="p-10 bg-blue-50/30 rounded-[2rem] border-2 border-dashed border-blue-100 flex flex-col items-center text-center gap-4">
+                <div className="p-4 bg-white rounded-full shadow-md text-blue-500">
+                  <Sparkles size={32} />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-blue-900 uppercase tracking-widest">{t?.billing?.individual || "Abonament activ ca Persoană Fizică"}</p>
+                  <p className="text-blue-600 font-bold mt-1 text-lg">{userEmail}</p>
+                </div>
+              </div>
+            )}
+
+            {isLegalEntity && (
               <div className="pt-6 border-t border-slate-100 flex justify-start">
                 <button
                   type="button"
@@ -270,18 +296,8 @@ export default function SettingsPage() {
                   {t?.billing?.download_latest || "Descarcă Ultima Factură (PDF)"}
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="p-10 bg-blue-50/30 rounded-[2rem] border-2 border-dashed border-blue-100 flex flex-col items-center text-center gap-4">
-              <div className="p-4 bg-white rounded-full shadow-md text-blue-500">
-                <Sparkles size={32} />
-              </div>
-              <div>
-                <p className="text-sm font-black text-blue-900 uppercase tracking-widest">{t?.billing?.individual || "Abonament activ ca Persoană Fizică"}</p>
-                <p className="text-blue-600 font-bold mt-1 text-lg">{userEmail}</p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* SECURITATE */}
