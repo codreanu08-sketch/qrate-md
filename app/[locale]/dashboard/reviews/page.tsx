@@ -8,7 +8,8 @@ import { useTranslations } from 'next-intl';
 import { 
   MapPin, User, Star, Loader2, Lock, 
   Calendar as CalendarIcon, MessageSquare, Phone,
-  Trophy, ChevronLeft, ChevronRight, Download, Zap, X, Eye
+  Trophy, ChevronLeft, ChevronRight, Download, Zap, X, Eye,
+  Bot, Copy, Check, Smartphone
 } from 'lucide-react';
 
 interface Review {
@@ -17,7 +18,7 @@ interface Review {
   comment: string;
   created_at: string;
   location_id: string;
-  employee_id?: string;
+  employee_id?: string | null;
   photo_url?: string | null;
   full_name?: string | null;   
   phone?: string | null;      
@@ -45,6 +46,8 @@ export default function AllReviewsDashboard() {
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
+  const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
@@ -56,6 +59,29 @@ export default function AllReviewsDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+
+  // === GENERARE RĂSPUNS SMART ===
+  const generateSmartReply = (rev: Review) => {
+    const clientName = rev.full_name || (locale === 'ru' ? 'Клиент' : 'Client');
+    const empName = rev.employees?.name;
+
+    if (rev.rating >= 4) {
+      return `${locale === 'ru' ? 'Здравствуйте' : 'Bună ziua'}, ${clientName}! ${locale === 'ru' ? 'Спасибо за оценку' : 'Vă mulțumim pentru evaluarea de'} ${rev.rating} ${locale === 'ru' ? 'звёзд' : 'stele'}${empName ? ` ${locale === 'ru' ? 'с нашим сотрудником' : 'cu colegul nostru'} (${empName})` : ''}! ${locale === 'ru' ? 'Ждём вас снова!' : 'Vă așteptăm din nou!'}`;
+    } else {
+      return `${locale === 'ru' ? 'Здравствуйте' : 'Bună ziua'}, ${clientName}, ${locale === 'ru' ? 'нам жаль, что вы поставили' : 'ne pare rău că ați acordat'} ${rev.rating}★. ${locale === 'ru' ? 'Мы принимаем это близко к сердцу' : 'Luăm acest lucru foarte în serios'}${empName ? ` ${locale === 'ru' ? 'и обсудим с сотрудником' : 'și vom discuta cu angajatul'}` : ''}. ${locale === 'ru' ? 'Спасибо за отзыв!' : 'Vă mulțumim pentru feedback!'}`;
+    }
+  };
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2500);
+  };
+
+  const sendToWhatsApp = (text: string) => {
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
 
   const smartStats = useMemo(() => {
     if (reviews.length === 0) return { bestEmp: 'N/A', avg: '0.0', count: 0 };
@@ -152,7 +178,7 @@ export default function AllReviewsDashboard() {
     if (error) {
       console.error("❌ EROARE SUPABASE REVIEWS:", error);
     } else {
-      console.log("👉 DATE DE LA SUPABASE:", data);
+      console.log("✅ RECENZII ÎNCĂRCATE:", data?.length || 0);
     }
 
     setReviews((data as unknown as Review[]) || []);
@@ -170,7 +196,7 @@ export default function AllReviewsDashboard() {
       `"${r.phone || 'N/A'}"`,
       `"${r.comment?.replace(/"/g, '""') || ''}"`,
       r.locations?.name || 'General',
-      r.employees?.name || 'N/A'
+      r.employees?.name || 'Fără angajat'
     ]);
 
     const csvContent = 'data:text/csv;charset=utf-8,' 
@@ -241,12 +267,12 @@ export default function AllReviewsDashboard() {
                 
                 <div className="flex flex-col gap-2 w-full">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Период' : 'Perioada'}</span>
-                  <div className="grid grid-cols-4 gap-1 w-full bg-gray-50 p-1 rounded-xl border border-gray-200/60 h-11 items-center">
+                  <div className="grid grid-cols-4 gap-1.5 w-full bg-gray-50 p-1.5 rounded-xl border border-gray-200/60 h-12 items-center">
                     {['7d', '1m', '3m', 'all'].map((period) => (
                       <button 
                         key={period} 
                         onClick={() => { setTimeFilter(period as any); setCustomDate(''); }} 
-                        className={`h-full rounded-lg text-[9px] font-black uppercase tracking-tight transition-all flex items-center justify-center text-center px-1 ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`h-full rounded-lg text-[10px] font-black uppercase tracking-tight transition-all flex items-center justify-center text-center px-1.5 whitespace-nowrap ${timeFilter === period ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                         {t(`options.${period}`)}
                       </button>
@@ -256,7 +282,7 @@ export default function AllReviewsDashboard() {
 
                 <div className="flex flex-col gap-2 w-full">
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider pl-1">{locale === 'ru' ? 'Календарь' : 'Alege Data'}</span>
-                  <div className={`flex items-center gap-2.5 px-3.5 rounded-xl border transition-all h-11 w-full ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
+                  <div className={`flex items-center gap-2.5 px-3.5 rounded-xl border transition-all h-12 w-full ${timeFilter === 'custom' ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200/60'}`}>
                      <CalendarIcon size={15} className={timeFilter === 'custom' ? 'text-blue-600' : 'text-gray-400'} />
                      <input 
                        type="date" 
@@ -294,6 +320,12 @@ export default function AllReviewsDashboard() {
                      noCommentText={tCommon('feed.no_comment')} 
                      generalTag={t('general_tag')} 
                      onViewPhoto={(url: string) => setActivePhoto(url)}
+                     activeReplyId={activeReplyId}
+                     setActiveReplyId={setActiveReplyId}
+                     generateSmartReply={generateSmartReply}
+                     copyToClipboard={copyToClipboard}
+                     sendToWhatsApp={sendToWhatsApp}
+                     copiedId={copiedId}
                    />
                  ))
                )}
@@ -341,6 +373,8 @@ export default function AllReviewsDashboard() {
   );
 }
 
+/* ================== COMPONENTE ================== */
+
 function FilterGroup({ label, icon, value, onChange, options, allLabel }: any) {
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -368,14 +402,16 @@ function StatCard({ label, value, icon }: any) {
   );
 }
 
-function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any) {
+function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto, activeReplyId, setActiveReplyId, generateSmartReply, copyToClipboard, sendToWhatsApp, copiedId }: any) {
+  const isReplyOpen = activeReplyId === rev.id;
+  const smartReplyText = generateSmartReply(rev);
+
   return (
     <div className="bg-white p-5 md:p-6 rounded-[2rem] border border-gray-100 shadow-sm relative overflow-hidden group">
       <div className={`absolute top-0 left-0 w-1.5 h-full ${rev.rating >= 4 ? 'bg-emerald-500' : rev.rating === 3 ? 'bg-amber-400' : 'bg-rose-500'}`} />
       
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div className="flex-1 space-y-3.5">
-          
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-gray-100 pb-2.5">
             <div className="flex items-center gap-0.5 shrink-0">
               {[...Array(5)].map((_, i) => (
@@ -383,8 +419,7 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
               ))}
             </div>
             
-            {((rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY') || 
-              (rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY')) && (
+            {((rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY') || (rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY')) && (
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
                 {rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY' && (
                   <span className="text-slate-900 font-black flex items-center gap-1 bg-slate-100 px-2.5 py-0.5 rounded-lg border border-gray-200/40 uppercase tracking-tight">
@@ -392,11 +427,7 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
                   </span>
                 )}
                 {rev.phone && rev.phone.trim() !== '' && rev.phone !== 'EMPTY' && (
-                  <a 
-                    href={`tel:${rev.phone.trim()}`}
-                    className="text-slate-700 font-black flex items-center gap-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 px-2.5 py-0.5 rounded-lg border border-gray-200/40 tracking-tight transition-all cursor-pointer"
-                    title={locale === 'ru' ? 'Позвонить' : 'Apelează numărul'}
-                  >
+                  <a href={`tel:${rev.phone.trim()}`} className="text-slate-700 font-black flex items-center gap-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 px-2.5 py-0.5 rounded-lg border border-gray-200/40 tracking-tight transition-all cursor-pointer">
                     <Phone size={10} className="text-slate-500 group-hover:text-blue-500" /> {rev.phone}
                   </a>
                 )}
@@ -404,22 +435,14 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             )}
           </div>
           
-          {/* AICI ESTE MODIFICAREA PENTRU TEXTUL COMENTARIULUI (16px, exact ca la locations) */}
           <p className="text-base font-semibold text-slate-700 italic tracking-wide mt-1">
             {rev.comment ? `"${rev.comment}"` : <span className="text-slate-400 font-normal text-sm">{noCommentText}</span>}
           </p>
           
           {rev.photo_url && rev.photo_url.trim() !== '' && rev.photo_url !== 'NULL' && rev.photo_url !== 'EMPTY' && (
             <div className="pt-1">
-              <div 
-                onClick={() => onViewPhoto(rev.photo_url)}
-                className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden cursor-pointer border border-gray-200 group/img shadow-sm active:scale-95 transition-transform"
-              >
-                <img 
-                  src={rev.photo_url} 
-                  alt="Client upload" 
-                  className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200"
-                />
+              <div onClick={() => onViewPhoto(rev.photo_url)} className="relative w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden cursor-pointer border border-gray-200 group/img shadow-sm active:scale-95 transition-transform">
+                <img src={rev.photo_url} alt="Client upload" className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-200" />
                 <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white">
                   <Eye size={14} />
                 </div>
@@ -428,7 +451,7 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
           )}
 
           <div className="flex flex-wrap gap-1.5 pt-1">
-            <Tag text={rev.employees?.name || generalTag} icon={<User size={10}/>} />
+            <Tag text={rev.employees?.name || "Fără angajat"} icon={<User size={10}/>} />
             <Tag text={rev.locations?.name || 'General'} icon={<MapPin size={10}/>} />
           </div>
         </div>
@@ -444,6 +467,42 @@ function ReviewCard({ rev, locale, noCommentText, generalTag, onViewPhoto }: any
             {new Date(rev.created_at).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'ro-RO')}
           </span>
         </div>
+      </div>
+
+      {/* BUTON AI RĂSPUNS */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        {isReplyOpen ? (
+          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+            <p className="text-xs text-slate-700 font-medium mb-3 italic">"{smartReplyText}"</p>
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={() => copyToClipboard(smartReplyText, rev.id)}
+                className="flex-1 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] uppercase tracking-wider font-black py-2.5 rounded-xl transition-colors"
+              >
+                {copiedId === rev.id ? <><Check size={14} /> {locale === 'ru' ? 'Скопировано!' : 'Copiat!'}</> : <><Copy size={14} /> {locale === 'ru' ? 'Копировать' : 'Copiază'}</>}
+              </button>
+              
+              <button 
+                onClick={() => sendToWhatsApp(smartReplyText)}
+                className="flex-1 flex justify-center items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white text-[10px] uppercase tracking-wider font-black py-2.5 rounded-xl transition-colors"
+              >
+                <Smartphone size={14} /> WhatsApp
+              </button>
+            </div>
+            
+            <button onClick={() => setActiveReplyId(null)} className="w-full text-center text-[10px] text-slate-400 mt-3 font-bold hover:text-slate-600">
+              {locale === 'ru' ? 'Отмена' : 'Anulează'}
+            </button>
+          </div>
+        ) : (
+          <button 
+            onClick={() => setActiveReplyId(rev.id)}
+            className="w-full flex items-center justify-center gap-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-black uppercase tracking-wider text-[10px] py-3.5 rounded-xl transition-colors group-hover:bg-indigo-600 group-hover:text-white"
+          >
+            <Bot size={16} /> {locale === 'ru' ? 'AI Ответ' : 'AI Răspuns'}
+          </button>
+        )}
       </div>
     </div>
   );
