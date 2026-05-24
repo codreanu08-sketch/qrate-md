@@ -1,17 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Script from 'next/script';
 import FeedbackForm from './FeedbackForm';
 
-// Inițializare client server Supabase
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Forțăm Next.js să citească searchParams (parametrul ?employee=...) live la fiecare scanare de QR
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
-  searchParams: Promise<{ employee?: string }>; // <-- Fixat: Schimbat în 'employee' pentru a se potrivi exact cu QR-ul (?employee=...)
+  searchParams: Promise<{ employee?: string }>;
 }
 
 // 1. GENERATOR DINAMIC DE METADATE SEO (Executat pe Server)
@@ -19,7 +15,6 @@ export async function generateMetadata({ params }: PageProps) {
   const { slug, locale } = await params;
   const isRo = locale === 'ro';
 
-  // Extragem numele curat al companiei din slug sau baza ta de date
   const companyName = slug.replace(/-/g, ' ').toUpperCase();
 
   const title = isRo 
@@ -43,9 +38,9 @@ export async function generateMetadata({ params }: PageProps) {
 
 // 2. PAGINA SERVER COMPONENT
 export default async function PublicFeedbackPage({ params, searchParams }: PageProps) {
-  // Pasul 2: Așteptăm (await) rezolvarea ambelor promisiuni din Next.js
+  // Așteptăm rezolvarea promisiunilor Next.js
   const { slug, locale } = await params;
-  const { employee: employeeId } = await searchParams; // <-- Fixat: Citim cheia 'employee' din URL și o redenumim ca 'employeeId'
+  const { employee: employeeId } = await searchParams;
 
   // Validare limbă acceptată
   if (locale !== 'ro' && locale !== 'ru') {
@@ -54,7 +49,7 @@ export default async function PublicFeedbackPage({ params, searchParams }: PageP
 
   const companyName = slug.replace(/-/g, ' ').toUpperCase();
 
-  // Date structurate Google LocalBusiness Schema pentru steluțe în căutări
+  // Date structurate Google LocalBusiness Schema
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -69,18 +64,18 @@ export default async function PublicFeedbackPage({ params, searchParams }: PageP
 
   return (
     <>
-      {/* Injectare JSON-LD Direct în document pentru SEO perfect */}
+      {/* Injectare JSON-LD pentru Google */}
       <Script
         id="schema-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       
-      {/* Pasul 3: Pasăm employeeId primit corect din URL în componenta client */}
+      {/* Pasăm datele curate către componenta Client */}
       <FeedbackForm 
         slug={slug} 
         locale={locale as 'ro' | 'ru'} 
-        employeeId={employeeId} 
+        employeeId={employeeId || undefined} 
       />
     </>
   );
