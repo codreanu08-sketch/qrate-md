@@ -154,7 +154,8 @@
     "wordQuality": "качество",
     "wordGood": "хорошо",
     "wordTime": "время",
-    "reply_whatsapp": "Ответить в WhatsApp"
+    "reply_whatsapp": "Ответить в WhatsApp",
+    "ai_reply": "AI Ответ"
   },
   "Settings": {
     "title": "Настройки аккаунта",
@@ -197,7 +198,7 @@
     }
   },
   "Subscription": {
-    "title": "ЕЖЕМЕСЯЧНАЯ ЛИЦЕНЗИЯ",
+    "title": "ЕЖЕМЕСЯЧНАЯ LИЦЕНЗИЯ",
     "subtitle": "КОНФИГУРАТОР QRATE",
     "configurator": {
       "locations_label": "КОЛИЧЕСТВО ЛОКАЦИЙ",
@@ -207,7 +208,7 @@
     "plans": {
       "standard": {
         "name": "План Start",
-        "price_label": "ЕЖЕМЕСЯЧНАЯ ЛИЦЕНЗИЯ",
+        "price_label": "ЕЖЕМЕСЯЧНАЯ LИЦЕНЗИЯ",
         "desc": "{count, plural, one {# локация} few {# локации} other {# локаций}}",
         "features": {
           "locations": "1 Уникальная локация",
@@ -221,9 +222,9 @@
       },
       "enterprise": {
         "name": "План Pro",
-        "price_label": "ЕЖЕМЕСЯЧНАЯ ЛИЦЕНЗИЯ",
+        "price_label": "ЕЖЕМЕСЯЧНАЯ LИЦЕНЗИЯ",
         "features": {
-          "all_start": "Все функции плана Start включены",
+          "all_start": "Все функции plana Start включены",
           "management": "Управление филиалами (Добавление и контроль нескольких локаций)",
           "unlimited_employees": "Абсолютно безлимитное количество сотрудников",
           "realtime_stats": "Статистика в реальном времени и умные графики эффективности",
@@ -241,9 +242,9 @@
     },
     "stickers": {
       "title": "QR СТИКЕРЫ И ДЕРЖАТЕЛИ",
-      "subtitle": "ФИЗИЧЕСКИЕ МАТЕРИАЛЫ ДЛЯ ЛОКАЦИЙ",
+      "subtitle": "ФИЗИЧЕСКИЕ МАТЕРИАЛЫ ДЛЯ LОКАЦИЙ",
       "quantity": "КОЛИЧЕСТВО",
-      "total_pay": "ИТОГО К ОПЛАТЕ"
+      "total_pay": "ИТОГО К ОПLАТЕ"
     },
     "summary": {
       "title": "ДЕТАЛИ ЗАКАЗА",
@@ -252,7 +253,7 @@
       "extra_emps_item": "Дополнительные сотрудники",
       "stickers_item": "QR Стикеры",
       "stickers_desc": "{count, plural, one {# штука} few {# штуки} other {# штук}} включено в заказ",
-      "total_today": "ИТОГО К ОПЛАТЕ СЕГОДНЯ",
+      "total_today": "ИТОГО К ОПLАТЕ СЕГОДНЯ",
       "refunded_total": "СУММА ВОЗВРАТА",
       "confirm_btn": "ПОДТВЕРДИТЬ ЗАКАЗ",
       "footer_brand": "QRATE.MD — ВСЕ ПРАВА ЗАЩИЩЕНЫ"
@@ -286,7 +287,7 @@
       "invoice_title": "Детальный Суммарный Отчет",
       "invoice_next_cost": "Стоимость новой подписки (автосписание со следующего месяца):",
       "invoice_software_pack": "Пакет Программного Обеспечения QRate",
-      "invoice_total_today": "ИТОГО К ОПЛАТЕ СЕГОДНЯ",
+      "invoice_total_today": "ИТОГО К ОПLАТЕ СЕГОДНЯ",
       "btn_pay_difference": "Оплатить разницу",
       "btn_go_to_payment": "Перейти к оплате",
       "btn_save_changes": "Сохранить изменения"
@@ -411,7 +412,7 @@
         "enterprise_activated": "Мод Pro Активирован"
       },
       "stickers": {
-        "title": "Заказ Физических QR-Стикеров",
+        "title": "Заказ Фического материала",
         "subtitle": "Печать уникальных кодов от 500 штук (0.33 MDL / стикер)",
         "quantity": "Количество",
         "cost_production": "Стоимость Производства"
