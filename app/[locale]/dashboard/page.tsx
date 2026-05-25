@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // === RESTUL DASHBOARD-ULUI (DOAR DACĂ ABONAMENTUL ESTE ACTIV) ===
+  // === RESTUL CODULUI TĂU ORIGINAL (FĂRĂ MODIFICĂRI) ===
 
   const calculateChurnRisk = () => {
     const negative = allReviews.filter(r => r.rating <= 2).length;
@@ -269,7 +269,7 @@ export default function AdminDashboardPage() {
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'poka', 'daже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'один', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -329,7 +329,7 @@ export default function AdminDashboardPage() {
           
           <div className="flex items-center gap-2">
             <button onClick={runAudit} title={t('syncTooltip')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center">
-              <RefreshWc size={18}/>
+              <RefreshCw size={18}/>
             </button>
             <button onClick={() => exportReviewsToCSV(filteredReviews)} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-200 hover:shadow-lg hover:-translate-y-0.5">
               <Download size={16} /> {t('navExportBtn')}
