@@ -19,11 +19,16 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    const { data: profile } = await supabase
+    // Verificare mai strictă
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('subscription_status, subscription_ends_at')
       .eq('id', user.id)
       .single();
+
+    if (error) {
+      console.error("Eroare la verificarea subscription:", error);
+    }
 
     const isActive = profile?.subscription_status === 'active' && 
                     (!profile?.subscription_ends_at || new Date(profile.subscription_ends_at) > new Date());
