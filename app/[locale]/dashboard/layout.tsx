@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation'; // Am adăugat usePathname pentru verificarea URL-ului
 import { supabase } from '@/lib/supabase';
 import { Lock, RefreshCw } from 'lucide-react';
 
@@ -14,6 +14,7 @@ export default function DashboardLayout({
 }) {
   const params = use(paramsPromise);
   const router = useRouter();
+  const pathname = usePathname(); // Obținem ruta curentă (ex: /ro/dashboard/subscription)
   const locale = params?.locale || 'ro';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
@@ -47,7 +48,11 @@ export default function DashboardLayout({
     );
   }
 
-  if (hasAccess === false) {
+  // Verificăm dacă utilizatorul se află în acest moment pe pagina de plată/abonament
+  const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
+
+  // Dacă NU are acces, dar vrea să intre pe pagina de abonament, îl lăsăm să treacă (hasAccess === false dar !isSubscriptionPage devine false)
+  if (hasAccess === false && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
         <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full animate-in fade-in zoom-in-95 duration-300">
@@ -79,5 +84,6 @@ export default function DashboardLayout({
     );
   }
 
+  // Dacă are acces PRO/Trial SAU se află pe pagina de subscription, randează conținutul paginii solicitate
   return <>{children}</>;
 }
