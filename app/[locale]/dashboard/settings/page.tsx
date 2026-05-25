@@ -151,7 +151,7 @@ export default function SettingsPage() {
       a.click();
       a.remove();
     } catch (err: any) {
-      alert(locale === 'ru' ? "Скачивание не удалось: Проверьте istoria plăților." : "Descărcare eșuată: Verifică istoria plăților.");
+      alert(locale === 'ru' ? "Скачивание не удалось: Проверьте историю оплат." : "Descărcare eșuată: Verifică istoria plăților.");
     } finally {
       setDownloading(false);
     }
@@ -176,28 +176,28 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto text-slate-900 animate-in fade-in duration-500">
-      <header className="mb-10">
-        <h1 className="text-4xl font-black tracking-tighter uppercase flex items-center gap-3">
-          <Settings className="text-blue-600" size={36} />
+    <div className="p-4 md:p-8 max-w-4xl mx-auto text-slate-900">
+      <header className="mb-8 md:mb-10">
+        <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase flex items-center gap-3">
+          <Settings className="text-blue-600" size={32} />
           {t?.title || "Setări Cont"}
         </h1>
-        <p className="text-slate-500 font-medium text-lg mt-1">{t?.subtitle || "Gestionează notificările și datele fiscale"}</p>
+        <p className="text-slate-500 font-medium text-base md:text-lg mt-1">{t?.subtitle || "Gestionează notificările și datele fiscale"}</p>
       </header>
 
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8">
         
         {/* TELEGRAM */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-10">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-4 bg-blue-50 rounded-2xl text-blue-600 shadow-sm"><Smartphone size={28} /></div>
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 md:p-10">
+          <div className="flex items-center gap-4 mb-6 md:mb-8">
+            <div className="p-3 md:p-4 bg-blue-50 rounded-2xl text-blue-600"><Smartphone size={24} /></div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight">{t?.telegram?.title || "Notificări Telegram"}</h2>
+              <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">{t?.telegram?.title || "Notificări Telegram"}</h2>
               <p className="text-sm text-slate-500 font-medium">{t?.telegram?.desc || "Primește alerte instantanee la fiecare recenzie nouă"}</p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8 bg-slate-50/60 p-6 rounded-[1.8rem] border border-slate-100">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8 bg-slate-50/60 p-4 md:p-6 rounded-3xl border border-slate-100">
             <div className="space-y-2">
               <span className="inline-block px-3 py-1 bg-blue-600 text-white font-black text-[10px] uppercase rounded-full tracking-wider">
                 {locale === 'ru' ? 'Шаг 1' : 'Pasul 1'}
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                 href={`https://t.me/${BOT_USERNAME}`} 
                 target="_blank" 
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 mt-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95"
+                className="inline-flex items-center gap-2 mt-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 w-full md:w-auto justify-center"
               >
                 <Send size={14} />
                 {locale === 'ru' ? 'Запустить Бота (START)' : 'Pornește Botul (START)'}
@@ -230,12 +230,11 @@ export default function SettingsPage() {
               <p className="text-xs text-slate-400 font-medium">
                 {locale === 'ru' ? 'Отправьте любое сообщение боту' : 'Trimite orice mesaj la botul'}{' '}
                 <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-blue-600 underline font-bold">@userinfobot</a>
-                {locale === 'ru' ? ', чтобы получить цифровой ID.' : ' pentru a primi ID-ul tău numeric.'}
               </p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
             <div className="space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-2">
                 {locale === 'ru' ? 'Ваш Telegram Chat ID' : 'Telegram Chat ID-ul tău'}
@@ -244,10 +243,10 @@ export default function SettingsPage() {
                 type="text" value={telegramId}
                 onChange={(e) => setTelegramId(e.target.value)}
                 placeholder="Ex: 890236835"
-                className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:border-blue-500 focus:ring-4 ring-blue-500/10 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner"
+                className="w-full p-4 md:p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 focus:ring-4 ring-blue-500/10 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner"
               />
             </div>
-            <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-5 rounded-[1.5rem] border border-blue-100 flex items-center self-end h-[68px]">
+            <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-4 md:p-5 rounded-2xl border border-blue-100 flex items-center h-auto md:h-[68px]">
               ✨ {locale === 'ru' 
                 ? 'После сохранения вы будете получать мгновенные уведомления о качестве сервиса.' 
                 : 'După salvare, vei primi notificări instantanee despre calitatea serviciilor tale.'}
@@ -256,24 +255,27 @@ export default function SettingsPage() {
         </div>
 
         {/* DATE FACTURARE */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
-          <div className="flex items-center justify-between mb-10">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 md:p-10">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600 shadow-sm"><Building2 size={28} /></div>
+              <div className="p-3 md:p-4 bg-emerald-50 rounded-2xl text-emerald-600"><Building2 size={24} /></div>
               <div>
-                <h2 className="text-xl font-black uppercase tracking-tight">{t?.billing?.title || "Date de Facturare"}</h2>
+                <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">{t?.billing?.title || "Date de Facturare"}</h2>
                 <p className="text-sm text-slate-500 font-medium mt-1">{t?.billing?.desc || "Setează datele firmei tale pentru facturile fiscale"}</p>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer scale-110">
-              <input type="checkbox" className="sr-only peer" checked={isLegalEntity} onChange={() => setIsLegalEntity(!isLegalEntity)} />
-              <div className="w-12 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-emerald-500"></div>
-              <span className="ml-3 text-[11px] font-black text-slate-600 uppercase tracking-widest">{t?.billing?.legal_toggle || "Persoană Juridică"}</span>
-            </label>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">{t?.billing?.legal_toggle || "Persoană Juridică"}</span>
+              <label className="relative inline-flex items-center cursor-pointer scale-110">
+                <input type="checkbox" className="sr-only peer" checked={isLegalEntity} onChange={() => setIsLegalEntity(!isLegalEntity)} />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
           </div>
 
-          <div className="space-y-8">
-            <div className="grid md:grid-cols-2 gap-8 animate-in zoom-in-95 duration-300">
+          <div className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-5 md:gap-6">
               {isLegalEntity && (
                 <>
                   <BillingInput label="Denumirea companiei" value={billingData.company_name} onChange={(v) => setBillingData({...billingData, company_name: v})} placeholder="Ex: QRate Solutions S.R.L." />
@@ -296,9 +298,9 @@ export default function SettingsPage() {
             </div>
 
             {!isLegalEntity && (
-              <div className="p-10 bg-blue-50/30 rounded-[2rem] border-2 border-dashed border-blue-100 flex flex-col items-center text-center gap-4">
+              <div className="p-8 md:p-10 bg-blue-50/30 rounded-3xl border-2 border-dashed border-blue-100 flex flex-col items-center text-center gap-4">
                 <div className="p-4 bg-white rounded-full shadow-md text-blue-500">
-                  <Sparkles size={32} />
+                  <Sparkles size={28} />
                 </div>
                 <div>
                   <p className="text-sm font-black text-blue-900 uppercase tracking-widest">Abonament activ ca Persoană Fizică</p>
@@ -308,12 +310,12 @@ export default function SettingsPage() {
             )}
 
             {isLegalEntity && (
-              <div className="pt-6 border-t border-slate-100 flex justify-start">
+              <div className="pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={handleDownloadInvoice}
                   disabled={downloading}
-                  className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600 font-bold rounded-xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600 font-bold rounded-2xl text-xs uppercase tracking-wider transition-all disabled:opacity-50"
                 >
                   {downloading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
                   {t?.billing?.download_latest || "Descarcă Ultima Factură (PDF)"}
@@ -324,25 +326,25 @@ export default function SettingsPage() {
         </div>
 
         {/* SECURITATE */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10 flex items-center justify-between">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 md:p-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="p-4 bg-slate-50 rounded-2xl text-slate-600 shadow-sm"><Shield size={28} /></div>
+            <div className="p-3 md:p-4 bg-slate-50 rounded-2xl text-slate-600"><Shield size={24} /></div>
             <div>
-              <h2 className="text-xl font-black uppercase tracking-tight">{t?.security?.title || "Securitate Cont"}</h2>
+              <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">{t?.security?.title || "Securitate Cont"}</h2>
               <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">{userEmail}</p>
             </div>
           </div>
-          <button onClick={handleResetPassword} className="px-8 py-4 border-2 border-slate-100 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all active:scale-95">
+          <button onClick={handleResetPassword} className="w-full md:w-auto px-6 py-3 border-2 border-slate-100 rounded-2xl text-xs font-black uppercase tracking-widest hover:border-blue-500 hover:text-blue-600 transition-all active:scale-95">
             {t?.security?.reset_btn || "Schimbă Parola"}
           </button>
         </div>
 
         {/* FOOTER SAVE */}
-        <div className="flex items-center justify-between pt-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4">
           <div className="flex items-center gap-3">
             {showSavedSuccess && (
-              <div className="flex items-center gap-2 text-emerald-600 animate-bounce">
-                <CheckCircle size={20} />
+              <div className="flex items-center gap-2 text-emerald-600">
+                <CheckCircle size={18} />
                 <span className="text-xs font-black uppercase tracking-widest">{t?.alerts?.saved_success || "Modificări Salvate!"}</span>
               </div>
             )}
@@ -350,9 +352,9 @@ export default function SettingsPage() {
           <button 
             onClick={handleSave}
             disabled={saving}
-            className="bg-slate-900 text-white px-12 py-6 rounded-[2rem] font-black uppercase text-[12px] tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center gap-3 active:scale-95"
+            className="w-full md:w-auto bg-slate-900 text-white px-10 py-4 md:py-5 rounded-3xl font-black uppercase text-xs tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center justify-center gap-2 active:scale-95"
           >
-            {saving ? <Loader2 className="animate-spin" size={20} /> : <><Save size={20} /> {t?.save_btn || "Salvează Modificările"}</>}
+            {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> {t?.save_btn || "Salvează Modificările"}</>}
           </button>
         </div>
       </div>
@@ -370,11 +372,11 @@ interface BillingInputProps {
 
 function BillingInput({ label, value, onChange, placeholder, icon }: BillingInputProps) {
   return (
-    <div className="space-y-2 relative w-full">
-      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-2">{label}</label>
+    <div className="space-y-1.5">
+      <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">{label}</label>
       <div className="relative flex items-center">
         {icon && (
-          <div className="absolute left-5 text-slate-400 pointer-events-none z-10 flex items-center justify-center">
+          <div className="absolute left-4 text-slate-400 pointer-events-none z-10">
             {icon}
           </div>
         )}
@@ -383,7 +385,7 @@ function BillingInput({ label, value, onChange, placeholder, icon }: BillingInpu
           value={value} 
           onChange={(e) => onChange(e.target.value)} 
           placeholder={placeholder}
-          className={`w-full p-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:border-emerald-500 focus:ring-4 ring-emerald-500/10 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner ${icon ? 'pl-12' : ''}`} 
+          className={`w-full p-4 md:p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-emerald-500 focus:ring-4 ring-emerald-500/10 outline-none font-bold text-base transition-all placeholder:text-slate-300 shadow-inner ${icon ? 'pl-11' : ''}`} 
         />
       </div>
     </div>
