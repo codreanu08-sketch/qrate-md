@@ -1,48 +1,56 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const review = body.reviewData || body;
 
-    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-    if (!BOT_TOKEN) {
-      return NextResponse.json({ error: "TELEGRAM_BOT_TOKEN lipsește!" }, { status: 500 });
+    // === Găsește Chat ID-ul corect al companiei ===
+    let CHAT_ID = null;
+
+    if (review.company_id) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('telegram_chat_id')
+        .eq('id', review.company_id)
+        .maybeSingle();
+
+      if (company?.telegram_chat_id) {
+        CHAT_ID = company.telegram_chat_id;
+      }
     }
 
-    // Determinăm Chat ID-ul
-    let CHAT_ID = review.telegram_chat_id || '890236835';
+    // Fallback (doar pentru test)
+    if (!CHAT_ID) CHAT_ID = '890236835';
 
+    // === Construiește mesajul complet ===
     const rating = Number(review.rating) || 5;
     const stars = '⭐️'.repeat(rating);
 
-    const message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n⭐ Rating: ${stars}\n👤 Client: ${review.full_name || 'Anonim'}`;
+    let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n`;
+    message += `==========================\n`;
+    message += `⭐ <b>Rating:</b> ${stars} (${rating}/5)\n`;
+    message += `👤 <b>Client:</b> ${review.full_name || 'Client Anonim'}\n`;
+    
+    if (review.phone) message += `📞 <b>Telefon:</b> ${review.phone}\n`;
+    if (review.comment) message += `💬 <b>Comentariu:</b> "${review.comment}"\n`;
+    message += `==========================`;
 
-    // Trimitem direct către Telegram
-    const telegramResponse = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: CHAT_ID,
-          text: message,
-          parse_mode: 'HTML'
-        })
-      }
-    );
+    // === Salvează în coadă (pentru procesare sigură) ===
+    await supabase.from('telegram_messages_queue').insert({
+      chat_id: CHAT_ID,
+      message_text: message,
+      photo_url: review.photo_url || null,
+      status: 'pending'
+    });
 
-    const result = await telegramResponse.json();
-
-    if (!result.ok) {
-      console.error("Eroare Telegram:", result);
-      return NextResponse.json({ 
-        success: false, 
-        telegram_error: result.description 
-      }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: true, message: "Trimis direct către Telegram" });
+    return NextResponse.json({ success: true });
 
   } catch (error: any) {
     console.error(error);
