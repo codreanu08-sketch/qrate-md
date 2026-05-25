@@ -6,7 +6,8 @@ import { useTranslations } from 'next-intl';
 import { 
   Star, MapPin, User, MessageCircle, Zap, Trophy, Clock, 
   Award, Download, RefreshCw, Bot, Copy, Check, TrendingUp, 
-  AlertTriangle, Send, BarChart3, BrainCircuit, Smartphone
+  AlertTriangle, Send, BarChart3, BrainCircuit, Smartphone,
+  Lock, CreditCard
 } from 'lucide-react';
 
 interface Review {
@@ -32,10 +33,67 @@ export default function AdminDashboardPage() {
   const [liveEvent, setLiveEvent] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+  const [isSubscriptionActive, setIsSubscriptionActive] = useState(true);
 
   const [selLocation, setSelLocation] = useState('all');
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
+
+  // === VERIFICARE SUBSCRIPTION ===
+  useEffect(() => {
+    async function checkSubscription() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id, subscription_status, subscription_ends_at')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (company) {
+        setCompanyId(company.id);
+        
+        const isActive = company.subscription_status === 'active' && 
+                        (!company.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
+        
+        setIsSubscriptionActive(isActive);
+      }
+    }
+    checkSubscription();
+  }, []);
+
+  // === DACĂ ABONAMENTUL ESTE EXPIRAT ===
+  if (!isSubscriptionActive) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-3xl p-10 text-center border border-slate-200 shadow-xl">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock size={40} className="text-red-500" />
+          </div>
+          
+          <h1 className="text-3xl font-black text-slate-900 mb-4">Abonament Expirat</h1>
+          <p className="text-slate-600 mb-8 leading-relaxed">
+            Perioada de trial s-a încheiat. Pentru a continua să folosești QRate, te rugăm să reînnoiești abonamentul.
+          </p>
+
+          <button 
+            onClick={() => window.location.href = '/pricing'}
+            className="w-full bg-slate-900 hover:bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
+          >
+            <CreditCard size={20} />
+            Reînnoiește Abonamentul
+          </button>
+
+          <p className="text-xs text-slate-400 mt-6">
+            Ai întrebări? Contactează-ne la <a href="mailto:support@qrate.md" className="text-blue-600 underline">support@qrate.md</a>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // === RESTUL DASHBOARD-ULUI (DOAR DACĂ ABONAMENTUL ESTE ACTIV) ===
 
   const calculateChurnRisk = () => {
     const negative = allReviews.filter(r => r.rating <= 2).length;
@@ -211,7 +269,7 @@ export default function AdminDashboardPage() {
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'один', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'poka', 'daже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -271,7 +329,7 @@ export default function AdminDashboardPage() {
           
           <div className="flex items-center gap-2">
             <button onClick={runAudit} title={t('syncTooltip')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center">
-              <RefreshCw size={18}/>
+              <RefreshWc size={18}/>
             </button>
             <button onClick={() => exportReviewsToCSV(filteredReviews)} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-200 hover:shadow-lg hover:-translate-y-0.5">
               <Download size={16} /> {t('navExportBtn')}
