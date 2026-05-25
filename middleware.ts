@@ -7,24 +7,29 @@ const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  
-  // Verificăm dacă e rută de dashboard (indiferent de limbă)
   const isDashboardRoute = pathname.includes('/dashboard');
 
-  let response = NextResponse.next();
+  let response = NextResponse.next({ request });
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) { return request.cookies.get(name)?.value; },
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
+        },
       },
     }
   );
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  // Dacă e dashboard și nu e logat → login
   if (isDashboardRoute && !session) {
     return NextResponse.redirect(new URL('/ro/auth/login', request.url));
   }
