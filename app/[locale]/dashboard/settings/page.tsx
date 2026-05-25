@@ -37,7 +37,8 @@ export default function SettingsPage() {
     billing_email: ''
   });
 
-  const BOT_USERNAME = "QRateBot"; 
+  // === FIX: Numele corect al botului ===
+  const BOT_USERNAME = "Qrate_bot"; 
 
   useEffect(() => {
     async function loadSettings() {
@@ -72,21 +73,18 @@ export default function SettingsPage() {
     loadSettings();
   }, []);
 
-  // ==================== HANDLE SAVE CU FIX PENTRU NAME + SLUG ====================
   const handleSave = async () => {
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
 
-      // 1. Obținem datele curente ale companiei
       const { data: currentCompany } = await supabase
         .from('companies')
         .select('slug, name')
         .eq('owner_id', session.user.id)
         .maybeSingle();
 
-      // 2. Generăm slug dacă nu există
       let slug = currentCompany?.slug;
       if (!slug) {
         const { data: { user } } = await supabase.auth.getUser();
@@ -103,10 +101,8 @@ export default function SettingsPage() {
           "-" + Math.random().toString(36).substring(2, 8);
       }
 
-      // 3. Determinăm numele companiei
       const companyName = billingData.company_name || currentCompany?.name || "Compania Mea";
 
-      // 4. Pregătim datele
       const billingPayload = {
         is_legal_entity: isLegalEntity,
         company_name: billingData.company_name,
@@ -120,7 +116,7 @@ export default function SettingsPage() {
 
       const updatePayload = { 
         [userIdKey]: session.user.id,
-        name: companyName,                    // ← FIX PENTRU EROAREA "name"
+        name: companyName,
         telegram_chat_id: telegramId,
         billing_details: billingPayload,
         slug: slug
