@@ -19,21 +19,18 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    // Verificare mai strictă
-    const { data: profile, error } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_status, subscription_ends_at')
+      .select('is_subscribed, subscription_end')
       .eq('id', user.id)
       .single();
 
-    if (error) {
-      console.error("Eroare la verificarea subscription:", error);
-    }
+    // === LOGICA CORECTĂ PENTRU SISTEMUL TĂU ===
+    const isActive = 
+      profile?.is_subscribed === true ||                    // abonat plătit
+      profile?.subscription_end === null ||                 // încă în trial
+      (profile?.subscription_end && new Date(profile.subscription_end) > new Date()); // abonament activ
 
-    const isActive = profile?.subscription_status === 'active' && 
-                    (!profile?.subscription_ends_at || new Date(profile.subscription_ends_at) > new Date());
-
-    // === DACĂ ABONAMENTUL A EXPIRAT → BLOCHEZĂ TOTUL ===
     if (!isActive) {
       return (
         <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
@@ -60,7 +57,6 @@ export default async function DashboardLayout({
     }
   }
 
-  // === DACĂ ABONAMENTUL ESTE ACTIV → AFIȘĂM TOTUL NORMAL ===
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row relative bg-slate-50">
       <Sidebar />
