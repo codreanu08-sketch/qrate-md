@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, use } from 'react';
-import { useRouter, usePathname } from 'next/navigation'; // Am adăugat usePathname pentru verificarea URL-ului
+import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Lock, RefreshCw } from 'lucide-react';
 
@@ -14,7 +14,7 @@ export default function DashboardLayout({
 }) {
   const params = use(paramsPromise);
   const router = useRouter();
-  const pathname = usePathname(); // Obținem ruta curentă (ex: /ro/dashboard/subscription)
+  const pathname = usePathname();
   const locale = params?.locale || 'ro';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
@@ -28,12 +28,22 @@ export default function DashboardLayout({
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, created_at')
+        .select('subscription_tier, trial_started_at')
         .eq('id', user.id)
         .single();
 
       const isPro = profile?.subscription_tier === 'pro';
-      const isTrial = (new Date().getTime() - new Date(profile?.created_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+      
+      let isTrial = false;
+      if (profile?.trial_started_at) {
+        const trialDate = new Date(profile.trial_started_at).getTime();
+        const currentDate = new Date().getTime();
+        
+        if (!isNaN(trialDate)) {
+          const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+          isTrial = (currentDate - trialDate) < sevenDaysInMs;
+        }
+      }
       
       setHasAccess(isPro || isTrial);
     }
@@ -48,10 +58,8 @@ export default function DashboardLayout({
     );
   }
 
-  // Verificăm dacă utilizatorul se află în acest moment pe pagina de plată/abonament
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
-  // Dacă NU are acces, dar vrea să intre pe pagina de abonament, îl lăsăm să treacă (hasAccess === false dar !isSubscriptionPage devine false)
   if (hasAccess === false && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -84,6 +92,5 @@ export default function DashboardLayout({
     );
   }
 
-  // Dacă are acces PRO/Trial SAU se află pe pagina de subscription, randează conținutul paginii solicitate
   return <>{children}</>;
 }
