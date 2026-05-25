@@ -36,7 +36,7 @@ export default function Sidebar() {
       if (profile) {
         const signupDate = new Date(profile.created_at);
         const now = new Date();
-        const diffInDays = (now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24);
+        const diffInDays = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24));
         const remaining = Math.ceil(7 - diffInDays);
         const isPro = profile.subscription_tier === 'pro';
         
@@ -78,7 +78,6 @@ export default function Sidebar() {
     { name: tDashboard?.sidebar?.menu?.settings || 'Setări', href: `/${locale}/dashboard/settings`, icon: Settings },
   ], [tDashboard, locale]);
 
-  // Logout simplificat reutilizabil
   const handleSignOut = async () => {
     await supabase.auth.signOut(); 
     router.push(`/${locale}/auth/login`);
@@ -88,9 +87,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ========================================================================= */}
-      {/* VERSION 1: DESKTOP SIDEBAR (Apare doar de la ecrane md în sus)            */}
-      {/* ========================================================================= */}
+      {/* DESKTOP SIDEBAR */}
       <aside className="hidden md:flex w-72 bg-slate-50 h-screen fixed left-0 top-0 flex-col z-50 p-4 select-none">
         <div className="bg-white/80 backdrop-blur-md rounded-[2.5rem] border border-slate-200/50 shadow-xl shadow-slate-100/40 flex flex-col h-full overflow-hidden">
           
@@ -139,7 +136,7 @@ export default function Sidebar() {
             </nav>
           </div>
           
-          {/* TRIAL PREMIUM CARD */}
+          {/* TRIAL CARD */}
           {!loading && trialDays !== null && trialDays > 0 && (
             <div className="mx-4 mb-2 p-3.5 rounded-2xl bg-gradient-to-b from-rose-500/[0.03] to-transparent border border-rose-500/10 flex flex-col gap-2">
               <div className="flex items-center gap-2">
@@ -158,7 +155,7 @@ export default function Sidebar() {
             </div>
           )}
 
-          {/* IESIRE CONT */}
+          {/* LOGOUT */}
           <div className="p-4 border-t border-slate-100/80 bg-slate-50/30">
             <button onClick={handleSignOut} className="flex items-center justify-center gap-2.5 px-4 py-2.5 bg-white border border-slate-200/50 hover:border-rose-100 hover:bg-rose-50/20 text-slate-500 hover:text-rose-600 rounded-xl font-black transition-all duration-200 active:scale-[0.98] w-full shadow-xs group">
               <LogOut size={14} className="text-slate-400 group-hover:text-rose-500 transition-colors" strokeWidth={2} />
@@ -168,9 +165,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* ========================================================================= */}
-      {/* VERSION 2: MOBILE MOBILE BOTTOM NAVIGATION (Apare doar pe telefoane)     */}
-      {/* ========================================================================= */}
+      {/* MOBILE BOTTOM NAV */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-2 py-1 shadow-[0_-10px_30px_rgba(0,0,0,0.04)] flex justify-around items-center select-none" aria-label="Navigare Mobil">
         {menuItems.map((item) => {
           const Icon = item.icon;
@@ -185,7 +180,7 @@ export default function Sidebar() {
             >
               <Icon size={20} className={`${isActive ? 'scale-110 text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive ? 2.5 : 2} />
               <span className="text-[9px] uppercase tracking-tighter mt-1 text-center truncate max-w-[55px]">
-                {item.name.split(' ')[0]} {/* Afișează doar primul cuvânt să nu aglomereze */}
+                {item.name.split(' ')[0]}
               </span>
               {isActive && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-blue-500 rounded-full" />
@@ -193,7 +188,6 @@ export default function Sidebar() {
             </Link>
           );
         })}
-        {/* Buton simplu de deconectare rapidă pe mobil */}
         <button onClick={handleSignOut} className="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400" title="Logout">
           <LogOut size={20} strokeWidth={2} />
           <span className="text-[9px] uppercase tracking-tighter mt-1">{locale === 'ru' ? 'Выйти' : 'Ieșire'}</span>

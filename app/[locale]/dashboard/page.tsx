@@ -39,25 +39,27 @@ export default function AdminDashboardPage() {
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
 
-  // === VERIFICARE SUBSCRIPTION ===
+  // === VERIFICARE SUBSCRIPTION (corectă) ===
   useEffect(() => {
     async function checkSubscription() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id, subscription_status, subscription_ends_at')
-        .eq('owner_id', user.id)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, created_at')
+        .eq('id', user.id)
         .single();
 
-      if (company) {
-        setCompanyId(company.id);
-        
-        const isActive = company.subscription_status === 'active' && 
-                        (!company.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
-        
-        setIsSubscriptionActive(isActive);
+      if (profile) {
+        const signupDate = new Date(profile.created_at);
+        const now = new Date();
+        const diffInDays = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24));
+
+        const isPro = profile.subscription_tier === 'pro';
+        const isInTrial = diffInDays < 7;
+
+        setIsSubscriptionActive(isPro || isInTrial);
       }
     }
     checkSubscription();
@@ -67,33 +69,29 @@ export default function AdminDashboardPage() {
   if (!isSubscriptionActive) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-3xl p-10 text-center border border-slate-200 shadow-xl">
+        <div className="max-w-md w-full bg-white rounded-3xl p-10 text-center border border-red-200 shadow-xl">
           <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Lock size={40} className="text-red-500" />
           </div>
           
           <h1 className="text-3xl font-black text-slate-900 mb-4">Abonament Expirat</h1>
           <p className="text-slate-600 mb-8 leading-relaxed">
-            Perioada de trial s-a încheiat. Pentru a continua să folosești QRate, te rugăm să reînnoiești abonamentul.
+            Perioada de trial (7 zile) a expirat. Pentru a continua să folosești QRate, te rugăm să activezi un abonament Pro.
           </p>
 
           <button 
-            onClick={() => window.location.href = '/pricing'}
-            className="w-full bg-slate-900 hover:bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
+            onClick={() => window.location.href = '/dashboard/subscription'}
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
           >
             <CreditCard size={20} />
-            Reînnoiește Abonamentul
+            Activează Abonament Pro
           </button>
-
-          <p className="text-xs text-slate-400 mt-6">
-            Ai întrebări? Contactează-ne la <a href="mailto:support@qrate.md" className="text-blue-600 underline">support@qrate.md</a>
-          </p>
         </div>
       </div>
     );
   }
 
-  // === RESTUL CODULUI TĂU ORIGINAL (FĂRĂ MODIFICĂRI) ===
+  // === RESTUL CODULUI (neschimbat) ===
 
   const calculateChurnRisk = () => {
     const negative = allReviews.filter(r => r.rating <= 2).length;
@@ -269,7 +267,7 @@ export default function AdminDashboardPage() {
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'же', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'один', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'него', 'до', 'вас', 'нибудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'один', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
