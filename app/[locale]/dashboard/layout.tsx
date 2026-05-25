@@ -19,22 +19,43 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
+    let isActive = false;
+
+    // === 1. Verificăm în PROFILES ===
     const { data: profile } = await supabase
       .from('profiles')
-      .select('subscription_tier, created_at')
+      .select('subscription_tier, created_at, is_subscribed, subscription_end')
       .eq('id', user.id)
       .single();
 
-    const signupDate = new Date(profile?.created_at || '');
-    const now = new Date();
-    const diffInDays = (now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24);
+    if (profile) {
+      const signupDate = new Date(profile.created_at || '');
+      const now = new Date();
+      const diffInDays = (now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24);
 
-    const isPro = profile?.subscription_tier === 'pro';
-    const isInTrial = diffInDays < 7;
+      const isPro = profile.subscription_tier === 'pro';
+      const isInTrial = diffInDays < 7;
+      const hasActiveSub = profile.is_subscribed === true || 
+                          (profile.subscription_end && new Date(profile.subscription_end) > now);
 
-    // === LOGICA FINALĂ ===
-    const isActive = isPro || isInTrial;
+      isActive = isPro || isInTrial || hasActiveSub;
+    }
 
+    // === 2. Dacă nu am găsit în profiles, verificăm în COMPANIES ===
+    if (!isActive) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('subscription_status, subscription_ends_at')
+        .eq('owner_id', user.id)
+        .single();
+
+      if (company) {
+        isActive = company.subscription_status === 'active' && 
+                  (!company.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
+      }
+    }
+
+    // === DACĂ NU E ACTIV → BLOCHEZĂ ===
     if (!isActive) {
       return (
         <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
@@ -45,7 +66,7 @@ export default async function DashboardLayout({
             
             <h1 className="text-3xl font-black text-slate-900 mb-4">Acces Blocat</h1>
             <p className="text-slate-600 mb-8">
-              Perioada de trial (7 zile) a expirat. Pentru a continua să folosești QRate, te rugăm să treci la planul Pro.
+              Abonamentul tău a expirat. Pentru a continua să folosești QRate, te rugăm să reînnoiești.
             </p>
 
             <a 
@@ -53,7 +74,7 @@ export default async function DashboardLayout({
               className="inline-flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
             >
               <CreditCard size={20} />
-              Activează Abonament Pro
+              Mergi la pagina de Abonament
             </a>
           </div>
         </div>
