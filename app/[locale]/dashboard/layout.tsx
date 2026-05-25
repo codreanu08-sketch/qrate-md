@@ -1,88 +1,84 @@
-import Sidebar from '@/components/Sidebar';
-import { createClient } from '@supabase/supabase-js';
-import { Lock, CreditCard, Settings } from 'lucide-react';
+'use client';
 
-export default async function DashboardLayout({
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
+import { Lock, RefreshCw } from 'lucide-react';
+
+export default function DashboardLayout({
   children,
-  params,
+  params
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
+  params: { locale: string };
 }) {
-  const { locale } = await params;
+  const router = useRouter();
+  const locale = params?.locale || 'ro';
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  useEffect(() => {
+    async function checkSubscription() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push(`/${locale}/login`);
+        return;
+      }
 
-  const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, created_at')
+        .eq('id', user.id)
+        .single();
 
-  let isActive = true;
+      const isPro = profile?.subscription_tier === 'pro';
+      const isTrial = (new Date().getTime() - new Date(profile?.created_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+      
+      setHasAccess(isPro || isTrial);
+    }
+    checkSubscription();
+  }, [router, locale]);
 
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('subscription_tier, created_at')
-      .eq('id', user.id)
-      .single();
-
-    const signupDate = new Date(profile?.created_at || '');
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24));
-
-    const isPro = profile?.subscription_tier === 'pro';
-    const isInTrial = diffInDays < 7;
-    isActive = isPro || isInTrial;
+  if (hasAccess === null) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <RefreshCw className="animate-spin text-indigo-600" size={32} />
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen w-full flex flex-col md:flex-row relative bg-slate-50">
-      <Sidebar />
-      
-      <div className="flex-1 w-full min-w-0 flex flex-col pl-0 md:pl-72 pb-20 md:pb-0 overflow-x-hidden">
-        <main className="flex-1 p-4 sm:p-6 md:p-8 w-full max-w-full overflow-x-hidden">
-          
-          {!isActive ? (
-            // === PAGINĂ BLOCATĂ (cu Sidebar vizibil) ===
-            <div className="flex items-center justify-center min-h-[70vh]">
-              <div className="max-w-md w-full bg-white rounded-3xl p-10 text-center border border-red-200 shadow-xl">
-                <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Lock size={44} className="text-red-500" />
-                </div>
-                
-                <h1 className="text-3xl font-black text-slate-900 mb-4">Abonament Expirat</h1>
-                <p className="text-slate-600 mb-8">
-                  Perioada de trial a expirat.<br />
-                  Poți accesa doar <strong>Setări</strong> și <strong>Abonament</strong>.
-                </p>
-
-                <div className="space-y-3">
-                  <a 
-                    href={`/${locale}/dashboard/settings`}
-                    className="flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
-                  >
-                    <Settings size={20} />
-                    Mergi la Setări
-                  </a>
-
-                  <a 
-                    href={`/${locale}/dashboard/subscription`}
-                    className="flex items-center justify-center gap-2 w-full border border-slate-300 hover:bg-slate-50 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
-                  >
-                    <CreditCard size={20} />
-                    Vezi Abonamente
-                  </a>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // === DASHBOARD NORMAL ===
-            children
-          )}
-          
-        </main>
+  // Dacă NU are acces, blocăm TOT dashboard-ul și toate sub-paginile lui
+  if (hasAccess === false) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
+        <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full animate-in fade-in zoom-in-95 duration-300">
+          <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50">
+            <Lock size={40} className="stroke-[2.5]" />
+          </div>
+          <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">
+            Funcționalitate Premium Limitată
+          </h1>
+          <p className="text-slate-600 font-medium text-base mb-8 max-w-md mx-auto leading-relaxed">
+            Accesul la secțiunile de analiză, gestionare angajați și setări avansate este disponibil doar în versiunea **PRO**.
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => router.push(`/${locale}/subscription`)} 
+              className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
+            >
+              Upgrade la Planul Pro
+            </button>
+            <button 
+              onClick={() => router.push(`/${locale}/`)} 
+              className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              Înapoi la Pagina Principală
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Dacă are acces, randează pagina solicitată
+  return <>{children}</>;
 }
