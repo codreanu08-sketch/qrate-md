@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
 import { 
   Star, MapPin, User, MessageCircle, Zap, Trophy, Clock, 
   Award, Download, RefreshCw, Bot, Copy, Check, TrendingUp, 
-  AlertTriangle, Send, BarChart3, BrainCircuit, Smartphone
+  AlertTriangle, BrainCircuit, Smartphone, Lock, BarChart3
 } from 'lucide-react';
 
 interface Review {
@@ -21,14 +22,17 @@ interface Review {
   locations: { name: string } | null;
 }
 
-export default function AdminDashboardPage() {
+export default function AdminDashboardPage({ params }: { params: { locale: string } }) {
   const t = useTranslations('Dashboard');
+  const router = useRouter();
+  const locale = params?.locale || 'ro';
   
   const [allReviews, setAllReviews] = useState<Review[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [liveEvent, setLiveEvent] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
@@ -37,6 +41,7 @@ export default function AdminDashboardPage() {
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
 
+  // --- LOGICĂ AUDIT & METRICI ---
   const calculateChurnRisk = () => {
     const negative = allReviews.filter(r => r.rating <= 2).length;
     return allReviews.length > 0 ? ((negative / allReviews.length) * 100).toFixed(0) : 0;
@@ -128,6 +133,7 @@ export default function AdminDashboardPage() {
     }
   }, [selPeriod]);
 
+  // --- SUBADOARE ÎN TIMP REAL (REALTIME) ---
   useEffect(() => {
     if (!companyId) return;
     const channel = supabase
@@ -153,6 +159,39 @@ export default function AdminDashboardPage() {
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
+  // --- INITIALIZARE PROFILE, ACCES ȘI DATE ---
+  useEffect(() => {
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push(`/${locale}/login`);
+        return;
+      }
+
+      // Verificare drepturi abonament
+      const { data: profile } = await supabase.from('profiles').select('subscription_tier, created_at').eq('id', user.id).single();
+      const isPro = profile?.subscription_tier === 'pro';
+      const isTrial = (new Date().getTime() - new Date(profile?.created_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+      setHasAccess(isPro || isTrial);
+
+      // Încărcare date companie
+      const { data: company } = await supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle();
+      if (company) {
+        setCompanyId(company.id);
+        const [emp, loc] = await Promise.all([
+          supabase.from('employees').select('id, name').eq('company_id', company.id),
+          supabase.from('locations').select('id, name').eq('company_id', company.id)
+        ]);
+        setEmployees(emp.data || []);
+        setLocations(loc.data || []);
+      }
+    }
+    init();
+  }, [router, locale]);
+
+  useEffect(() => { if (companyId) fetchBaseReviews(companyId); }, [companyId, fetchBaseReviews]);
+
+  // --- FILTRARE ȘI ANALYTICS ---
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
@@ -211,7 +250,7 @@ export default function AdminDashboardPage() {
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'было', 'вот', 'от', 'меня', 'еще', 'о', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'ему', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -231,30 +270,39 @@ export default function AdminDashboardPage() {
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, employees, locations, t]);
 
-  useEffect(() => {
-    async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: company } = await supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle();
-      if (company) {
-        setCompanyId(company.id);
-        const [emp, loc] = await Promise.all([
-          supabase.from('employees').select('id, name').eq('company_id', company.id),
-          supabase.from('locations').select('id, name').eq('company_id', company.id)
-        ]);
-        setEmployees(emp.data || []);
-        setLocations(loc.data || []);
-      }
-    }
-    init();
-  }, []);
-
-  useEffect(() => { if (companyId) fetchBaseReviews(companyId); }, [companyId, fetchBaseReviews]);
+  if (loading && hasAccess === null) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <RefreshCw className="animate-spin text-indigo-600" size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 font-sans pb-24 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
       <div className="max-w-7xl mx-auto space-y-8">
         
+        {/* BANNER NOTIFICARE PLAN GRATUIT */}
+        {hasAccess === false && (
+          <div className="bg-amber-50 border-2 border-amber-200 p-6 rounded-3xl flex flex-col md:flex-row items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex items-center gap-4 mb-4 md:mb-0">
+              <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl">
+                <Lock size={24} />
+              </div>
+              <div>
+                <h4 className="font-black text-amber-900 text-base">Versiunea Gratuită (Acces Limitat)</h4>
+                <p className="text-sm text-amber-700 font-medium">Faceți upgrade la abonamentul Pro pentru a debloca analize detaliate pe termen lung și funcții AI avansate.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => router.push(`/${locale}/pricing`)} 
+              className="w-full md:w-auto text-center bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-amber-200 active:scale-95"
+            >
+              Upgrade Now
+            </button>
+          </div>
+        )}
+
         {/* NAV BAR */}
         <nav className={`bg-white/90 backdrop-blur-xl sticky top-4 z-50 rounded-2xl p-4 border flex flex-col md:flex-row md:items-center justify-between shadow-sm transition-all duration-500 gap-4 ${liveEvent ? 'border-emerald-400 ring-4 ring-emerald-50' : 'border-slate-200'}`}>
           <div className="flex items-center gap-3 px-2">
