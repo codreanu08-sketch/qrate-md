@@ -11,7 +11,7 @@ export default async function DashboardLayout({
 }) {
   const { locale } = await params;       // ← Așteptăm params-ul
 
-  // === VERIFICARE SUBSCRIPTION ===
+  // === VERIFICARE SUBSCRIPTION (în profiles) ===
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -20,14 +20,15 @@ export default async function DashboardLayout({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    const { data: company } = await supabase
-      .from('companies')
+    // Căutăm în tabelul profiles (nu companies)
+    const { data: profile } = await supabase
+      .from('profiles')
       .select('subscription_status, subscription_ends_at')
-      .eq('owner_id', user.id)
+      .eq('id', user.id)
       .single();
 
-    const isActive = company?.subscription_status === 'active' && 
-                    (!company?.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
+    const isActive = profile?.subscription_status === 'active' && 
+                    (!profile?.subscription_ends_at || new Date(profile.subscription_ends_at) > new Date());
 
     if (!isActive) {
       redirect(`/${locale}/dashboard/subscription`);
