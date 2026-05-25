@@ -44,7 +44,7 @@ export default async function DashboardLayout({
         <main className="flex-1 p-4 sm:p-6 md:p-8 w-full max-w-full overflow-x-hidden">
           
           {!isActive ? (
-            // === MESAJ DE BLOCAT (cu Sidebar vizibil) ===
+            // === PAGINĂ BLOCATĂ (cu Sidebar vizibil) ===
             <div className="flex items-center justify-center min-h-[70vh]">
               <div className="max-w-md w-full bg-white rounded-3xl p-10 text-center border border-red-200 shadow-xl">
                 <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
