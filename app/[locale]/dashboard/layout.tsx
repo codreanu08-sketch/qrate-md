@@ -12,7 +12,6 @@ export default function DashboardLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  // Despachetăm Promise-ul asincron pentru params conform standardului Next.js 16
   const params = use(paramsPromise);
   const router = useRouter();
   const locale = params?.locale || 'ro';
@@ -48,7 +47,6 @@ export default function DashboardLayout({
     );
   }
 
-  // Dacă NU are acces, blocăm TOT dashboard-ul și toate sub-paginile lui
   if (hasAccess === false) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -64,7 +62,7 @@ export default function DashboardLayout({
           </p>
           <div className="space-y-3">
             <button 
-              onClick={() => router.push(`/${locale}/pricing`)} 
+              onClick={() => router.push(`/${locale}/subscription`)} 
               className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
             >
               Upgrade la Planul Pro
@@ -81,6 +79,5 @@ export default function DashboardLayout({
     );
   }
 
-  // Dacă are acces, randează pagina solicitată
   return <>{children}</>;
 }
