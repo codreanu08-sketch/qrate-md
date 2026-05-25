@@ -255,7 +255,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-
+<h1 className="text-red-600 text-2xl font-black">TEST 123 - NOU</h1>
         {/* DATE FACTURARE */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
           <div className="flex items-center justify-between mb-10">
