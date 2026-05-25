@@ -28,7 +28,7 @@ export default async function DashboardLayout({
     const isActive = profile?.subscription_status === 'active' && 
                     (!profile?.subscription_ends_at || new Date(profile.subscription_ends_at) > new Date());
 
-    // === DACĂ ABONAMENTUL A EXPIRAT → AFIȘĂM ECRAN DE BLOCARE ===
+    // === DACĂ ABONAMENTUL A EXPIRAT → BLOCHEZĂ TOTUL ===
     if (!isActive) {
       return (
         <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
@@ -47,7 +47,7 @@ export default async function DashboardLayout({
               className="inline-flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
             >
               <CreditCard size={20} />
-              Reînnoiește Abonamentul
+              Mergi la pagina de Abonament
             </a>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default async function DashboardLayout({
     }
   }
 
-  // === DACĂ ABONAMENTUL ESTE ACTIV → AFIȘĂM DASHBOARD-UL NORMAL ===
+  // === DACĂ ABONAMENTUL ESTE ACTIV → AFIȘĂM TOTUL NORMAL ===
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row relative bg-slate-50">
       <Sidebar />
