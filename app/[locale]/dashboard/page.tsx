@@ -168,13 +168,27 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         return;
       }
 
-      // Extragere profil pentru confirmarea statusului abonamentului
-      const { data: profile } = await supabase.from('profiles').select('subscription_tier, created_at').eq('id', user.id).single();
+      // --- ACTUALIZAT: Citire trial_started_at în loc de created_at ---
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, trial_started_at')
+        .eq('id', user.id)
+        .single();
+        
       const isPro = profile?.subscription_tier === 'pro';
-      const isTrial = (new Date().getTime() - new Date(profile?.created_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+      
+      let isTrial = false;
+      if (profile?.trial_started_at) {
+        const trialDate = new Date(profile.trial_started_at).getTime();
+        const currentDate = new Date().getTime();
+        if (!isNaN(trialDate)) {
+          const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+          isTrial = (currentDate - trialDate) < sevenDaysInMs;
+        }
+      }
+      
       setHasAccess(isPro || isTrial);
 
-      // Încărcare companii, angajați și locații comerciale
       const { data: company } = await supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle();
       if (company) {
         setCompanyId(company.id);
@@ -270,7 +284,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, employees, locations, t]);
 
-  // Loader global pe durata verificărilor inițiale
   if (hasAccess === null) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
@@ -283,21 +296,17 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 font-sans pb-24 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* --- BLOCARE ACCES ACCES (PLAN GRATUIT / EXPIRAT) --- */}
         {hasAccess === false ? (
-          <div className="min-h-[70vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl mx-auto my-12 animate-in fade-in zoom-in-95 duration-300">
+          <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-xl mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 ring-8 ring-amber-50/50">
               <Lock size={40} className="stroke-[2.5]" />
             </div>
-            
             <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">
               Funcționalitate Premium Limitată
             </h1>
-            
-            <p className="text-slate-600 font-medium text-base mb-8 max-w-md leading-relaxed">
+            <p className="text-slate-600 font-medium text-sm mb-8 max-w-md leading-relaxed">
               Accesul la dashboard-ul avansat de analiză, statistici AI în timp real și exportul centralizat al recenziilor este disponibil doar în versiunea **PRO**.
             </p>
-            
             <div className="w-full space-y-3">
               <button 
                 onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
@@ -305,7 +314,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               >
                 Upgrade la Planul Pro
               </button>
-              
               <button 
                 onClick={() => router.push(`/${locale}/`)} 
                 className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
@@ -315,7 +323,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
             </div>
           </div>
         ) : (
-          /* --- INTERFAȚA PRO COMPLETĂ --- */
           <>
             {/* NAV BAR */}
             <nav className={`bg-white/90 backdrop-blur-xl sticky top-4 z-50 rounded-2xl p-4 border flex flex-col md:flex-row md:items-center justify-between shadow-sm transition-all duration-500 gap-4 ${liveEvent ? 'border-emerald-400 ring-4 ring-emerald-50' : 'border-slate-200'}`}>
