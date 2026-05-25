@@ -3,36 +3,36 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function GET(request: Request) {
   try {
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-    
+
     if (!BOT_TOKEN) {
-      console.error("❌ TELEGRAM_BOT_TOKEN lipsește din variabilele de mediu!");
-      return NextResponse.json({ error: "TELEGRAM_BOT_TOKEN lipsește" }, { status: 500 });
+      console.error("❌ TELEGRAM_BOT_TOKEN lipsește!");
+      return NextResponse.json({ error: "Token lipsește" }, { status: 500 });
     }
 
-    // 1. Luăm mesajele pending
-    const { data: pendingMessages, error: fetchError } = await supabase
+    // Luăm maxim 15 mesaje pending
+    const { data: pendingMessages, error } = await supabase
       .from('telegram_messages_queue')
       .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
-      .limit(20); // Limităm la 20 ca să nu blocăm
+      .limit(15);
 
-    if (fetchError) throw fetchError;
+    if (error) throw error;
 
     if (!pendingMessages || pendingMessages.length === 0) {
-      return NextResponse.json({ success: true, message: "Nu sunt mesaje de trimis." });
+      return NextResponse.json({ success: true, message: "Nimic de trimis" });
     }
 
     console.log(`🤖 Procesăm ${pendingMessages.length} mesaje...`);
-    let trimiseCuSucces = 0;
+    let trimise = 0;
 
     for (const msg of pendingMessages) {
       try {
@@ -51,47 +51,43 @@ export async function GET(request: Request) {
           body.text = msg.message_text;
         }
 
-        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
 
-        const result = await response.json();
+        const result = await res.json();
 
         if (result.ok) {
-          // Succes → marcăm ca 'sent'
           await supabase
             .from('telegram_messages_queue')
             .update({ status: 'sent' })
             .eq('id', msg.id);
-          
-          trimiseCuSucces++;
+          trimise++;
         } else {
-          console.error(`❌ Telegram a respins ID ${msg.id}:`, result.description);
-          
-          // Marcăm ca failed
+          console.error(`❌ Telegram respins ID ${msg.id}:`, result.description);
           await supabase
             .from('telegram_messages_queue')
             .update({ status: 'failed' })
             .eq('id', msg.id);
         }
 
-        // === IMPORTANT: Delay de 600ms între mesaje (evită blocarea) ===
-        await new Promise(resolve => setTimeout(resolve, 600));
+        // Delay important pentru a nu bloca botul
+        await new Promise(r => setTimeout(r, 700));
 
       } catch (err) {
-        console.error(`💥 Eroare la mesajul ID ${msg.id}:`, err);
+        console.error(`Eroare la mesajul ${msg.id}:`, err);
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Procesare finalizată. Trimise: ${trimiseCuSucces}/${pendingMessages.length}`
+      message: `Trimise: ${trimise}/${pendingMessages.length}`
     });
 
   } catch (error: any) {
-    console.error("💥 Eroare critică:", error);
+    console.error("Eroare critică:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

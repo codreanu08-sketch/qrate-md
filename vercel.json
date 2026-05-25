@@ -1,5 +1,11 @@
 {
   "redirects": [
     { "source": "/", "destination": "/ro", "permanent": false }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "*/1 * * * *"
+    }
   ]
 }
