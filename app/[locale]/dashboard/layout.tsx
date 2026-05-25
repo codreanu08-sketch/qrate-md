@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Lock, RefreshCw } from 'lucide-react';
 
 export default function DashboardLayout({
   children,
-  params
+  params: paramsPromise
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
+  // Despachetăm Promise-ul asincron pentru params conform standardului Next.js 16
+  const params = use(paramsPromise);
   const router = useRouter();
   const locale = params?.locale || 'ro';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
@@ -62,7 +64,7 @@ export default function DashboardLayout({
           </p>
           <div className="space-y-3">
             <button 
-              onClick={() => router.push(`/${locale}/subscription`)} 
+              onClick={() => router.push(`/${locale}/pricing`)} 
               className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
             >
               Upgrade la Planul Pro
