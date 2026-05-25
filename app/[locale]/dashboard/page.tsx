@@ -300,7 +300,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
             
             <div className="w-full space-y-3">
               <button 
-                onClick={() => router.push(`/${locale}/subscription`)} 
+                onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
                 className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-indigo-100 active:scale-[0.98]"
               >
                 Upgrade la Planul Pro
