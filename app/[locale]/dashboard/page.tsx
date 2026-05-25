@@ -28,14 +28,17 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   const locale = params?.locale || 'ro';
   
   const [allReviews, setAllReviews] = useState<Review[]>([]);
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
+  const [rawEmployees, setRawEmployees] = useState<any[]>([]);
+  const [rawLocations, setRawLocations] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
   const [liveEvent, setLiveEvent] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
+
+  // Limite venite din structura abonamentului (Default pentru plan limitat dacă se aplică)
+  const [limits, setLimits] = useState({ maxLocations: 99, maxEmployees: 99 });
 
   const [selLocation, setSelLocation] = useState('all');
   const [selEmployee, setSelEmployee] = useState('all');
@@ -129,9 +132,31 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     } catch (err: any) { 
       console.error(err.message); 
     } finally { 
-      setLoading(false); 
+      loading && setLoading(false); 
     }
   }, [selPeriod]);
+
+  // --- RESTRICȚIE PE ABONAMENT (Activează doar numărul permis de locații/angajați) ---
+  const activeLocations = useMemo(() => {
+    return rawLocations.slice(0, limits.maxLocations);
+  }, [rawLocations, limits.maxLocations]);
+
+  const activeEmployees = useMemo(() => {
+    // 1. Tăiem lista totală conform limitei maxime per total afacere
+    const allowedPool = rawEmployees.slice(0, limits.maxEmployees);
+    
+    // 2. Filtrare în cascadă: Dacă e selectată o locație, vedem doar angajații care au recenzii pe acea locație
+    if (selLocation !== 'all') {
+      const employeesWithReviewsInLocation = allReviews
+        .filter(r => r.location_id === selLocation && r.employee_id)
+        .map(r => r.employee_id);
+
+      return allowedPool.filter(emp => employeesWithReviewsInLocation.includes(emp.id));
+    }
+
+    return allowedPool;
+  }, [rawEmployees, limits.maxEmployees, selLocation, allReviews]);
+
 
   // --- ABONARE ÎN TIMP REAL (REALTIME) ---
   useEffect(() => {
@@ -168,7 +193,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         return;
       }
 
-      // --- ACTUALIZAT: Citire trial_started_at în loc de created_at ---
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_started_at')
@@ -177,6 +201,13 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         
       const isPro = profile?.subscription_tier === 'pro';
       
+      // Setează limitele aplicației în funcție de pachetul de abonament
+      if (isPro) {
+        setLimits({ maxLocations: 99, maxEmployees: 99 }); // Nelimitat pentru Pro
+      } else {
+        setLimits({ maxLocations: 1, maxEmployees: 4 });  // Restricție: 1 locație și max 4 angajați pe ea
+      }
+
       let isTrial = false;
       if (profile?.trial_started_at) {
         const trialDate = new Date(profile.trial_started_at).getTime();
@@ -193,11 +224,11 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       if (company) {
         setCompanyId(company.id);
         const [emp, loc] = await Promise.all([
-          supabase.from('employees').select('id, name').eq('company_id', company.id),
-          supabase.from('locations').select('id, name').eq('company_id', company.id)
+          supabase.from('employees').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true }),
+          supabase.from('locations').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true })
         ]);
-        setEmployees(emp.data || []);
-        setLocations(loc.data || []);
+        setRawEmployees(emp.data || []);
+        setRawLocations(loc.data || []);
       }
     }
     init();
@@ -208,11 +239,17 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   // --- FILTRARE ȘI STATISTICI AVANSATE ---
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
+      // Verificăm dacă recenzia aparține unei locații sau unui angajat care NU a fost suspendat prin limitare
+      const isLocAllowed = activeLocations.some(l => l.id === r.location_id);
+      const isEmpAllowed = !r.employee_id || activeEmployees.some(e => e.id === r.employee_id);
+
+      if (!isLocAllowed || !isEmpAllowed) return false;
+
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
       const matchEmp = selEmployee === 'all' || (r.employee_id && r.employee_id === selEmployee);
       return matchLoc && matchEmp;
     });
-  }, [allReviews, selLocation, selEmployee]);
+  }, [allReviews, selLocation, selEmployee, activeLocations, activeEmployees]);
 
   const analytics = useMemo(() => {
     if (!filteredReviews.length) return { 
@@ -271,7 +308,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     const topWords = Object.entries(wordFreq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([w]) => w);
 
     let aiInsight = "";
-    const targetName = selEmployee !== 'all' ? employees.find(e => e.id === selEmployee)?.name : (selLocation !== 'all' ? locations.find(l => l.id === selLocation)?.name : t('aiGeneralLevel'));
+    const targetName = selEmployee !== 'all' ? activeEmployees.find(e => e.id === selEmployee)?.name : (selLocation !== 'all' ? activeLocations.find(l => l.id === selLocation)?.name : t('aiGeneralLevel'));
     
     if (Number(avg) >= 4.5) {
       aiInsight = `${t('aiExcellentPrefix')} ${targetName}! ${t('aiExcellentMiddle')} "${topWords[0] || t('wordQuality')}" ${t('and')} "${topWords[1] || t('wordGood')}". ${t('aiExcellentSuffix')}`;
@@ -282,7 +319,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     }
 
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
-  }, [filteredReviews, selEmployee, selLocation, employees, locations, t]);
+  }, [filteredReviews, selEmployee, selLocation, activeEmployees, activeLocations, t]);
 
   if (hasAccess === null) {
     return (
@@ -298,7 +335,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         
         {hasAccess === false ? (
           <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-xl mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 ring-8 ring-amber-50/50">
+            <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50">
               <Lock size={40} className="stroke-[2.5]" />
             </div>
             <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">
@@ -318,7 +355,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                 onClick={() => router.push(`/${locale}/`)} 
                 className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Înapoi la Pagina Principală
+                Înapoia la Pagina Principală
               </button>
             </div>
           </div>
@@ -361,14 +398,29 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               </div>
               
               <div className="flex flex-wrap gap-3 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                <select className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" onChange={(e) => setSelLocation(e.target.value)} value={selLocation}>
+                {/* SELECT LOCAȚIE (Afișează doar locațiile permise de abonament) */}
+                <select 
+                  className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" 
+                  onChange={(e) => {
+                    setSelLocation(e.target.value);
+                    setSelEmployee('all'); // Resetăm angajatul când schimbăm locația ca să nu crape filtrele
+                  }} 
+                  value={selLocation}
+                >
                   <option value="all">📍 {t('filterAllLocations')}</option>
-                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  {activeLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
-                <select className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" onChange={(e) => setSelEmployee(e.target.value)} value={selEmployee}>
+
+                {/* SELECT ANGAJAȚI (Afișează doar angajații permise de abonament ȘI legați de locația selectată) */}
+                <select 
+                  className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" 
+                  onChange={(e) => setSelEmployee(e.target.value)} 
+                  value={selEmployee}
+                >
                   <option value="all">👥 {t('filterAllEmployees')}</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
+
                 <div className="flex bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
                    {['7d', '1m', '3m', 'all'].map((p) => (
                      <button key={p} onClick={() => setSelPeriod(p)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${selPeriod === p ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}>
