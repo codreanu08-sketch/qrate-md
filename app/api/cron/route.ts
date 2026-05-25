@@ -36,6 +36,37 @@ export async function GET(request: Request) {
 
     for (const msg of pendingMessages) {
       try {
+        // === VERIFICARE SUBSCRIPTION ===
+        let canSend = true;
+
+        if (msg.chat_id) {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('subscription_status, subscription_ends_at')
+            .eq('telegram_chat_id', msg.chat_id)
+            .single();
+
+          if (company) {
+            const isActive = company.subscription_status === 'active' && 
+                            (!company.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
+            
+            if (!isActive) {
+              canSend = false;
+              console.log(`⛔ Notificare blocată pentru chat_id ${msg.chat_id} (abonament expirat)`);
+            }
+          }
+        }
+
+        if (!canSend) {
+          // Marcăm ca failed dacă abonamentul a expirat
+          await supabase
+            .from('telegram_messages_queue')
+            .update({ status: 'failed' })
+            .eq('id', msg.id);
+          continue;
+        }
+
+        // === TRIMITERE NORMALĂ ===
         const hasPhoto = !!msg.photo_url;
         const method = hasPhoto ? 'sendPhoto' : 'sendMessage';
 
