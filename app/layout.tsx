@@ -1,5 +1,10 @@
-// app/layout.tsx (Direct în folderul app, nu în [locale])
-export const dynamic = 'force-dynamic';
+// app/layout.tsx
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'QRate.md - Feedback Platform',
+  description: 'Platformă de feedback și recenzii pentru afaceri',
+};
 
 export default function RootLayout({
   children,
@@ -7,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ro">
+    <html>
       <body>{children}</body>
     </html>
   );
