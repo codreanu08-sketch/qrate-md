@@ -56,7 +56,7 @@ export default function SettingsPage() {
       }, { onConflict: 'owner_id' });
 
       if (error) throw error;
-      alert("Succes! Setările au fost salvate.");
+      alert("Salvată cu succes!");
     } catch (err: any) {
       alert("Eroare la salvare: " + err.message);
     } finally {
@@ -67,7 +67,7 @@ export default function SettingsPage() {
   if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-8 max-w-4xl mx-auto text-slate-900">
       <h1 className="text-4xl font-black uppercase mb-10 flex items-center gap-3"><Settings className="text-blue-600" /> {t?.title || "Setări"}</h1>
 
       <div className="space-y-8">
