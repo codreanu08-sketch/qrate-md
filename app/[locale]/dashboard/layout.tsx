@@ -20,35 +20,67 @@ export default function DashboardLayout({
 
   useEffect(() => {
     async function checkSubscription() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push(`/${locale}/login`);
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier, trial_started_at')
-        .eq('id', user.id)
-        .single();
-
-      const isPro = profile?.subscription_tier === 'pro';
-      
-      let isTrial = false;
-      if (profile?.trial_started_at) {
-        const trialDate = new Date(profile.trial_started_at).getTime();
-        const currentDate = new Date().getTime();
-        
-        if (!isNaN(trialDate)) {
-          const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-          isTrial = (currentDate - trialDate) < sevenDaysInMs;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push(`/${locale}/login`);
+          return;
         }
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier, trial_started_at')
+          .eq('id', user.id)
+          .single();
+
+        if (error || !profile) {
+          console.error("Eroare la preluarea profilului:", error);
+          setHasAccess(false);
+          return;
+        }
+
+        // --- DEBUG LOGS DIRECT ÎN CONSOLĂ ---
+        console.log("=== VERIFICARE ACCES QRATE ===");
+        console.log("User ID:", user.id);
+        console.log("Abonament:", profile.subscription_tier);
+        console.log("Data Trial pornire (raw):", profile.trial_started_at);
+
+        const isPro = profile.subscription_tier === 'pro';
+        let isTrial = false;
+
+        if (profile.trial_started_at) {
+          const trialDate = new Date(profile.trial_started_at).getTime();
+          const currentDate = new Date().getTime();
+
+          console.log("Data trial transformata in Ms:", trialDate);
+          console.log("Data curenta in Ms:", currentDate);
+
+          if (!isNaN(trialDate)) {
+            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+            const timpScurs = currentDate - trialDate;
+            
+            console.log("Timp scurs (milisecunde):", timpScurs);
+            console.log("Zile scurse:", timpScurs / (1000 * 60 * 60 * 24));
+
+            // Dacă timpul scurs de la activarea trialului este mai mic de 7 zile
+            // SAU dacă timpul scurs este negativ (în caz că ai pus o dată din viitor pentru test)
+            isTrial = timpScurs >= 0 && timpScurs < sevenDaysInMs;
+          }
+        }
+
+        console.log("Rezultat calcul isTrial:", isTrial);
+        console.log("Acces final:", isPro || isTrial);
+        console.log("=============================");
+
+        setHasAccess(isPro || isTrial);
+      } catch (err) {
+        console.error("Eroare neprevăzută în layout:", err);
+        setHasAccess(false);
       }
-      
-      setHasAccess(isPro || isTrial);
     }
+    
     checkSubscription();
-  }, [router, locale]);
+  }, [router, locale, pathname]); // Re-verifică la schimbarea paginii pentru siguranță
 
   if (hasAccess === null) {
     return (
@@ -60,6 +92,7 @@ export default function DashboardLayout({
 
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
+  // Dacă nu are acces și NU se află pe pagina de subscription, îl blocăm
   if (hasAccess === false && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
