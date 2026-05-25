@@ -11,25 +11,51 @@ export async function POST(request: Request) {
     const body = await request.json();
     const review = body.reviewData || body;
 
-    // === Găsește Chat ID-ul corect al companiei ===
+    // === 1. Găsește Chat ID-ul și proprietarul companiei ===
     let CHAT_ID = null;
+    let ownerId = null;
 
     if (review.company_id) {
       const { data: company } = await supabase
         .from('companies')
-        .select('telegram_chat_id')
+        .select('telegram_chat_id, owner_id') // Extragem și owner_id pentru a verifica abonamentul
         .eq('id', review.company_id)
         .maybeSingle();
 
       if (company?.telegram_chat_id) {
         CHAT_ID = company.telegram_chat_id;
       }
+      if (company?.owner_id) {
+        ownerId = company.owner_id;
+      }
     }
 
     // Fallback (doar pentru test)
     if (!CHAT_ID) CHAT_ID = '890236835';
 
-    // === Construiește mesajul complet ===
+    // === 2. VERIFICARE ABONAMENT PRO / TRIAL ACTIVE ===
+    if (ownerId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, created_at')
+        .eq('id', ownerId)
+        .maybeSingle();
+
+      if (profile) {
+        const isPro = profile.subscription_tier === 'pro';
+        const isTrial = (new Date().getTime() - new Date(profile.created_at).getTime()) < (7 * 24 * 60 * 60 * 1000);
+
+        // Dacă utilizatorul nu este PRO și i-a expirat și perioada de trial de 7 zile
+        if (!isPro && !isTrial) {
+          console.log(`[Telegram Blocked] Compania ${review.company_id} are abonamentul expirat. Notificarea nu a fost salvată în coadă.`);
+          
+          // Returnăm succes true ca aplicația client/formularul să nu crape, dar ignorăm trimiterea mesajului
+          return NextResponse.json({ success: true, message: 'Notification skipped due to inactive subscription' });
+        }
+      }
+    }
+
+    // === 3. Construiește mesajul complet (Rulează doar dacă are acces) ===
     const rating = Number(review.rating) || 5;
     const stars = '⭐️'.repeat(rating);
 
@@ -42,7 +68,7 @@ export async function POST(request: Request) {
     if (review.comment) message += `💬 <b>Comentariu:</b> "${review.comment}"\n`;
     message += `==========================`;
 
-    // === Salvează în coadă (pentru procesare sigură) ===
+    // === 4. Salvează în coadă (Doar pentru clienții PRO sau în Trial) ===
     await supabase.from('telegram_messages_queue').insert({
       chat_id: CHAT_ID,
       message_text: message,
