@@ -1,10 +1,77 @@
 import Sidebar from '@/components/Sidebar';
+import { createClient } from '@supabase/supabase-js';
+import { Lock, CreditCard } from 'lucide-react';
+import { redirect } from 'next/navigation';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
+  const { locale } = await params;
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier, created_at')
+      .eq('id', user.id)
+      .single();
+
+    const signupDate = new Date(profile?.created_at || '');
+    const now = new Date();
+    const diffInDays = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24));
+
+    const isPro = profile?.subscription_tier === 'pro';
+    const isInTrial = diffInDays < 7;
+    const isActive = isPro || isInTrial;
+
+    // === DACĂ ABONAMENTUL A EXPIRAT ===
+    if (!isActive) {
+      // Permitem doar Settings și Subscription
+      // (verificăm dacă ruta curentă este settings sau subscription)
+      // Pentru simplitate, afișăm un mesaj frumos cu buton spre settings
+      return (
+        <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
+          <div className="max-w-md w-full bg-white rounded-3xl p-10 text-center border border-red-200 shadow-xl">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lock size={44} className="text-red-500" />
+            </div>
+            
+            <h1 className="text-3xl font-black text-slate-900 mb-4">Abonament Expirat</h1>
+            <p className="text-slate-600 mb-8">
+              Perioada de trial a expirat. Poți accesa doar pagina de Setări pentru a reînnoi abonamentul.
+            </p>
+
+            <a 
+              href={`/${locale}/dashboard/settings`}
+              className="inline-flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 mb-3"
+            >
+              <CreditCard size={20} />
+              Mergi la Setări
+            </a>
+
+            <a 
+              href={`/${locale}/dashboard/subscription`}
+              className="inline-flex items-center justify-center gap-2 w-full border border-slate-300 hover:bg-slate-50 py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
+            >
+              Vezi Abonamente
+            </a>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // === DACĂ ABONAMENTUL ESTE ACTIV → AFIȘĂM NORMAL ===
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row relative bg-slate-50">
       <Sidebar />
