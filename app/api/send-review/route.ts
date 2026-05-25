@@ -1,98 +1,92 @@
-'use client';
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
-import { useEffect, useState, use } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { Lock, RefreshCw } from 'lucide-react';
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
-export default function DashboardLayout({
-  children,
-  params: paramsPromise
-}: {
-  children: React.ReactNode;
-  params: Promise<{ locale: string }>;
-}) {
-  const params = use(paramsPromise);
-  const router = useRouter();
-  const pathname = usePathname();
-  const locale = params?.locale || 'ro';
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const review = body.reviewData || body;
 
-  useEffect(() => {
-    async function checkSubscription() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push(`/${locale}/login`);
-        return;
+    // === 1. Găsește Chat ID-ul și proprietarul companiei ===
+    let CHAT_ID = null;
+    let ownerId = null;
+
+    if (review.company_id) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('telegram_chat_id, owner_id')
+        .eq('id', review.company_id)
+        .maybeSingle();
+
+      if (company?.telegram_chat_id) {
+        CHAT_ID = company.telegram_chat_id;
       }
+      if (company?.owner_id) {
+        ownerId = company.owner_id;
+      }
+    }
 
-      // --- MODIFICARE: Selectăm trial_started_at în loc de created_at ---
+    // Fallback (doar pentru test)
+    if (!CHAT_ID) CHAT_ID = '890236835';
+
+    // === 2. VERIFICARE ABONAMENT PRO / TRIAL ACTIVE (trial_started_at) ===
+    if (ownerId) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, trial_started_at')
-        .eq('id', user.id)
-        .single();
+        .select('subscription_tier, trial_started_at') // Actualizat la trial_started_at
+        .eq('id', ownerId)
+        .maybeSingle();
 
-      const isPro = profile?.subscription_tier === 'pro';
-      
-      // --- VERIFICARE PE BAZA COLOANEI COMPUSE DE TINE ---
-      let isTrial = false;
-      if (profile?.trial_started_at) {
-        const trialDate = new Date(profile.trial_started_at).getTime();
-        const currentDate = new Date().getTime();
+      if (profile) {
+        const isPro = profile.subscription_tier === 'pro';
         
-        if (!isNaN(trialDate)) {
-          const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-          isTrial = (currentDate - trialDate) < sevenDaysInMs;
+        let isTrial = false;
+        if (profile.trial_started_at) {
+          const trialDate = new Date(profile.trial_started_at).getTime();
+          const currentDate = new Date().getTime();
+          if (!isNaN(trialDate)) {
+            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+            isTrial = (currentDate - trialDate) < sevenDaysInMs;
+          }
+        }
+
+        // Dacă utilizatorul nu este PRO și i-a expirat și perioada de trial
+        if (!isPro && !isTrial) {
+          console.log(`[Telegram Blocked] Compania ${review.company_id} are abonamentul expirat.`);
+          return NextResponse.json({ success: true, message: 'Notification skipped due to inactive subscription' });
         }
       }
-      
-      setHasAccess(isPro || isTrial);
     }
-    checkSubscription();
-  }, [router, locale]);
 
-  if (hasAccess === null) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <RefreshCw className="animate-spin text-indigo-600" size={32} />
-      </div>
-    );
+    // === 3. Construiește mesajul complet ===
+    const rating = Number(review.rating) || 5;
+    const stars = '⭐️'.repeat(rating);
+
+    let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n`;
+    message += `==========================\n`;
+    message += `⭐ <b>Rating:</b> ${stars} (${rating}/5)\n`;
+    message += `👤 <b>Client:</b> ${review.full_name || 'Client Anonim'}\n`;
+    
+    if (review.phone) message += `📞 <b>Telefon:</b> ${review.phone}\n`;
+    if (review.comment) message += `💬 <b>Comentariu:</b> "${review.comment}"\n`;
+    message += `==========================`;
+
+    // === 4. Salvează în coadă ===
+    await supabase.from('telegram_messages_queue').insert({
+      chat_id: CHAT_ID,
+      message_text: message,
+      photo_url: review.photo_url || null,
+      status: 'pending'
+    });
+
+    return NextResponse.json({ success: true });
+
+  } catch (error: any) {
+    console.error(error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
-
-  if (hasAccess === false && !isSubscriptionPage) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-        <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full animate-in fade-in zoom-in-95 duration-300">
-          <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50">
-            <Lock size={40} className="stroke-[2.5]" />
-          </div>
-          <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">
-            Funcționalitate Premium Limitată
-          </h1>
-          <p className="text-slate-600 font-medium text-base mb-8 max-w-md mx-auto leading-relaxed">
-            Accesul la secțiunile de analiză, gestionare angajați și setări avansate este disponibil doar în versiunea **PRO**.
-          </p>
-          <div className="space-y-3">
-            <button 
-              onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
-              className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
-            >
-              Upgrade la Planul Pro
-            </button>
-            <button 
-              onClick={() => router.push(`/${locale}/`)} 
-              className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
-            >
-              Înapoi la Pagina Principală
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
 }
