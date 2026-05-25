@@ -2,14 +2,15 @@ import Sidebar from '@/components/Sidebar';
 import { redirect } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
-export default async function DashboardLayout({ 
-  children, 
-  params 
-}: { 
+export default async function DashboardLayout({
+  children,
+  params,
+}: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;   // ← CORECTAT
 }) {
-  
+  const { locale } = await params;       // ← Așteptăm params-ul
+
   // === VERIFICARE SUBSCRIPTION ===
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,9 +29,8 @@ export default async function DashboardLayout({
     const isActive = company?.subscription_status === 'active' && 
                     (!company?.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
 
-    // Dacă abonamentul a expirat → redirecționăm
     if (!isActive) {
-      redirect(`/${params.locale}/dashboard/subscription`);
+      redirect(`/${locale}/dashboard/subscription`);
     }
   }
 
