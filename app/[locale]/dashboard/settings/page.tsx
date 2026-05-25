@@ -37,7 +37,6 @@ export default function SettingsPage() {
     billing_email: ''
   });
 
-  // === FIX: Numele corect al botului ===
   const BOT_USERNAME = "Qrate_bot"; 
 
   useEffect(() => {
@@ -152,7 +151,7 @@ export default function SettingsPage() {
       a.click();
       a.remove();
     } catch (err: any) {
-      alert(locale === 'ru' ? "Скачивание не удалось: Проверьте историю оплат." : "Descărcare eșuată: Verifică istoricul plăților active.");
+      alert(locale === 'ru' ? "Скачивание не удалось: Проверьте istoria plăților." : "Descărcare eșuată: Verifică istoria plăților.");
     } finally {
       setDownloading(false);
     }
@@ -255,7 +254,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-<h1 className="text-red-600 text-2xl font-black">TEST 123 - NOU</h1>
+
         {/* DATE FACTURARE */}
         <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-10">
           <div className="flex items-center justify-between mb-10">
@@ -390,5 +389,3 @@ function BillingInput({ label, value, onChange, placeholder, icon }: BillingInpu
     </div>
   );
 }
-
-//forece//
