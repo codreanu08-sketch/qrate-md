@@ -6,10 +6,11 @@ import { createServerClient } from '@supabase/ssr';
 const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
-  // 1. Verificăm dacă ruta este protejată (ex: începe cu /ro/dashboard)
-  const isDashboardRoute = request.nextUrl.pathname.startsWith('/ro/dashboard'); // Ajustează după ruta ta
+  const pathname = request.nextUrl.pathname;
   
-  // 2. Creăm clientul Supabase pentru a verifica sesiunea
+  // Verificăm dacă e rută de dashboard (indiferent de limbă)
+  const isDashboardRoute = pathname.includes('/dashboard');
+
   let response = NextResponse.next();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,12 +24,11 @@ export async function middleware(request: NextRequest) {
 
   const { data: { session } } = await supabase.auth.getSession();
 
-  // 3. Logică: Dacă e rută protejată și nu există sesiune -> Redirecționare
+  // Dacă e dashboard și nu e logat → login
   if (isDashboardRoute && !session) {
     return NextResponse.redirect(new URL('/ro/auth/login', request.url));
   }
 
-  // 4. Dacă totul e ok, lăsăm i18n să își facă treaba
   return intlMiddleware(request);
 }
 
