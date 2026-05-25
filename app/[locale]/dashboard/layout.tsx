@@ -21,15 +21,19 @@ export default async function DashboardLayout({
   if (user) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('is_subscribed, subscription_end')
+      .select('subscription_tier, created_at')
       .eq('id', user.id)
       .single();
 
-    // === LOGICA CORECTĂ PENTRU SISTEMUL TĂU ===
-    const isActive = 
-      profile?.is_subscribed === true ||                    // abonat plătit
-      profile?.subscription_end === null ||                 // încă în trial
-      (profile?.subscription_end && new Date(profile.subscription_end) > new Date()); // abonament activ
+    const signupDate = new Date(profile?.created_at || '');
+    const now = new Date();
+    const diffInDays = (now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24);
+
+    const isPro = profile?.subscription_tier === 'pro';
+    const isInTrial = diffInDays < 7;
+
+    // === LOGICA FINALĂ ===
+    const isActive = isPro || isInTrial;
 
     if (!isActive) {
       return (
@@ -41,7 +45,7 @@ export default async function DashboardLayout({
             
             <h1 className="text-3xl font-black text-slate-900 mb-4">Acces Blocat</h1>
             <p className="text-slate-600 mb-8">
-              Abonamentul tău a expirat. Pentru a continua să folosești QRate, te rugăm să reînnoiești.
+              Perioada de trial (7 zile) a expirat. Pentru a continua să folosești QRate, te rugăm să treci la planul Pro.
             </p>
 
             <a 
@@ -49,7 +53,7 @@ export default async function DashboardLayout({
               className="inline-flex items-center justify-center gap-2 w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95"
             >
               <CreditCard size={20} />
-              Mergi la pagina de Abonament
+              Activează Abonament Pro
             </a>
           </div>
         </div>
