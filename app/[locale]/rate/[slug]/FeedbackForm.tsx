@@ -179,24 +179,22 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       if (dbError) throw dbError;
 
+      // === DOAR PENTRU RATING ≤ 3 TRIMITEM NOTIFICARE ===
       if (rating <= 3) {
-        console.log("DEBUG - Rating mic detectat (<=3). Trimit datele către /api/send-review...");
-        
+        console.log("DEBUG - Rating mic detectat. Trimit către /api/send-review...");
+
         const apiResponse = await fetch('/api/send-review', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            reviewData: {
-              ...reviewData,
-              admin_chat_id: '890236835'
-            }
+            reviewData: reviewData   // ← FĂRĂ admin_chat_id hardcodat
           }),
         });
 
         if (!apiResponse.ok) {
-          console.error("⚠️ API-ul send-review a returnat o eroare la adăugarea în coadă.");
+          console.error("⚠️ Eroare la trimiterea notificării Telegram");
         }
       }
 
