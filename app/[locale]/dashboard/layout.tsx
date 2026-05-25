@@ -1,13 +1,10 @@
 import Sidebar from '@/components/Sidebar';
 
-export default async function DashboardLayout({
+export default function DashboardLayout({
   children,
-  params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
 }) {
-  // === FĂRĂ VERIFICARE SUBSCRIPTION (TEMPORAR) ===
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row relative bg-slate-50">
       <Sidebar />
