@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Lock, RefreshCw } from 'lucide-react';
+import Sidebar from '@/components/Sidebar'; // Înlocuiește cu calea exactă unde ai salvat fisierul Sidebar.tsx
 
 export default function DashboardLayout({
   children,
@@ -62,8 +63,6 @@ export default function DashboardLayout({
             console.log("Timp scurs (milisecunde):", timpScurs);
             console.log("Zile scurse:", timpScurs / (1000 * 60 * 60 * 24));
 
-            // Dacă timpul scurs de la activarea trialului este mai mic de 7 zile
-            // SAU dacă timpul scurs este negativ (în caz că ai pus o dată din viitor pentru test)
             isTrial = timpScurs >= 0 && timpScurs < sevenDaysInMs;
           }
         }
@@ -80,7 +79,7 @@ export default function DashboardLayout({
     }
     
     checkSubscription();
-  }, [router, locale, pathname]); // Re-verifică la schimbarea paginii pentru siguranță
+  }, [router, locale, pathname]);
 
   if (hasAccess === null) {
     return (
@@ -125,5 +124,18 @@ export default function DashboardLayout({
     );
   }
 
-  return <>{children}</>;
+  // --- RENDEREA CU SIDEBAR INCLUS PENTRU CINE ARE ACCES SAU E PE PAGINA DE SUBSCRIPTION ---
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Meniul lateral care stă fix pe desktop */}
+      <Sidebar />
+
+      {/* Spațiul de conținut care se decalează pe desktop cu md:pl-72 ca să nu fie acoperit */}
+      <div className="flex-1 w-full md:pl-72">
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }
