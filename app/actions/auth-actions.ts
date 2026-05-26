@@ -60,7 +60,7 @@ export async function sendCustomResetEmail(email: string, locale: string) {
       `,
     });
     
-    console.log(`[DEBUG] Email trimis prin Resend cu ID: ${result.id}`);
+    console.log(`[DEBUG] Email trimis prin Resend.`);
   } catch (emailError) {
     console.error("Resend Error:", emailError);
     throw new Error("Eroare la trimiterea email-ului.");
