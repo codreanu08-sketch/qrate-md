@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { 
   Star, MapPin, User, MessageCircle, Zap, Trophy, Clock, 
   Award, Download, RefreshCw, Bot, Copy, Check, TrendingUp, 
-  AlertTriangle, BrainCircuit, Smartphone, Lock, BarChart3
+  AlertTriangle, BrainCircuit, Smartphone, Lock, BarChart3, Building
 } from 'lucide-react';
 
 interface Review {
@@ -37,6 +37,10 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
+  // State-uri noi pentru crearea companiei inline
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [creatingCompany, setCreatingCompany] = useState(false);
+
   const [limits, setLimits] = useState({ maxLocations: 99, maxEmployees: 99 });
 
   const [selLocation, setSelLocation] = useState('all');
@@ -50,7 +54,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
   const getROI = () => allReviews.filter(r => r.rating >= 4).length * 15;
 
-  // REPARAT: Memorăm fetchBaseReviews corect pentru a opri buclele infinite
   const fetchBaseReviews = useCallback(async (cId: string) => {
     try {
       let query = supabase.from('reviews')
@@ -149,7 +152,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return allowedPool;
   }, [rawEmployees, limits.maxEmployees, selLocation, allReviews]);
 
-  // REALTIME OPTIMIZAT: Prevenim cheile duplicate la INSERT
+  // Realtime
   useEffect(() => {
     if (!companyId) return;
     const channel = supabase
@@ -166,7 +169,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
           if (data && !error) {
             setAllReviews((prev) => {
-              // Verificăm dacă recenzia nu există deja în listă ca să evităm erorile de cheie duplicată
               if (prev.some(r => r.id === data.id)) return prev;
               return [data, ...prev];
             });
@@ -179,7 +181,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // === INIȚIALIZARE + TRIAL + COMPANIE ===
+  // INIȚIALIZARE SECURE TRIAL & COMPANIE
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -212,8 +214,11 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       }
 
       const isPro = profile?.subscription_tier === 'pro';
-      const trialEndTime = currentTrialEndsAt ? new Date(currentTrialEndsAt).getTime() : 0;
-      const isTrialActive = trialEndTime > Date.now();
+      
+      // REPARAT: Dacă utilizatorul este complet nou și nu are trial_ends_at setat încă în DB, îi dăm acces implicit adevărat (true)
+      const isTrialActive = currentTrialEndsAt 
+        ? new Date(currentTrialEndsAt).getTime() > Date.now() 
+        : true;
 
       setHasAccess(isPro || isTrialActive);
 
@@ -229,8 +234,10 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         .eq('owner_id', user.id)
         .maybeSingle();
 
+      // REPARAT: Nu mai redirecționăm, setăm starea pe null pentru a activa onboarding-ul inline
       if (!company) {
-        router.push(`/${locale}/dashboard/create-company`);
+        setCompanyId(null);
+        setLoading(false);
         return;
       }
 
@@ -247,12 +254,40 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     init();
   }, [router, locale]);
 
-  // Executăm fetch-ul de recenzii când avem compania sau când se schimbă perioada
   useEffect(() => { 
     if (companyId) {
       fetchBaseReviews(companyId); 
     }
   }, [companyId, fetchBaseReviews]);
+
+  // Logica de creare companie inline
+  const handleCreateCompanyInline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompanyName.trim()) return;
+    setCreatingCompany(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('companies')
+        .insert([{ name: newCompanyName.trim(), owner_id: user.id }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setCompanyId(data.id);
+      setRawEmployees([]);
+      setRawLocations([]);
+      setAllReviews([]);
+    } catch (err: any) {
+      alert(err.message || "Eroare la crearea companiei");
+    } finally {
+      setCreatingCompany(false);
+    }
+  };
 
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
@@ -336,7 +371,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, activeEmployees, activeLocations, t]);
 
-  if (hasAccess === null || (loading && allReviews.length === 0)) {
+  if (hasAccess === null || (loading && allReviews.length === 0 && companyId)) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <RefreshCw className="animate-spin text-indigo-600" size={32} />
@@ -374,6 +409,41 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               </button>
             </div>
           </div>
+        ) : !companyId ? (
+          /* REPARAT: ECRAN ONBOARDING INLINE DACA UTILIZATORUL NU ARE COMPANIE */
+          <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-6 md:p-10 rounded-3xl shadow-xl text-center max-w-lg mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
+            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6 inline-block ring-8 ring-indigo-50/50">
+              <Building size={36} className="stroke-[2]" />
+            </div>
+            <h1 className="font-black text-2xl text-slate-950 mb-2 tracking-tight">
+              Configurează Profilul Companiei
+            </h1>
+            <p className="text-slate-500 font-medium text-sm mb-6 max-w-sm leading-relaxed">
+              Pentru a putea accesa panoul de control și a gestiona recenziile, introdu numele companiei sau brandului tău.
+            </p>
+            <form onSubmit={handleCreateCompanyInline} className="w-full space-y-4">
+              <div className="text-left">
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 px-1">
+                  Numele Companiei
+                </label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Ex: My Delivery SRL"
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={creatingCompany}
+                className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all disabled:opacity-50 active:scale-[0.98] shadow-md"
+              >
+                {creatingCompany ? 'Se salvează...' : 'Creează Compania'}
+              </button>
+            </form>
+          </div>
         ) : (
           <>
             {/* NAV BAR */}
@@ -389,7 +459,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                   </span>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button onClick={runAudit} title={t('syncTooltip')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center">
                   <RefreshCw size={18}/>
