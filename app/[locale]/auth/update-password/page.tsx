@@ -23,7 +23,7 @@ export default function UpdatePassword() {
     const code = searchParams.get('code');
     if (code) {
       setLoading(true);
-      supabase.auth.exchangeCodeForSession(code).then((result) => {
+      supabase.auth.exchangeCodeForSession(code).then((result: any) => {
         if (result.error) {
           setError("Link-ul a expirat sau este invalid.");
         } else {
