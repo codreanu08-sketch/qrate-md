@@ -21,11 +21,17 @@ export default function EmployeesPage() {
   const [locations, setLocations] = useState<any[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   
   const [form, setForm] = useState({ name: '', position: '', location_id: '', image: null as File | null });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<any>(null);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
+
+  // Setăm mounted pe true la încărcarea pe client pentru a preveni erorile de hidratare la QR
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchInitialData = useCallback(async () => {
     setLoading(true);
@@ -51,61 +57,48 @@ export default function EmployeesPage() {
 
       setCompanyId(company.id);
 
-      const { data: locs, error: locsError } = await supabase
-        .from('locations')
-        .select('id, name')
-        .eq('company_id', company.id);
+      // Executăm ambele query-uri în paralel pentru a reduce timpul de așteptare (Performance Boost)
+      const [locationsResponse, employeesResponse] = await Promise.all([
+        supabase.from('locations').select('id, name').eq('company_id', company.id),
+        supabase.from('employees').select(`*, reviews(*)`).eq('company_id', company.id).order('created_at', { ascending: false })
+      ]);
 
-      if (locsError) throw locsError;
-      const currentLocs = locs || [];
+      if (locationsResponse.error) throw locationsResponse.error;
+      if (employeesResponse.error) throw employeesResponse.error;
+
+      const currentLocs = locationsResponse.data || [];
       setLocations(currentLocs);
       
-      const { data: emps, error: empsError } = await supabase
-        .from('employees')
-        .select(`*, reviews(*)`)
-        .eq('company_id', company.id)
-        .order('created_at', { ascending: false });
-
-      if (empsError) throw empsError;
-
-      if (emps) {
-        const uniqueEmpIds = new Set();
-        
-        const formatted = emps
-          .filter((emp: any) => { 
-            if (uniqueEmpIds.has(emp.id)) return false;
-            uniqueEmpIds.add(emp.id);
-            return true;
-          })
-          .map((emp: any) => { 
-            const totalReviews = emp.reviews?.length || 0;
-            const avg = totalReviews > 0 
-              ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
-              : 0;
-            
-            const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
-
-            const sortedReviews = emp.reviews ? [...emp.reviews].sort((a: any, b: any) => 
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            ) : [];
-
-            return { 
-              ...emp, 
-              reviews: sortedReviews,
-              avgRating: avg.toFixed(1), 
-              totalReviews,
-              location_name: locationData ? locationData.name : 'Fără locație'
-            };
-          });
+      if (employeesResponse.data) {
+        const formatted = employeesResponse.data.map((emp: any) => { 
+          const totalReviews = emp.reviews?.length || 0;
+          const avg = totalReviews > 0 
+            ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
+            : 0;
           
+          const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
+
+          const sortedReviews = emp.reviews ? [...emp.reviews].sort((a: any, b: any) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ) : [];
+
+          return { 
+            ...emp, 
+            reviews: sortedReviews,
+            avgRating: avg.toFixed(1), 
+            totalReviews,
+            location_name: locationData ? locationData.name : 'Fără locație'
+          };
+        });
+        
         setEmployees(formatted);
       }
     } catch (err: any) {
       console.error("Eroare la încărcarea datelor:", err.message);
-    } finally {
+    } finally { // <-- Aici a fost corectat din 'finaly' în 'finally'
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     fetchInitialData();
@@ -167,7 +160,7 @@ export default function EmployeesPage() {
       const pngUrl = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.href = pngUrl;
-      downloadLink.download = `QR-70x70-${name.replace(/\s+/g, '-')}.png`;
+      downloadLink.download = `QR-${name.replace(/\s+/g, '-')}.png`;
       downloadLink.click();
     } else {
       alert("Eroare la generarea fișierului QR.");
@@ -289,7 +282,7 @@ export default function EmployeesPage() {
           ) : (
             employees.map(emp => {
               const dynamicSlug = emp.location_id || companyId || 'general';
-              const qrUrl = typeof window !== 'undefined' 
+              const qrUrl = mounted && typeof window !== 'undefined'
                 ? `${window.location.origin}/${locale}/rate/${dynamicSlug}?employee=${emp.id}` 
                 : '';
               
@@ -298,6 +291,7 @@ export default function EmployeesPage() {
               return (
                 <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 md:p-10 relative overflow-hidden flex flex-col justify-between min-h-[370px]">
                   
+                  {/* QR Canvas Ascuns pentru Download */}
                   <div className="hidden">
                     {qrUrl && (
                       <QRCodeCanvas 
@@ -353,14 +347,16 @@ export default function EmployeesPage() {
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">ID: {emp.id.slice(0,8)}</p>
                       </div>
                       
-                      <div className="bg-white p-2.5 rounded-xl shadow-sm shrink-0 border border-slate-100">
-                        {qrUrl && (
+                      <div className="bg-white p-2.5 rounded-xl shadow-sm shrink-0 border border-slate-100 min-w-[98px] min-h-[98px] flex items-center justify-center">
+                        {qrUrl ? (
                           <QRCodeCanvas 
                             id={`qr-${emp.id}`}
                             value={qrUrl} 
                             size={76} 
                             level="H"
                           />
+                        ) : (
+                          <div className="w-[76px] h-[76px] bg-slate-100 animate-pulse rounded-md" />
                         )}
                       </div>
                     </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { 
   Plus, Trash2, Download, 
@@ -28,6 +28,7 @@ function ClientFriendlyDate({ dateString, locale }: { dateString: string; locale
 export default function LocationsPage() {
   const t = useTranslations('Locations');
   const params = useParams();
+  const router = useRouter();
   const locale = (params?.locale as string) || 'ro';
 
   const [locations, setLocations] = useState<any[]>([]);
@@ -36,9 +37,6 @@ export default function LocationsPage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   
-  const [newCompanyName, setNewCompanyName] = useState('');
-  const [creatingCompany, setCreatingCompany] = useState(false);
-
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newAddress, setNewAddress] = useState('');
@@ -74,9 +72,10 @@ export default function LocationsPage() {
   useEffect(() => {
     async function getInitialData() {
       try {
+        setLoading(true);
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) {
-          setLoading(false);
+          router.push(`/${locale}/login`);
           return;
         }
         
@@ -93,7 +92,9 @@ export default function LocationsPage() {
           if (company.logo_url) setLogoUrl(company.logo_url);
           await fetchData(company.id);
         } else {
-          setLoading(false);
+          // === STRATEGIE SECURITATE ===
+          // Dacă userul nu are companie înregistrată, îl scoatem instant pe interfața de creare
+          window.location.href = `/${locale}/dashboard/create-company`;
         }
       } catch (err: any) {
         console.error("Eroare inițializare pagină:", err);
@@ -102,55 +103,7 @@ export default function LocationsPage() {
       }
     }
     getInitialData();
-  }, [fetchData, locale]);
-
-  const handleCreateCompany = async (e: React.FormEvent) => {
-    e.preventDefault(); // Corectat aici: adăugat e.
-    if (!newCompanyName.trim()) return;
-
-    try {
-      setCreatingCompany(true);
-      setErrorMessage(null);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) throw new Error(locale === 'ru' ? "Пользователь не авторизован." : "Utilizator neautentificat.");
-
-      const generatedSlug = newCompanyName
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") 
-        .replace(/[^a-z0-9\s-]/g, "")    
-        .replace(/\s+/g, "-")            
-        .replace(/-+/g, "-");            
-
-      const finalSlug = `${generatedSlug}-${Math.random().toString(36).substring(2, 6)}`;
-
-      const { data, error } = await supabase
-        .from('companies')
-        .insert([{ 
-          owner_id: user.id, 
-          name: newCompanyName.trim(),
-          slug: finalSlug
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setCompanyId(data.id);
-        setSuccessMessage(locale === 'ru' ? "Компания успешно зарегистрирована!" : "Compania a fost înregistrată cu succes!");
-        setTimeout(() => setSuccessMessage(null), 4000);
-        await fetchData(data.id);
-      }
-    } catch (err: any) {
-      console.error("Eroare la crearea companiei:", err);
-      setErrorMessage(err.message || (locale === 'ru' ? "Не удалось создать компанию." : "Nu s-a putut crea compania."));
-    } finally {
-      setCreatingCompany(false);
-    }
-  };
+  }, [fetchData, locale, router]);
 
   const downloadQR = (id: string, name: string, locLogo: string) => {
     const qrCanvas = document.getElementById(`qr-${id}`) as HTMLCanvasElement;
@@ -259,7 +212,7 @@ export default function LocationsPage() {
     }
 
     if (!companyId) {
-      setErrorMessage(locale === 'ru' ? "Ошибка: Не удалось определить компанию. Обновите страницу." : "Eroare: Nu s-a putut identifica compania. Reîmprospătează pagina.");
+      setErrorMessage(locale === 'ru' ? "Ошибка: Не удалось определить компанию." : "Eroare: Nu s-a putut identifica compania.");
       setIsAdding(false);
       return;
     }
@@ -309,61 +262,12 @@ export default function LocationsPage() {
 
   const selectedLocationObj = locations.find(l => l.id === selectedLocationId);
 
-  if (loading) return (
+  // Zid de protecție: Cât timp verificăm datele sau dacă firma lipsește, interfața nu se afișează deloc
+  if (loading || !companyId) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
       <Loader2 className="animate-spin text-blue-600" size={40} />
     </div>
   );
-
-  if (!companyId) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
-        <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl max-w-md w-full text-center border border-slate-100">
-          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 border border-blue-100">
-            <Building2 size={30} />
-          </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-2">
-            {locale === 'ru' ? "Настройка Компании" : "Configurează Compania"}
-          </h2>
-          <p className="text-slate-500 mb-6 text-sm leading-relaxed">
-            {locale === 'ru' ? "Для доступа к панели администратора введите название вашей компании." : "Pentru a accesa panoul de administrare, introdu numele companiei tale."}
-          </p>
-
-          {errorMessage && (
-            <div className="bg-rose-50 text-rose-600 px-4 py-2.5 rounded-xl text-xs font-bold mb-4 border border-rose-100 text-left">
-              {errorMessage}
-            </div>
-          )}
-
-          <form onSubmit={handleCreateCompany} className="space-y-4">
-            <input 
-              type="text"
-              placeholder={locale === 'ru' ? "Например: Мой Ресторан SRL" : "Ex: Restaurantul Meu SRL"}
-              value={newCompanyName}
-              onChange={(e) => setNewCompanyName(e.target.value)}
-              className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent"
-              required
-              disabled={creatingCompany}
-            />
-            <button 
-              type="submit"
-              disabled={creatingCompany || !newCompanyName.trim()}
-              className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl uppercase tracking-wider hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {creatingCompany ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  {locale === 'ru' ? "Сохранение..." : "Se salvează..."}
-                </>
-              ) : (
-                locale === 'ru' ? "Создать Компанию" : "Creează Companie"
-              )}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
