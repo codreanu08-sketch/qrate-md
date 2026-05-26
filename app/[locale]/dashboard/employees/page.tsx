@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   UserPlus, Trash2, Download, Star, 
   MapPin, AlertCircle, Loader2, Camera, User, 
-  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone
+  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone, Building2
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import Link from 'next/link';
@@ -28,7 +28,10 @@ export default function EmployeesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState<any>(null);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
 
-  // Setăm mounted pe true la încărcarea pe client pentru a preveni erorile de hidratare la QR
+  // Stări pentru crearea companiei direct în pagină
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -50,14 +53,16 @@ export default function EmployeesPage() {
 
       if (compError) throw compError;
       
+      // Dacă nu are companie, oprim încărcarea aici și îi afișăm ecranul de creare companie
       if (!company) {
+        setCompanyId(null);
         setLoading(false);
         return;
       }
 
       setCompanyId(company.id);
 
-      // Executăm ambele query-uri în paralel pentru a reduce timpul de așteptare (Performance Boost)
+      // Executăm ambele query-uri în paralel pentru a reduce timpul de așteptare
       const [locationsResponse, employeesResponse] = await Promise.all([
         supabase.from('locations').select('id, name').eq('company_id', company.id),
         supabase.from('employees').select(`*, reviews(*)`).eq('company_id', company.id).order('created_at', { ascending: false })
@@ -95,7 +100,7 @@ export default function EmployeesPage() {
       }
     } catch (err: any) {
       console.error("Eroare la încărcarea datelor:", err.message);
-    } finally { // <-- Aici a fost corectat din 'finaly' în 'finally'
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -104,13 +109,37 @@ export default function EmployeesPage() {
     fetchInitialData();
   }, [fetchInitialData]);
 
+  // Funcția care creează compania direct din această pagină
+  const handleCreateCompanyInline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompanyName.trim() || isCreatingCompany) return;
+
+    setIsCreatingCompany(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sesiune expirată.");
+
+      const { data: newCompany, error: createError } = await supabase
+        .from('companies')
+        .insert([{ name: newCompanyName.trim(), owner_id: user.id }])
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      setNewCompanyName('');
+      await fetchInitialData(); // Reîncărcăm datele, acum companyId nu va mai fi null
+    } catch (err: any) {
+      alert("Eroare la crearea companiei: " + err.message);
+    } finally {
+      setIsCreatingCompany(false);
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
-    if (!companyId) {
-      alert("Eroare: Trebuie să configurezi mai întâi compania în pagina de Locații.");
-      return;
-    }
+    if (!companyId) return;
 
     setIsSubmitting(true);
 
@@ -197,6 +226,51 @@ export default function EmployeesPage() {
     setExpandedEmployee(prev => prev === empId ? null : empId);
   };
 
+  // 1. STATE DE LOADING INTERN
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center font-sans">
+        <Loader2 className="animate-spin text-blue-500 mb-6" size={48} />
+        <p className="font-black text-xs text-slate-400 uppercase tracking-[0.3em]">{t('loading')}</p>
+      </div>
+    );
+  }
+
+  // 2. STATE DE ONBOARDING: DACĂ USERUL NU ARE COMPANIE CREATĂ
+  if (!companyId) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 flex items-center justify-center font-sans text-slate-900">
+        <div className="max-w-md w-full bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-slate-100 text-center">
+          <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-[2rem] flex items-center justify-center mb-6 mx-auto">
+            <Building2 size={36} />
+          </div>
+          <h2 className="text-3xl font-[900] tracking-tight uppercase text-slate-900 mb-3">Configurează Compania</h2>
+          <p className="text-slate-400 font-medium text-sm leading-relaxed italic mb-8">
+            Pentru a putea gestiona angajații și codurile QR, trebuie mai întâi să introduci numele companiei tale.
+          </p>
+          
+          <form onSubmit={handleCreateCompanyInline} className="space-y-4">
+            <input 
+              type="text"
+              required
+              value={newCompanyName}
+              onChange={e => setNewCompanyName(e.target.value)}
+              placeholder="Ex: McDonald's Chișinău"
+              className="w-full bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl p-5 text-base font-bold outline-none transition-all shadow-sm text-center"
+            />
+            <button 
+              disabled={isCreatingCompany}
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50"
+            >
+              {isCreatingCompany ? <Loader2 className="animate-spin" /> : 'Salvează și Continuă'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. INTERFAȚA STANDARD (Se randează doar dacă există companyId)
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 lg:p-12 font-sans text-slate-900">
       <div className="max-w-[1400px] mx-auto">
@@ -270,18 +344,13 @@ export default function EmployeesPage() {
 
         {/* GRIDUL DE ANGAJAȚI */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {loading ? (
-            <div className="col-span-full py-32 text-center">
-              <Loader2 className="animate-spin mx-auto text-blue-500 mb-6" size={48} />
-              <p className="font-black text-xs text-slate-400 uppercase tracking-[0.3em]">{t('loading')}</p>
-            </div>
-          ) : employees.length === 0 ? (
+          {employees.length === 0 ? (
             <div className="col-span-full bg-white py-32 rounded-[4rem] border-2 border-dashed border-slate-100 text-center shadow-inner">
               <p className="text-slate-300 font-black uppercase text-lg tracking-widest">{t('empty')}</p>
             </div>
           ) : (
             employees.map(emp => {
-              const dynamicSlug = emp.location_id || companyId || 'general';
+              const dynamicSlug = emp.location_id || companyId;
               const qrUrl = mounted && typeof window !== 'undefined'
                 ? `${window.location.origin}/${locale}/rate/${dynamicSlug}?employee=${emp.id}` 
                 : '';
@@ -291,7 +360,6 @@ export default function EmployeesPage() {
               return (
                 <div key={emp.id} className="bg-white rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group p-8 md:p-10 relative overflow-hidden flex flex-col justify-between min-h-[370px]">
                   
-                  {/* QR Canvas Ascuns pentru Download */}
                   <div className="hidden">
                     {qrUrl && (
                       <QRCodeCanvas 
@@ -361,7 +429,6 @@ export default function EmployeesPage() {
                       </div>
                     </div>
 
-                    {/* SECTIUNE TOGGLE RECENZII */}
                     <div className="mb-6">
                       <button
                         type="button"

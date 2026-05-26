@@ -49,6 +49,10 @@ export default function LocationsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdding, setIsAdding] = useState(false);
 
+  // Stări noi pentru procesul de creare a companiei direct în pagină
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+
   const fetchData = useCallback(async (cId: string) => {
     try {
       const [locsRes, revsRes] = await Promise.all([
@@ -69,41 +73,72 @@ export default function LocationsPage() {
     }
   }, [locale]);
 
-  useEffect(() => {
-    async function getInitialData() {
-      try {
-        setLoading(true);
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError || !user) {
-          router.push(`/${locale}/login`);
-          return;
-        }
+  // Modificăm funcția de inițializare să nu mai facă redirect extern
+  const getInitialData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        router.push(`/${locale}/login`);
+        return;
+      }
+      
+      const { data: company, error: compError } = await supabase
+        .from('companies')
+        .select('id, logo_url')
+        .eq('owner_id', user.id)
+        .maybeSingle();
         
-        const { data: company, error: compError } = await supabase
-          .from('companies')
-          .select('id, logo_url')
-          .eq('owner_id', user.id)
-          .maybeSingle();
-          
-        if (compError) throw compError;
+      if (compError) throw compError;
 
-        if (company) {
-          setCompanyId(company.id);
-          if (company.logo_url) setLogoUrl(company.logo_url);
-          await fetchData(company.id);
-        } else {
-          // === STRATEGIE SECURITATE ===
-          // Dacă userul nu are companie înregistrată, îl scoatem instant pe interfața de creare
-          window.location.href = `/${locale}/dashboard/create-company`;
-        }
-      } catch (err: any) {
-        console.error("Eroare inițializare pagină:", err);
-        setErrorMessage(err.message || (locale === 'ru' ? "Не удалось загрузить компанию." : "Nu s-a putut încărca compania."));
+      if (company) {
+        setCompanyId(company.id);
+        if (company.logo_url) setLogoUrl(company.logo_url);
+        await fetchData(company.id);
+      } else {
+        // În loc de redirect, setăm companyId pe null și oprim loading-ul ca să randeze widgetul local
+        setCompanyId(null);
         setLoading(false);
       }
+    } catch (err: any) {
+      console.error("Eroare inițializare pagină:", err);
+      setErrorMessage(err.message || (locale === 'ru' ? "Не удалось загрузить компанию." : "Nu s-a putut încărca compania."));
+      setLoading(false);
     }
-    getInitialData();
   }, [fetchData, locale, router]);
+
+  useEffect(() => {
+    getInitialData();
+  }, [getInitialData]);
+
+  // Funcție nouă pentru crearea companiei inline
+  const handleCreateCompanyInline = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCompanyName.trim() || isCreatingCompany) return;
+
+    setIsCreatingCompany(true);
+    setErrorMessage(null);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sesiune expirată.");
+
+      const { data: newCompany, error: createError } = await supabase
+        .from('companies')
+        .insert([{ name: newCompanyName.trim(), owner_id: user.id }])
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      setNewCompanyName('');
+      // Reîncărcăm datele paginii prin metoda principală
+      await getInitialData();
+    } catch (err: any) {
+      setErrorMessage(locale === 'ru' ? "Ошибка при создании компании: " + err.message : "Eroare la crearea companiei: " + err.message);
+    } finally {
+      setIsCreatingCompany(false);
+    }
+  };
 
   const downloadQR = (id: string, name: string, locLogo: string) => {
     const qrCanvas = document.getElementById(`qr-${id}`) as HTMLCanvasElement;
@@ -262,13 +297,62 @@ export default function LocationsPage() {
 
   const selectedLocationObj = locations.find(l => l.id === selectedLocationId);
 
-  // Zid de protecție: Cât timp verificăm datele sau dacă firma lipsește, interfața nu se afișează deloc
-  if (loading || !companyId) return (
+  // 1. LOADING STATE PRINCIPAL
+  if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
       <Loader2 className="animate-spin text-blue-600" size={40} />
     </div>
   );
 
+  // 2. INLINE ONBOARDING STATE: DACĂ USERUL NU ARE COMPANIE ÎNREGISTRATĂ
+  if (!companyId) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 flex items-center justify-center font-sans text-slate-900">
+        <div className="max-w-md w-full bg-white p-8 md:p-12 rounded-[3.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-slate-100 text-center animate-fade-in">
+          <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-[2rem] flex items-center justify-center mb-6 mx-auto">
+            <Building2 size={36} />
+          </div>
+          <h2 className="text-3xl font-[900] tracking-tight uppercase text-slate-900 mb-3">
+            {locale === 'ru' ? 'Настройте Компанию' : 'Configurează Compania'}
+          </h2>
+          <p className="text-slate-400 font-medium text-sm leading-relaxed italic mb-8">
+            {locale === 'ru' 
+              ? 'Чтобы начать добавлять локации и генерировать QR-коды, укажите название вашей компании.' 
+              : 'Pentru a putea adăuga locații și genera coduri QR, trebuie mai întâi să introduci numele companiei tale.'}
+          </p>
+          
+          {errorMessage && (
+            <div className="bg-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold mb-4">
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleCreateCompanyInline} className="space-y-4">
+            <input 
+              type="text"
+              required
+              value={newCompanyName}
+              onChange={e => setNewCompanyName(e.target.value)}
+              placeholder={locale === 'ru' ? 'Например: McDonald\'s Кишинев' : 'Ex: McDonald\'s Chișinău'}
+              className="w-full bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl p-5 text-base font-bold outline-none transition-all shadow-sm text-center"
+            />
+            <button 
+              disabled={isCreatingCompany}
+              className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl flex items-center justify-center gap-3 disabled:opacity-50"
+            >
+              {isCreatingCompany ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                locale === 'ru' ? 'Сохранить и Продолжить' : 'Salvează și Continuă'
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. INTERFAȚA STANDARD (Rulată doar când firma există în sistem)
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
