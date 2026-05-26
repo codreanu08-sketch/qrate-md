@@ -30,18 +30,34 @@ export default function DashboardLayout({
         return;
       }
 
-      // Luăm profilul
-      const { data: profile } = await supabase
+      // 1. Încercăm să luăm profilul
+      let { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_started_at')
         .eq('id', user.id)
         .single();
 
-      console.log("PROFILE DATA:", profile);   // ← vezi ce returnează
+      // 2. Dacă nu există profil → îl creăm acum cu trial
+      if (!profile) {
+        const { data: newProfile } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email,
+            trial_started_at: new Date().toISOString(),
+            subscription_tier: 'free'
+          })
+          .select()
+          .single();
+
+        profile = newProfile;
+      }
+
+      console.log("PROFILE DATA:", profile);
 
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
-        const hasTrial = !!profile.trial_started_at;   // dacă există trial_started_at = acces
+        const hasTrial = !!profile.trial_started_at;
 
         setHasAccess(isPro || hasTrial);
       } else {
