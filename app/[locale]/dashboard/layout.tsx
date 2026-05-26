@@ -4,7 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Lock, RefreshCw } from 'lucide-react';
-import Sidebar from '@/components/Sidebar'; // Înlocuiește cu calea exactă unde ai salvat fisierul Sidebar.tsx
+import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({
   children,
@@ -18,6 +18,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const locale = params?.locale || 'ro';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+
+  // === DETECTĂM DACĂ SUNTEM PE PAGINA DE CREARE COMPANIE ===
+  const isCreateCompanyPage = pathname?.endsWith('/dashboard/create-company');
+  const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
     async function checkSubscription() {
@@ -40,12 +44,6 @@ export default function DashboardLayout({
           return;
         }
 
-        // --- DEBUG LOGS DIRECT ÎN CONSOLĂ ---
-        console.log("=== VERIFICARE ACCES QRATE ===");
-        console.log("User ID:", user.id);
-        console.log("Abonament:", profile.subscription_tier);
-        console.log("Data Trial pornire (raw):", profile.trial_started_at);
-
         const isPro = profile.subscription_tier === 'pro';
         let isTrial = false;
 
@@ -53,23 +51,12 @@ export default function DashboardLayout({
           const trialDate = new Date(profile.trial_started_at).getTime();
           const currentDate = new Date().getTime();
 
-          console.log("Data trial transformata in Ms:", trialDate);
-          console.log("Data curenta in Ms:", currentDate);
-
           if (!isNaN(trialDate)) {
             const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
             const timpScurs = currentDate - trialDate;
-            
-            console.log("Timp scurs (milisecunde):", timpScurs);
-            console.log("Zile scurse:", timpScurs / (1000 * 60 * 60 * 24));
-
             isTrial = timpScurs >= 0 && timpScurs < sevenDaysInMs;
           }
         }
-
-        console.log("Rezultat calcul isTrial:", isTrial);
-        console.log("Acces final:", isPro || isTrial);
-        console.log("=============================");
 
         setHasAccess(isPro || isTrial);
       } catch (err) {
@@ -89,13 +76,11 @@ export default function DashboardLayout({
     );
   }
 
-  const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
-
   // Dacă nu are acces și NU se află pe pagina de subscription, îl blocăm
   if (hasAccess === false && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-        <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full">
           <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50">
             <Lock size={40} className="stroke-[2.5]" />
           </div>
@@ -108,7 +93,7 @@ export default function DashboardLayout({
           <div className="space-y-3">
             <button 
               onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
-              className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg active:scale-[0.98]"
+              className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg"
             >
               Upgrade la Planul Pro
             </button>
@@ -124,13 +109,22 @@ export default function DashboardLayout({
     );
   }
 
-  // --- RENDEREA CU SIDEBAR INCLUS PENTRU CINE ARE ACCES SAU E PE PAGINA DE SUBSCRIPTION ---
+  // === MODIFICARE AICI: DACĂ E PAGINA DE CREARE COMPANIE, AFIȘĂM CURAT, FĂRĂ SIDEBAR ===
+  if (isCreateCompanyPage) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <main className="min-h-screen">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  // --- RENDEREA NORMALĂ CU SIDEBAR PENTRU RESTUL PAGINILOR ---
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Meniul lateral care stă fix pe desktop */}
       <Sidebar />
 
-      {/* Spațiul de conținut care se decalează pe desktop cu md:pl-72 ca să nu fie acoperit */}
       <div className="flex-1 w-full md:pl-72">
         <main className="min-h-screen">
           {children}
