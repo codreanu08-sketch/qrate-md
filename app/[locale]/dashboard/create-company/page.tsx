@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
 import { Building2, Loader2, Check } from 'lucide-react';
 
-export default function CreateCompanyPage({ params }: { params: { locale: string } }) {
+export default function CreateCompanyPage() {
   const t = useTranslations('Dashboard');
   const router = useRouter();
-  const locale = params?.locale || 'ro';
+  const params = useParams();
+  
+  // Citire sigură pentru Next.js App Router multi-language
+  const locale = (params?.locale as string) || 'ro';
 
   const [companyName, setCompanyName] = useState('');
   const [slug, setSlug] = useState('');
@@ -32,7 +35,7 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
         .maybeSingle();
 
       if (existingCompany) {
-        // Are deja companie → du-l direct în dashboard prin reîncărcare curată
+        // Are deja companie → trimite-l direct pe dashboard curat
         window.location.href = `/${locale}/dashboard`;
       }
     };
@@ -58,7 +61,6 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. BLOCAJ INSTANTANEU: Dacă deja se încarcă, ignoră complet orice al doilea click accidental
     if (loading) return;
 
     if (!companyName.trim()) {
@@ -76,7 +78,7 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
         return;
       }
 
-      // === VERIFICARE FINALĂ ÎNAINTE DE INSERT ===
+      // Verificare de siguranță finală înainte de insert
       const { data: existingCompany } = await supabase
         .from('companies')
         .select('id')
@@ -99,12 +101,12 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
 
       if (insertError) throw insertError;
 
-      // Redirecționare forțată prin browser pentru a asigura propagarea stării bazei de date în layout-ul principal
+      // Forțăm reîncărcarea completă a paginii pentru ca noul layout reconfigurat să detecteze compania instant
       window.location.href = `/${locale}/dashboard`;
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Eroare la crearea companiei');
-      setLoading(false); // Permitem reîncercarea doar dacă a apărut o eroare reală de rețea/bază de date
+      setLoading(false);
     }
   };
 
