@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useTranslations } from 'next-intl';
@@ -15,6 +15,30 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
   const [slug, setSlug] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // === VERIFICĂ LA ÎNCĂRCAREA PAGINII DACĂ ARE DEJA COMPANIE ===
+  useEffect(() => {
+    const checkExistingCompany = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push(`/${locale}/login`);
+        return;
+      }
+
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (existingCompany) {
+        // Are deja companie → du-l direct în dashboard
+        router.push(`/${locale}/dashboard`);
+      }
+    };
+
+    checkExistingCompany();
+  }, [router, locale]);
 
   const generateSlug = (name: string) => {
     return name
@@ -48,6 +72,18 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
         return;
       }
 
+      // === VERIFICARE FINALĂ ÎNAINTE DE INSERT ===
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (existingCompany) {
+        router.push(`/${locale}/dashboard`);
+        return;
+      }
+
       const { error: insertError } = await supabase
         .from('companies')
         .insert({
@@ -59,7 +95,6 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
 
       if (insertError) throw insertError;
 
-      // Redirecționează la dashboard
       router.push(`/${locale}/dashboard`);
     } catch (err: any) {
       console.error(err);
