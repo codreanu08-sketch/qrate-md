@@ -30,26 +30,20 @@ export default function DashboardLayout({
         return;
       }
 
+      // Luăm profilul
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_started_at')
         .eq('id', user.id)
         .single();
 
+      console.log("PROFILE DATA:", profile);   // ← vezi ce returnează
+
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
-        
-        let isTrialActive = false;
-        
-        if (profile.trial_started_at) {
-          const trialStart = new Date(profile.trial_started_at);
-          const sevenDaysLater = new Date(trialStart.getTime() + (7 * 24 * 60 * 60 * 1000));
-          const now = new Date();
-          
-          isTrialActive = now.getTime() < sevenDaysLater.getTime();
-        }
+        const hasTrial = !!profile.trial_started_at;   // dacă există trial_started_at = acces
 
-        setHasAccess(isPro || isTrialActive);
+        setHasAccess(isPro || hasTrial);
       } else {
         setHasAccess(false);
       }
