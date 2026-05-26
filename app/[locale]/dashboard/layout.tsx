@@ -39,15 +39,8 @@ export default function DashboardLayout({
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
         
-        let isTrialActive = false;
-        
-        if (profile.trial_started_at) {
-          const trialStart = new Date(profile.trial_started_at);
-          const sevenDaysLater = new Date(trialStart.getTime() + (7 * 24 * 60 * 60 * 1000));
-          const now = new Date();
-          
-          isTrialActive = now.getTime() < sevenDaysLater.getTime();
-        }
+        // Trial activ dacă există trial_started_at (7 zile de la înregistrare)
+        const isTrialActive = !!profile.trial_started_at;
 
         setHasAccess(isPro || isTrialActive);
       } else {
