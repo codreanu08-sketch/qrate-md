@@ -10,17 +10,24 @@ const supabaseAdmin = createClient(
 );
 
 export async function sendCustomResetEmail(email: string, locale: string) {
-  // 1. Generăm link-ul de resetare securizat
+  // 1. Generăm link-ul folosind opțiunea 'redirectTo'
+  // Astfel, Supabase va construi el link-ul corect cu codul inclus
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
     email: email,
+    options: {
+      redirectTo: `https://www.qrate.md/${locale}/auth/update-password`,
+    },
   });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Supabase Admin Error:", error);
+    throw error;
+  }
 
-  // 2. Construim URL-ul nostru personalizat folosind token-ul de la Supabase
-  // Extragem hash-ul din link-ul generat sau folosim token-ul direct
-  const resetLink = `https://www.qrate.md/${locale}/auth/update-password?code=${data.properties.hashed_token}`;
+  // 2. Acum 'data.properties.action_link' conține URL-ul perfect
+  // Ex: https://qrate.md/ro/auth/update-password?code=12345...
+  const resetLink = data.properties.action_link;
 
   // 3. Trimitem prin Resend
   await resend.emails.send({
@@ -31,6 +38,9 @@ export async function sendCustomResetEmail(email: string, locale: string) {
       <h2>Resetare Parolă</h2>
       <p>Click pe butonul de mai jos pentru a-ți schimba parola:</p>
       <a href="${resetLink}" style="background: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px;">Resetare Parolă</a>
+      <p style="margin-top: 20px; font-size: 12px; color: #666;">
+        Dacă butonul nu funcționează, accesează: ${resetLink}
+      </p>
     `,
   });
 
