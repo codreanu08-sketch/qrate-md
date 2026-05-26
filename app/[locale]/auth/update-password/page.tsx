@@ -27,6 +27,7 @@ function UpdatePasswordContent() {
       hasProcessed.current = true;
       setLoading(true);
 
+      // Tipizare explicita pentru a evita eroarea de build TypeScript
       supabase.auth.onAuthStateChange((event: any, session: any) => {
         if (event === 'PASSWORD_RECOVERY' || session) {
           setIsReady(true);
@@ -34,7 +35,8 @@ function UpdatePasswordContent() {
         }
       });
     } else {
-      supabase.auth.getSession().then(({ data }) => {
+      // Tipizare explicita pentru a evita eroarea de build TypeScript
+      supabase.auth.getSession().then(({ data }: any) => {
         if (data.session) {
           setIsReady(true);
         } else {
