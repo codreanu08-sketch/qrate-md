@@ -37,14 +37,12 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
 
-  // Limite venite din structura abonamentului (Default pentru plan limitat dacă se aplică)
   const [limits, setLimits] = useState({ maxLocations: 99, maxEmployees: 99 });
 
   const [selLocation, setSelLocation] = useState('all');
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
 
-  // --- LOGICĂ AUDIT & METRICI ---
   const calculateChurnRisk = () => {
     const negative = allReviews.filter(r => r.rating <= 2).length;
     return allReviews.length > 0 ? ((negative / allReviews.length) * 100).toFixed(0) : 0;
@@ -136,29 +134,22 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     }
   }, [selPeriod]);
 
-  // --- RESTRICȚIE PE ABONAMENT (Activează doar numărul permis de locații/angajați) ---
   const activeLocations = useMemo(() => {
     return rawLocations.slice(0, limits.maxLocations);
   }, [rawLocations, limits.maxLocations]);
 
   const activeEmployees = useMemo(() => {
-    // 1. Tăiem lista totală conform limitei maxime per total afacere
     const allowedPool = rawEmployees.slice(0, limits.maxEmployees);
-    
-    // 2. Filtrare în cascadă: Dacă e selectată o locație, vedem doar angajații care au recenzii pe acea locație
     if (selLocation !== 'all') {
       const employeesWithReviewsInLocation = allReviews
         .filter(r => r.location_id === selLocation && r.employee_id)
         .map(r => r.employee_id);
-
       return allowedPool.filter(emp => employeesWithReviewsInLocation.includes(emp.id));
     }
-
     return allowedPool;
   }, [rawEmployees, limits.maxEmployees, selLocation, allReviews]);
 
-
-  // --- ABONARE ÎN TIMP REAL (REALTIME) ---
+  // REALTIME
   useEffect(() => {
     if (!companyId) return;
     const channel = supabase
@@ -184,7 +175,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // --- INIȚIALIZARE DATE ȘI VERIFICARE DREPTURI ACCES ---
+  // === INIȚIALIZARE + TRIAL + COMPANIE ===
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -193,56 +184,63 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         return;
       }
 
+      // === 1. SETEAZĂ TRIAL DACĂ NU EXISTĂ ===
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_started_at')
         .eq('id', user.id)
         .single();
-        
-      const isPro = profile?.subscription_tier === 'pro';
-      
-      // Setează limitele aplicației în funcție de pachetul de abonament
-      if (isPro) {
-        setLimits({ maxLocations: 99, maxEmployees: 99 }); // Nelimitat pentru Pro
-      } else {
-        setLimits({ maxLocations: 1, maxEmployees: 4 });  // Restricție: 1 locație și max 4 angajați pe ea
+
+      if (!profile?.trial_started_at) {
+        await supabase
+          .from('profiles')
+          .update({ trial_started_at: new Date().toISOString() })
+          .eq('id', user.id);
       }
 
-      let isTrial = false;
-      if (profile?.trial_started_at) {
-        const trialDate = new Date(profile.trial_started_at).getTime();
-        const currentDate = new Date().getTime();
-        if (!isNaN(trialDate)) {
-          const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-          isTrial = (currentDate - trialDate) < sevenDaysInMs;
-        }
-      }
-      
+      const isPro = profile?.subscription_tier === 'pro';
+      const trialDate = profile?.trial_started_at ? new Date(profile.trial_started_at).getTime() : 0;
+      const isTrial = trialDate && (Date.now() - trialDate < 7 * 24 * 60 * 60 * 1000);
+
       setHasAccess(isPro || isTrial);
 
-      const { data: company } = await supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle();
-      if (company) {
-        setCompanyId(company.id);
-        const [emp, loc] = await Promise.all([
-          supabase.from('employees').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true }),
-          supabase.from('locations').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true })
-        ]);
-        setRawEmployees(emp.data || []);
-        setRawLocations(loc.data || []);
+      if (isPro) {
+        setLimits({ maxLocations: 99, maxEmployees: 99 });
+      } else {
+        setLimits({ maxLocations: 1, maxEmployees: 4 });
       }
+
+      // === 2. VERIFICĂ COMPANIE ===
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (!company) {
+        router.push(`/${locale}/dashboard/create-company`);
+        return;
+      }
+
+      setCompanyId(company.id);
+
+      const [emp, loc] = await Promise.all([
+        supabase.from('employees').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true }),
+        supabase.from('locations').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true })
+      ]);
+
+      setRawEmployees(emp.data || []);
+      setRawLocations(loc.data || []);
     }
     init();
   }, [router, locale]);
 
   useEffect(() => { if (companyId) fetchBaseReviews(companyId); }, [companyId, fetchBaseReviews]);
 
-  // --- FILTRARE ȘI STATISTICI AVANSATE ---
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
-      // Verificăm dacă recenzia aparține unei locații sau unui angajat care NU a fost suspendat prin limitare
       const isLocAllowed = activeLocations.some(l => l.id === r.location_id);
       const isEmpAllowed = !r.employee_id || activeEmployees.some(e => e.id === r.employee_id);
-
       if (!isLocAllowed || !isEmpAllowed) return false;
 
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
@@ -301,7 +299,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'быl', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -398,12 +396,11 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               </div>
               
               <div className="flex flex-wrap gap-3 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                {/* SELECT LOCAȚIE (Afișează doar locațiile permise de abonament) */}
                 <select 
                   className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" 
                   onChange={(e) => {
                     setSelLocation(e.target.value);
-                    setSelEmployee('all'); // Resetăm angajatul când schimbăm locația ca să nu crape filtrele
+                    setSelEmployee('all');
                   }} 
                   value={selLocation}
                 >
@@ -411,7 +408,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                   {activeLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
 
-                {/* SELECT ANGAJAȚI (Afișează doar angajații permise de abonament ȘI legați de locația selectată) */}
                 <select 
                   className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" 
                   onChange={(e) => setSelEmployee(e.target.value)} 
@@ -441,7 +437,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
             {/* ANALYTICS SECTION */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* GRAFIC DISTRIBUȚIE */}
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
                 <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2"><BarChart3 size={20} className="text-indigo-500"/> {t('chartTitle')}</h3>
                 <div className="space-y-4 flex-grow">
@@ -451,10 +446,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                         {item.star} <Star size={14} className="text-amber-400 fill-amber-400" />
                       </div>
                       <div className="flex-grow h-4 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full transition-all duration-1000 ${item.star >= 4 ? 'bg-emerald-500' : item.star === 3 ? 'bg-amber-400' : 'bg-rose-500'}`}
-                          style={{ width: `${item.pct}%` }}
-                        ></div>
+                        <div className={`h-full rounded-full transition-all duration-1000 ${item.star >= 4 ? 'bg-emerald-500' : item.star === 3 ? 'bg-amber-400' : 'bg-rose-500'}`} style={{ width: `${item.pct}%` }}></div>
                       </div>
                       <div className="w-10 text-right text-xs font-bold text-slate-500">{item.pct}%</div>
                     </div>
@@ -462,7 +454,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                 </div>
               </div>
 
-              {/* AI INSIGHTS */}
               <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-3xl border border-indigo-800 shadow-lg text-white flex flex-col relative overflow-hidden">
                 <div className="absolute -right-10 -bottom-10 opacity-10"><BrainCircuit size={150} /></div>
                 <h3 className="text-lg font-black text-indigo-200 mb-4 flex items-center gap-2 z-10"><BrainCircuit size={20}/> {t('aiTitle')}</h3>
