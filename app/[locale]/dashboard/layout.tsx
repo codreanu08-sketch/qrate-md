@@ -32,19 +32,23 @@ export default function DashboardLayout({
         setLoading(true);
 
         // 1. Verificăm dacă userul este logat
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
           router.push(`/${locale}/login`);
           return;
         }
 
-        // 2. Luăm profilul și compania în paralel
+        // 2. Luăm profilul și compania în paralel (.maybeSingle() nu crapă dacă rândul nu există)
         const [profileRes, companyRes] = await Promise.all([
-          supabase.from('profiles').select('subscription_tier, trial_started_at').eq('id', user.id).single(),
+          supabase.from('profiles').select('subscription_tier, trial_started_at').eq('id', user.id).maybeSingle(),
           supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle()
         ]);
 
-        // Verificăm accesul premium/trial
+        // Logăm erorile în consolă pentru debug direct, fără să blocăm interfața
+        if (profileRes.error) console.error("Eroare Supabase Profiles:", profileRes.error);
+        if (companyRes.error) console.error("Eroare Supabase Companies:", companyRes.error);
+
+        // 3. Verificăm accesul premium/trial
         if (profileRes.data) {
           const profile = profileRes.data;
           const isPro = profile.subscription_tier === 'pro';
@@ -64,34 +68,34 @@ export default function DashboardLayout({
           setHasAccess(false);
         }
 
-        // Verificăm dacă are companie
+        // 4. Verificăm dacă are companie
         const companyExists = !!companyRes.data;
         setHasCompany(companyExists);
 
-        // === LOGICA DE REDIRECȚIONARE LOGICĂ ===
-        // Dacă NU are companie și încearcă să acceseze orice pagină de dashboard (inclusiv locations, employees, etc.)
+        // === LOGICA DE REDIRECȚIONARE ===
+        // Dacă NU are companie și încearcă să acceseze pagini ca locations, employees, etc.
         if (!companyExists && !isCreateCompanyPage && !isSubscriptionPage) {
           router.push(`/${locale}/dashboard/create-company`);
           return;
         }
 
-        // Dacă ARE deja companie și încearcă să intre manual pe pagina de creare, îl trimitem la dashboard
+        // Dacă ARE deja companie și încearcă să intre manual pe pagina de creare
         if (companyExists && isCreateCompanyPage) {
           router.push(`/${locale}/dashboard`);
           return;
         }
 
       } catch (err) {
-        console.error("Eroare în DashboardLayout:", err);
+        console.error("Eroare critică în DashboardLayout:", err);
       } finally {
         setLoading(false);
       }
     }
 
     checkSecurityAndCompany();
-  }, [pathname, locale]);
+  }, [pathname, locale, isCreateCompanyPage, isSubscriptionPage, router]);
 
-  // Ecran de încărcare curat până când se termină verificările în baza de date
+  // Ecran de încărcare global
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
