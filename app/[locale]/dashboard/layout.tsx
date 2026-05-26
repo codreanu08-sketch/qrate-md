@@ -17,76 +17,82 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const locale = params?.locale || 'ro';
-  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
-  const [hasCompany, setHasCompany] = useState<boolean | null>(null);
+  
+  const [loading, setLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState<boolean>(false);
+  const [hasCompany, setHasCompany] = useState<boolean>(false);
 
-  // === DETECTĂM UNDE SE AFLĂ UTILIZATORUL ===
+  // === DETECTĂM RUTELE SPECIALE ===
   const isCreateCompanyPage = pathname?.endsWith('/dashboard/create-company');
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
-    async function checkUserStatus() {
+    async function checkSecurityAndCompany() {
       try {
-        // 1. Verificăm autentificarea
+        setLoading(true);
+
+        // 1. Verificăm dacă userul este logat
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           router.push(`/${locale}/login`);
           return;
         }
 
-        // 2. Verificăm Subscription & Existența Companiei în paralel pentru viteză
+        // 2. Luăm profilul și compania în paralel
         const [profileRes, companyRes] = await Promise.all([
           supabase.from('profiles').select('subscription_tier, trial_started_at').eq('id', user.id).single(),
           supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle()
         ]);
 
-        // Verificare eroare profil
-        if (profileRes.error || !profileRes.data) {
-          console.error("Eroare la preluarea profilului:", profileRes.error);
-          setHasAccess(false);
-          return;
-        }
+        // Verificăm accesul premium/trial
+        if (profileRes.data) {
+          const profile = profileRes.data;
+          const isPro = profile.subscription_tier === 'pro';
+          let isTrial = false;
 
-        // Logică acces Premium / Trial
-        const profile = profileRes.data;
-        const isPro = profile.subscription_tier === 'pro';
-        let isTrial = false;
-
-        if (profile.trial_started_at) {
-          const trialDate = new Date(profile.trial_started_at).getTime();
-          const currentDate = new Date().getTime();
-
-          if (!isNaN(trialDate)) {
-            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-            const timpScurs = currentDate - trialDate;
-            isTrial = timpScurs >= 0 && timpScurs < sevenDaysInMs;
+          if (profile.trial_started_at) {
+            const trialDate = new Date(profile.trial_started_at).getTime();
+            const currentDate = new Date().getTime();
+            if (!isNaN(trialDate)) {
+              const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+              const timpScurs = currentDate - trialDate;
+              isTrial = timpScurs >= 0 && timpScurs < sevenDaysInMs;
+            }
           }
+          setHasAccess(isPro || isTrial);
+        } else {
+          setHasAccess(false);
         }
 
-        const accessGranted = isPro || isTrial;
-        setHasAccess(accessGranted);
-
-        // Logică companie
+        // Verificăm dacă are companie
         const companyExists = !!companyRes.data;
         setHasCompany(companyExists);
 
-        // === REDIRECȚIONARE AUTOMATĂ PENTRU COMPANIE ===
-        // Dacă are acces la dashboard, NU are companie și NU se află deja pe pagina de creare companie sau subscription
-        if (accessGranted && !companyExists && !isCreateCompanyPage && !isSubscriptionPage) {
+        // === LOGICA DE REDIRECȚIONARE LOGICĂ ===
+        // Dacă NU are companie și încearcă să acceseze orice pagină de dashboard (inclusiv locations, employees, etc.)
+        if (!companyExists && !isCreateCompanyPage && !isSubscriptionPage) {
           router.push(`/${locale}/dashboard/create-company`);
+          return;
+        }
+
+        // Dacă ARE deja companie și încearcă să intre manual pe pagina de creare, îl trimitem la dashboard
+        if (companyExists && isCreateCompanyPage) {
+          router.push(`/${locale}/dashboard`);
+          return;
         }
 
       } catch (err) {
-        console.error("Eroare neprevăzută în layout:", err);
-        setHasAccess(false);
+        console.error("Eroare în DashboardLayout:", err);
+      } finally {
+        setLoading(false);
       }
     }
-    
-    checkUserStatus();
-  }, [router, locale, pathname, isCreateCompanyPage, isSubscriptionPage]);
 
-  // Loading global până se prind stările din Supabase
-  if (hasAccess === null || (hasAccess === true && hasCompany === null)) {
+    checkSecurityAndCompany();
+  }, [pathname, locale]);
+
+  // Ecran de încărcare curat până când se termină verificările în baza de date
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <RefreshCw className="animate-spin text-indigo-600" size={32} />
@@ -94,8 +100,8 @@ export default function DashboardLayout({
     );
   }
 
-  // Dacă nu are abonament activ și nu e pe pagina de subscription -> Blocat
-  if (hasAccess === false && !isSubscriptionPage) {
+  // Blochează accesul dacă userul nu are plan activ și nu e pe pagina de plată
+  if (!hasAccess && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
         <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full">
@@ -115,38 +121,27 @@ export default function DashboardLayout({
             >
               Upgrade la Planul Pro
             </button>
-            <button 
-              onClick={() => router.push(`/${locale}/`)} 
-              className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
-            >
-              Înapoi la Pagina Principală
-            </button>
           </div>
         </div>
       </div>
     );
   }
 
-  // === RENDER CURAT PENTRU CREARE COMPANIE (FĂRĂ SIDEBAR) ===
+  // Randează pagina de creare companie fără Sidebar
   if (isCreateCompanyPage) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <main className="min-h-screen">{children}</main>
       </div>
     );
   }
 
-  // === RENDER NORMAL CU SIDEBAR PENTRU LOGAȚI + COMPANIE ACTIVĂ ===
+  // Randează layout-ul normal cu Sidebar pentru locații, angajați, recenzii, etc.
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar />
-
       <div className="flex-1 w-full md:pl-72">
-        <main className="min-h-screen">
-          {children}
-        </main>
+        <main className="min-h-screen">{children}</main>
       </div>
     </div>
   );
