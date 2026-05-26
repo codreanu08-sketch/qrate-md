@@ -175,7 +175,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // === INIȚIALIZARE + TRIAL + COMPANIE ===
+  // === INIȚIALIZARE + TRIAL + COMPANIE (Adaptat pentru trial_ends_at) ===
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -184,27 +184,38 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         return;
       }
 
-      // === 1. SETEAZĂ TRIAL DACĂ NU EXISTĂ ===
+      // 1. EXTRAGEM PROFILUL CURENT (folosind coloana reală: trial_ends_at)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, trial_started_at')
+        .select('subscription_tier, trial_ends_at')
         .eq('id', user.id)
         .single();
 
-      if (!profile?.trial_started_at) {
-        await supabase
+      let currentTrialEndsAt = profile?.trial_ends_at;
+
+      // Siguranță: Dacă cumva trial_ends_at este NULL (user vechi), îl setăm acum cu data de azi + 7 zile
+      if (!currentTrialEndsAt) {
+        const sapteZileInViitor = new Date();
+        sapteZileInViitor.setDate(sapteZileInViitor.getDate() + 7);
+        const viitorIso = sapteZileInViitor.toISOString();
+
+        const { error: updateError } = await supabase
           .from('profiles')
-          .update({ trial_started_at: new Date().toISOString() })
+          .update({ trial_ends_at: viitorIso })
           .eq('id', user.id);
+        
+        if (!updateError) {
+          currentTrialEndsAt = viitorIso;
+        }
       }
 
       const isPro = profile?.subscription_tier === 'pro';
-      const trialDate = profile?.trial_started_at ? new Date(profile.trial_started_at).getTime() : 0;
+      const trialEndTime = currentTrialEndsAt ? new Date(currentTrialEndsAt).getTime() : 0;
       
-      // FIX: Asigurăm că isTrial este boolean
-      const isTrial = trialDate > 0 && (Date.now() - trialDate < 7 * 24 * 60 * 60 * 1000);
+      // Utilizatorul este în trial dacă data de expirare este în VIITOR (mai mare decât acum)
+      const isTrialActive = trialEndTime > Date.now();
 
-      setHasAccess(isPro || isTrial);
+      setHasAccess(isPro || isTrialActive);
 
       if (isPro) {
         setLimits({ maxLocations: 99, maxEmployees: 99 });
@@ -212,7 +223,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         setLimits({ maxLocations: 1, maxEmployees: 4 });
       }
 
-      // === 2. VERIFICĂ COMPANIE ===
+      // 2. VERIFICĂ COMPANIE
       const { data: company } = await supabase
         .from('companies')
         .select('id')
