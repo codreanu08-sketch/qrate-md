@@ -32,8 +32,8 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
         .maybeSingle();
 
       if (existingCompany) {
-        // Are deja companie → du-l direct în dashboard
-        router.push(`/${locale}/dashboard`);
+        // Are deja companie → du-l direct în dashboard prin reîncărcare curată
+        window.location.href = `/${locale}/dashboard`;
       }
     };
 
@@ -57,6 +57,10 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. BLOCAJ INSTANTANEU: Dacă deja se încarcă, ignoră complet orice al doilea click accidental
+    if (loading) return;
+
     if (!companyName.trim()) {
       setError('Numele companiei este obligatoriu');
       return;
@@ -68,7 +72,7 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        router.push(`/${locale}/login`);
+        window.location.href = `/${locale}/login`;
         return;
       }
 
@@ -80,7 +84,7 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
         .maybeSingle();
 
       if (existingCompany) {
-        router.push(`/${locale}/dashboard`);
+        window.location.href = `/${locale}/dashboard`;
         return;
       }
 
@@ -95,12 +99,12 @@ export default function CreateCompanyPage({ params }: { params: { locale: string
 
       if (insertError) throw insertError;
 
-      router.push(`/${locale}/dashboard`);
+      // Redirecționare forțată prin browser pentru a asigura propagarea stării bazei de date în layout-ul principal
+      window.location.href = `/${locale}/dashboard`;
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Eroare la crearea companiei');
-    } finally {
-      setLoading(false);
+      setLoading(false); // Permitem reîncercarea doar dacă a apărut o eroare reală de rețea/bază de date
     }
   };
 
