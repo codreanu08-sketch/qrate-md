@@ -27,20 +27,34 @@ export default function Sidebar() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
+      // === FOLOSIM trial_started_at în loc de created_at ===
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, created_at')
+        .select('subscription_tier, trial_started_at, trial_ends_at')
         .eq('id', session.user.id)
         .maybeSingle();
 
       if (profile) {
-        const signupDate = new Date(profile.created_at);
-        const now = new Date();
-        const diffInDays = Math.floor((now.getTime() - signupDate.getTime()) / (1000 * 3600 * 24));
-        const remaining = Math.ceil(7 - diffInDays);
         const isPro = profile.subscription_tier === 'pro';
         
-        setTrialDays(!isPro && diffInDays < 7 ? remaining : null);
+        let remaining = 0;
+
+        if (profile.trial_ends_at) {
+          // Dacă avem trial_ends_at → calculăm zile rămase
+          const endDate = new Date(profile.trial_ends_at);
+          const now = new Date();
+          const diffInMs = endDate.getTime() - now.getTime();
+          remaining = Math.ceil(diffInMs / (1000 * 3600 * 24));
+        } else if (profile.trial_started_at) {
+          // Fallback: calculăm din trial_started_at + 7 zile
+          const startDate = new Date(profile.trial_started_at);
+          const endDate = new Date(startDate.getTime() + (7 * 24 * 60 * 60 * 1000));
+          const now = new Date();
+          const diffInMs = endDate.getTime() - now.getTime();
+          remaining = Math.ceil(diffInMs / (1000 * 3600 * 24));
+        }
+
+        setTrialDays(!isPro && remaining > 0 ? remaining : null);
       }
     } catch (error) {
       console.error("Error loading sidebar data:", error);
