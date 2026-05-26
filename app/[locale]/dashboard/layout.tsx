@@ -32,22 +32,22 @@ export default function DashboardLayout({
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, trial_ends_at')
+        .select('subscription_tier, subscription_ends_at')
         .eq('id', user.id)
         .single();
 
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
         
-        // Verificare trial mai sigură
+        // Verificare trial folosind coloana corectă
         let isTrial = false;
-        if (profile.trial_ends_at) {
-          const trialEnd = new Date(profile.trial_ends_at);
+        if (profile.subscription_ends_at) {
+          const trialEnd = new Date(profile.subscription_ends_at);
           const now = new Date();
           isTrial = trialEnd.getTime() > now.getTime();
         }
 
-        console.log("Trial check:", { isPro, isTrial, trial_ends_at: profile.trial_ends_at });
+        console.log("Trial check:", { isPro, isTrial, subscription_ends_at: profile.subscription_ends_at });
         
         setHasAccess(isPro || isTrial);
       } else {
