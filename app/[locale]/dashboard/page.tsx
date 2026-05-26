@@ -50,6 +50,31 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
   const getROI = () => allReviews.filter(r => r.rating >= 4).length * 15;
 
+  // REPARAT: Memorăm fetchBaseReviews corect pentru a opri buclele infinite
+  const fetchBaseReviews = useCallback(async (cId: string) => {
+    try {
+      let query = supabase.from('reviews')
+        .select(`*, employees ( name ), locations ( name )`)
+        .eq('company_id', cId)
+        .order('created_at', { ascending: false });
+
+      if (selPeriod !== 'all') {
+        const days = selPeriod === '7d' ? 7 : (selPeriod === '1m' ? 30 : 90);
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - days);
+        query = query.gte('created_at', cutoff.toISOString());
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      setAllReviews(data || []);
+    } catch (err: any) { 
+      console.error("Eroare la preluarea recenziilor:", err.message); 
+    } finally { 
+      setLoading(false); 
+    }
+  }, [selPeriod]);
+
   const runAudit = async () => {
     if (!companyId) return;
     const { data } = await supabase.from('reviews').select('id').eq('company_id', companyId);
@@ -109,31 +134,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     URL.revokeObjectURL(url);
   };
 
-  const fetchBaseReviews = useCallback(async (cId: string) => {
-    setLoading(true);
-    try {
-      let query = supabase.from('reviews')
-        .select(`*, employees ( name ), locations ( name )`)
-        .eq('company_id', cId)
-        .order('created_at', { ascending: false });
-
-      if (selPeriod !== 'all') {
-        const days = selPeriod === '7d' ? 7 : (selPeriod === '1m' ? 30 : 90);
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - days);
-        query = query.gte('created_at', cutoff.toISOString());
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      setAllReviews(data || []);
-    } catch (err: any) { 
-      console.error(err.message); 
-    } finally { 
-      loading && setLoading(false); 
-    }
-  }, [selPeriod]);
-
   const activeLocations = useMemo(() => {
     return rawLocations.slice(0, limits.maxLocations);
   }, [rawLocations, limits.maxLocations]);
@@ -149,7 +149,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return allowedPool;
   }, [rawEmployees, limits.maxEmployees, selLocation, allReviews]);
 
-  // REALTIME
+  // REALTIME OPTIMIZAT: Prevenim cheile duplicate la INSERT
   useEffect(() => {
     if (!companyId) return;
     const channel = supabase
@@ -165,7 +165,11 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
             .single();
 
           if (data && !error) {
-            setAllReviews((prev) => [data, ...prev]);
+            setAllReviews((prev) => {
+              // Verificăm dacă recenzia nu există deja în listă ca să evităm erorile de cheie duplicată
+              if (prev.some(r => r.id === data.id)) return prev;
+              return [data, ...prev];
+            });
             setLiveEvent(true);
             setTimeout(() => setLiveEvent(false), 5000);
           }
@@ -175,7 +179,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // === INIȚIALIZARE + TRIAL + COMPANIE (Adaptat pentru trial_ends_at) ===
+  // === INIȚIALIZARE + TRIAL + COMPANIE ===
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -184,7 +188,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         return;
       }
 
-      // 1. EXTRAGEM PROFILUL CURENT (folosind coloana reală: trial_ends_at)
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_ends_at')
@@ -193,7 +196,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
       let currentTrialEndsAt = profile?.trial_ends_at;
 
-      // Siguranță: Dacă cumva trial_ends_at este NULL (user vechi), îl setăm acum cu data de azi + 7 zile
       if (!currentTrialEndsAt) {
         const sapteZileInViitor = new Date();
         sapteZileInViitor.setDate(sapteZileInViitor.getDate() + 7);
@@ -211,8 +213,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
       const isPro = profile?.subscription_tier === 'pro';
       const trialEndTime = currentTrialEndsAt ? new Date(currentTrialEndsAt).getTime() : 0;
-      
-      // Utilizatorul este în trial dacă data de expirare este în VIITOR (mai mare decât acum)
       const isTrialActive = trialEndTime > Date.now();
 
       setHasAccess(isPro || isTrialActive);
@@ -223,7 +223,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         setLimits({ maxLocations: 1, maxEmployees: 4 });
       }
 
-      // 2. VERIFICĂ COMPANIE
       const { data: company } = await supabase
         .from('companies')
         .select('id')
@@ -248,7 +247,12 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     init();
   }, [router, locale]);
 
-  useEffect(() => { if (companyId) fetchBaseReviews(companyId); }, [companyId, fetchBaseReviews]);
+  // Executăm fetch-ul de recenzii când avem compania sau când se schimbă perioada
+  useEffect(() => { 
+    if (companyId) {
+      fetchBaseReviews(companyId); 
+    }
+  }, [companyId, fetchBaseReviews]);
 
   const filteredReviews = useMemo(() => {
     return allReviews.filter(r => {
@@ -332,7 +336,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, activeEmployees, activeLocations, t]);
 
-  if (hasAccess === null) {
+  if (hasAccess === null || (loading && allReviews.length === 0)) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <RefreshCw className="animate-spin text-indigo-600" size={32} />
@@ -366,7 +370,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                 onClick={() => router.push(`/${locale}/`)} 
                 className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
               >
-                Înapoia la Pagina Principală
+                Înapoi la Pagina Principală
               </button>
             </div>
           </div>
