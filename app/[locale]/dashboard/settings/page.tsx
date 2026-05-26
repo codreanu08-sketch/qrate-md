@@ -7,6 +7,7 @@ import {
   Loader2, CheckCircle, Sparkles, Building2, Download, Mail, Send
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { sendCustomResetEmail } from '@/app/actions/auth-actions'; // IMPORTUL NOU
 
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
@@ -157,15 +158,14 @@ export default function SettingsPage() {
     }
   };
 
+  // FUNCȚIA MODIFICATĂ
   const handleResetPassword = async () => {
+    if (!userEmail) return;
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
-        redirectTo: `${window.location.origin}/${locale}/auth/update-password`,
-      });
-      if (error) throw error;
+      await sendCustomResetEmail(userEmail, locale as string);
       alert(t?.alerts?.reset_sent || "Link-ul de resetare a fost trimis pe email!");
     } catch (err: any) {
-      alert(err.message);
+      alert("Eroare la trimiterea email-ului: " + err.message);
     }
   };
 
@@ -177,6 +177,8 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto text-slate-900">
+      {/* Restul codului UI rămâne la fel */}
+      {/* ... */}
       <header className="mb-8 md:mb-10">
         <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase flex items-center gap-3">
           <Settings className="text-blue-600" size={32} />
