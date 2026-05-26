@@ -89,7 +89,7 @@ export default function Register() {
     setError('');
 
     try {
-      -- 1. Creăm MAI ÎNTÂI utilizatorul în Supabase Auth în mod controlat
+      // 1. Creăm MAI ÎNTÂI utilizatorul în Supabase Auth în mod controlat
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -104,14 +104,14 @@ export default function Register() {
       if (authError) throw authError;
       if (!authData.user) throw new Error(t.Auth.errors.register_failed);
 
-      -- Generare slug curat și valid din numele companiei
+      // Generare slug curat și valid din numele companiei
       const slug = companyName
         .toLowerCase()
         .trim()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
 
-      -- 2. ACUM inserăm compania, fiind 100% siguri că userul există și nu încălcăm nicio cheie străină
+      // 2. ACUM inserăm compania, fiind 100% siguri că userul există și nu încălcăm nicio cheie străină
       const { error: companyError } = await supabase
         .from('companies')
         .insert({
@@ -123,7 +123,7 @@ export default function Register() {
 
       if (companyError) throw companyError;
 
-      -- Redirecționare dinamică bazată pe limba din sesiune
+      // Redirecționare dinamică bazată pe limba din sesiune
       router.push(`/${lang}/dashboard`);
     } catch (err: any) {
       setError(err.message || t.Auth.errors.register_failed);
