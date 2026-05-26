@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createBrowserClient } from '@supabase/ssr';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -13,13 +13,18 @@ export default function UpdatePassword() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Validăm codul din URL pentru a crea sesiunea
+  // Inițializare client sigură
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+  );
+
   useEffect(() => {
     const code = searchParams.get('code');
     if (code) {
       setLoading(true);
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) {
+      supabase.auth.exchangeCodeForSession(code).then((result) => {
+        if (result.error) {
           setError("Link-ul a expirat sau este invalid.");
         } else {
           setIsReady(true);
@@ -27,7 +32,7 @@ export default function UpdatePassword() {
         setLoading(false);
       });
     }
-  }, [searchParams]);
+  }, [searchParams, supabase]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,24 +41,29 @@ export default function UpdatePassword() {
     setLoading(true);
     setError('');
     
-    // @ts-ignore - Ignorăm eroarea de tip TypeScript pentru a permite compilarea
-    const { error } = await supabase.auth.updateUser({ 
-      password: password 
-    });
+    try {
+      // @ts-ignore - Ignorăm erorile de tip pentru compatibilitate maximă la build
+      const { error: updateError } = await supabase.auth.updateUser({ 
+        password: password 
+      });
 
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
+      if (updateError) throw updateError;
+
       alert("Parola a fost actualizată!");
       router.push('/ro/auth/login');
+    } catch (err: any) {
+      setError(err.message || "A apărut o eroare neașteptată.");
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] p-6">
       <form onSubmit={handleUpdate} className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md space-y-6">
-        <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Parolă Nouă</h1>
+        <div className="text-center">
+          <h1 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Parolă Nouă</h1>
+          <p className="text-slate-400 text-xs mt-2">Introdu noua ta parolă securizată.</p>
+        </div>
         
         <input 
           type="password" 
