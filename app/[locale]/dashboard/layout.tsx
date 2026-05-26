@@ -18,32 +18,37 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const locale = params?.locale || 'ro';
   const [hasAccess, setHasAccess] = useState<boolean | null>(null);
+  const [hasCompany, setHasCompany] = useState<boolean | null>(null);
 
-  // === DETECTĂM DACĂ SUNTEM PE PAGINA DE CREARE COMPANIE ===
+  // === DETECTĂM UNDE SE AFLĂ UTILIZATORUL ===
   const isCreateCompanyPage = pathname?.endsWith('/dashboard/create-company');
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
-    async function checkSubscription() {
+    async function checkUserStatus() {
       try {
+        // 1. Verificăm autentificarea
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           router.push(`/${locale}/login`);
           return;
         }
 
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier, trial_started_at')
-          .eq('id', user.id)
-          .single();
+        // 2. Verificăm Subscription & Existența Companiei în paralel pentru viteză
+        const [profileRes, companyRes] = await Promise.all([
+          supabase.from('profiles').select('subscription_tier, trial_started_at').eq('id', user.id).single(),
+          supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle()
+        ]);
 
-        if (error || !profile) {
-          console.error("Eroare la preluarea profilului:", error);
+        // Verificare eroare profil
+        if (profileRes.error || !profileRes.data) {
+          console.error("Eroare la preluarea profilului:", profileRes.error);
           setHasAccess(false);
           return;
         }
 
+        // Logică acces Premium / Trial
+        const profile = profileRes.data;
         const isPro = profile.subscription_tier === 'pro';
         let isTrial = false;
 
@@ -58,17 +63,30 @@ export default function DashboardLayout({
           }
         }
 
-        setHasAccess(isPro || isTrial);
+        const accessGranted = isPro || isTrial;
+        setHasAccess(accessGranted);
+
+        // Logică companie
+        const companyExists = !!companyRes.data;
+        setHasCompany(companyExists);
+
+        // === REDIRECȚIONARE AUTOMATĂ PENTRU COMPANIE ===
+        // Dacă are acces la dashboard, NU are companie și NU se află deja pe pagina de creare companie sau subscription
+        if (accessGranted && !companyExists && !isCreateCompanyPage && !isSubscriptionPage) {
+          router.push(`/${locale}/dashboard/create-company`);
+        }
+
       } catch (err) {
         console.error("Eroare neprevăzută în layout:", err);
         setHasAccess(false);
       }
     }
     
-    checkSubscription();
-  }, [router, locale, pathname]);
+    checkUserStatus();
+  }, [router, locale, pathname, isCreateCompanyPage, isSubscriptionPage]);
 
-  if (hasAccess === null) {
+  // Loading global până se prind stările din Supabase
+  if (hasAccess === null || (hasAccess === true && hasCompany === null)) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <RefreshCw className="animate-spin text-indigo-600" size={32} />
@@ -76,7 +94,7 @@ export default function DashboardLayout({
     );
   }
 
-  // Dacă nu are acces și NU se află pe pagina de subscription, îl blocăm
+  // Dacă nu are abonament activ și nu e pe pagina de subscription -> Blocat
   if (hasAccess === false && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -109,7 +127,7 @@ export default function DashboardLayout({
     );
   }
 
-  // === MODIFICARE AICI: DACĂ E PAGINA DE CREARE COMPANIE, AFIȘĂM CURAT, FĂRĂ SIDEBAR ===
+  // === RENDER CURAT PENTRU CREARE COMPANIE (FĂRĂ SIDEBAR) ===
   if (isCreateCompanyPage) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -120,7 +138,7 @@ export default function DashboardLayout({
     );
   }
 
-  // --- RENDEREA NORMALĂ CU SIDEBAR PENTRU RESTUL PAGINILOR ---
+  // === RENDER NORMAL CU SIDEBAR PENTRU LOGAȚI + COMPANIE ACTIVĂ ===
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar />
