@@ -30,44 +30,34 @@ export default function DashboardLayout({
       try {
         setLoading(true);
 
-        // 1. Verificăm sesiunea
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session?.user) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
           if (isMounted) router.push(`/${locale}/login`);
           return;
         }
 
-        // 2. Verificăm doar profilul și dreptul de acces
-        const { data: profile, error: profileError } = await supabase
+        // === VERIFICARE TRIAL + ABONAMENT ===
+        const { data: profile } = await supabase
           .from('profiles')
-          .select('subscription_tier, trial_started_at, trial_ends_at')
+          .select('subscription_tier, trial_ends_at')
           .eq('id', session.user.id)
           .maybeSingle();
 
         if (!isMounted) return;
-        if (profileError) console.error("Eroare Supabase Profiles:", profileError);
 
         if (profile) {
           const isPro = profile.subscription_tier === 'pro';
-          let isTrial = false;
+          const isTrialActive = profile.trial_ends_at 
+            ? new Date(profile.trial_ends_at).getTime() > Date.now() 
+            : false;
 
-          if (profile.trial_ends_at) {
-            isTrial = new Date(profile.trial_ends_at).getTime() > Date.now();
-          } else if (profile.trial_started_at) {
-            const trialDate = new Date(profile.trial_started_at).getTime();
-            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-            isTrial = (Date.now() - trialDate) < sevenDaysInMs;
-          } else {
-            isTrial = true; 
-          }
-
-          setHasAccess(isPro || isTrial);
+          setHasAccess(isPro || isTrialActive);
         } else {
           setHasAccess(false);
         }
 
       } catch (err) {
-        console.error("Eroare critică în DashboardLayout:", err);
+        console.error("Eroare în DashboardLayout:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -75,10 +65,8 @@ export default function DashboardLayout({
 
     checkSecurity();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [pathname, locale, isSubscriptionPage, router]);
+    return () => { isMounted = false; };
+  }, [pathname, locale, router]);
 
   if (loading) {
     return (
@@ -101,14 +89,12 @@ export default function DashboardLayout({
           <p className="text-slate-600 font-medium text-base mb-8 max-w-md mx-auto leading-relaxed">
             Accesul la secțiunile de analiză, gestionare angajați și setări avansate este disponibil doar în versiunea **PRO**.
           </p>
-          <div className="space-y-3">
-            <button 
-              onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
-              className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg"
-            >
-              Upgrade la Planul Pro
-            </button>
-          </div>
+          <button 
+            onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
+            className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg"
+          >
+            Upgrade la Planul Pro
+          </button>
         </div>
       </div>
     );
