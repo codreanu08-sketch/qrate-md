@@ -261,7 +261,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   }, [companyId, fetchBaseReviews]);
 
   // Logica de creare companie inline
-  const handleCreateCompanyInline = async (e: React.FormEvent) => {
+const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim()) return;
     setCreatingCompany(true);
@@ -278,13 +278,12 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
       if (error) throw error;
 
+      // DOAR setăm companyId. 
+      // Nu curățăm manual celelalte state-uri, lăsăm React să facă update-ul.
       setCompanyId(data.id);
-      setRawEmployees([]);
-      setRawLocations([]);
-      setAllReviews([]);
+      
     } catch (err: any) {
       alert(err.message || "Eroare la crearea companiei");
-    } finally {
       setCreatingCompany(false);
     }
   };
