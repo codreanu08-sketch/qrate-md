@@ -89,15 +89,13 @@ export default function Register() {
     setError('');
 
     try {
-      // 1. Creăm utilizatorul în Supabase Auth și trimitem toate datele companiei ca metadata
-      // Trigger-ul SQL se va ocupa automat de crearea companiei.
+      -- 1. Creăm MAI ÎNTÂI utilizatorul în Supabase Auth în mod controlat
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             company_name: companyName,
-            company_type: type, // Adăugat pentru ca trigger-ul să știe tipul
             marketing_consent: acceptedMarketing,
           }
         }
@@ -106,7 +104,26 @@ export default function Register() {
       if (authError) throw authError;
       if (!authData.user) throw new Error(t.Auth.errors.register_failed);
 
-      // Redirecționare dinamică bazată pe limba din sesiune
+      -- Generare slug curat și valid din numele companiei
+      const slug = companyName
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '');
+
+      -- 2. ACUM inserăm compania, fiind 100% siguri că userul există și nu încălcăm nicio cheie străină
+      const { error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: companyName,
+          slug: slug,
+          type: type,
+          owner_id: authData.user.id,
+        });
+
+      if (companyError) throw companyError;
+
+      -- Redirecționare dinamică bazată pe limba din sesiune
       router.push(`/${lang}/dashboard`);
     } catch (err: any) {
       setError(err.message || t.Auth.errors.register_failed);
