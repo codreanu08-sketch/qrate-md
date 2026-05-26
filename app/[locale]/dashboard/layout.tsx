@@ -22,7 +22,6 @@ export default function DashboardLayout({
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [hasCompany, setHasCompany] = useState<boolean>(false);
 
-  // === DETECTĂM RUTELE SPECIALE ===
   const isCreateCompanyPage = pathname?.endsWith('/dashboard/create-company');
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
@@ -31,24 +30,23 @@ export default function DashboardLayout({
       try {
         setLoading(true);
 
-        // 1. Verificăm dacă userul este logat
+        // 1. Verificăm autentificarea
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
           router.push(`/${locale}/login`);
           return;
         }
 
-        // 2. Luăm profilul și compania în paralel (.maybeSingle() nu crapă dacă rândul nu există)
+        // 2. Interogăm Supabase (folosim maybeSingle ca să nu crape codul)
         const [profileRes, companyRes] = await Promise.all([
           supabase.from('profiles').select('subscription_tier, trial_started_at').eq('id', user.id).maybeSingle(),
           supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle()
         ]);
 
-        // Logăm erorile în consolă pentru debug direct, fără să blocăm interfața
         if (profileRes.error) console.error("Eroare Supabase Profiles:", profileRes.error);
         if (companyRes.error) console.error("Eroare Supabase Companies:", companyRes.error);
 
-        // 3. Verificăm accesul premium/trial
+        // 3. Verificăm Planul / Trial-ul
         if (profileRes.data) {
           const profile = profileRes.data;
           const isPro = profile.subscription_tier === 'pro';
@@ -68,19 +66,19 @@ export default function DashboardLayout({
           setHasAccess(false);
         }
 
-        // 4. Verificăm dacă are companie
+        // 4. Verificăm existența companiei
         const companyExists = !!companyRes.data;
         setHasCompany(companyExists);
 
-        // === LOGICA DE REDIRECȚIONARE ===
-        // Dacă NU are companie și încearcă să acceseze pagini ca locations, employees, etc.
+        // === LOGICA CRITICĂ DE REDIRECȚIONARE + REFRESH ANTI-CACHE ===
         if (!companyExists && !isCreateCompanyPage && !isSubscriptionPage) {
+          router.refresh(); // Șterge cache-ul vechi al rutelor Next.js
           router.push(`/${locale}/dashboard/create-company`);
           return;
         }
 
-        // Dacă ARE deja companie și încearcă să intre manual pe pagina de creare
         if (companyExists && isCreateCompanyPage) {
+          router.refresh(); // Forțează layout-ul să vadă că firma s-a creat
           router.push(`/${locale}/dashboard`);
           return;
         }
@@ -95,7 +93,6 @@ export default function DashboardLayout({
     checkSecurityAndCompany();
   }, [pathname, locale, isCreateCompanyPage, isSubscriptionPage, router]);
 
-  // Ecran de încărcare global
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
@@ -104,7 +101,6 @@ export default function DashboardLayout({
     );
   }
 
-  // Blochează accesul dacă userul nu are plan activ și nu e pe pagina de plată
   if (!hasAccess && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -131,7 +127,6 @@ export default function DashboardLayout({
     );
   }
 
-  // Randează pagina de creare companie fără Sidebar
   if (isCreateCompanyPage) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -140,7 +135,6 @@ export default function DashboardLayout({
     );
   }
 
-  // Randează layout-ul normal cu Sidebar pentru locații, angajați, recenzii, etc.
   return (
     <div className="min-h-screen bg-slate-50 flex">
       <Sidebar />
