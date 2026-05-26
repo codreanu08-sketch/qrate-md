@@ -16,6 +16,9 @@ const supabaseAdmin = createClient(
  * cu redirect către ruta ta de update-password.
  */
 export async function sendCustomResetEmail(email: string, locale: string) {
+  // DEBUG: Verifică în log-urile Vercel dacă această funcție este declanșată
+  console.log(`[DEBUG] Se încearcă trimiterea email-ului de resetare pentru: ${email} cu locale: ${locale}`);
+
   // 1. Definim URL-ul unde dorim să ajungă utilizatorul după click
   const redirectTo = `https://www.qrate.md/${locale}/auth/update-password`;
 
@@ -36,10 +39,11 @@ export async function sendCustomResetEmail(email: string, locale: string) {
 
   // 3. Link-ul complet (cu tot cu token/hash) este disponibil în action_link
   const resetLink = data.properties.action_link;
+  console.log(`[DEBUG] Link generat cu succes: ${resetLink}`);
 
   // 4. Trimitem email-ul prin Resend
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: '"Qrate.md" <hello@qrate.md>',
       to: [email],
       subject: 'Resetează parola',
@@ -55,6 +59,8 @@ export async function sendCustomResetEmail(email: string, locale: string) {
         </div>
       `,
     });
+    
+    console.log(`[DEBUG] Email trimis prin Resend cu ID: ${result.id}`);
   } catch (emailError) {
     console.error("Resend Error:", emailError);
     throw new Error("Eroare la trimiterea email-ului.");
