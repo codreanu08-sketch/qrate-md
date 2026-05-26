@@ -30,17 +30,15 @@ export default function DashboardLayout({
         return;
       }
 
-      // 1. Încercăm să luăm profilul
       let { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_started_at, trial_ends_at')
         .eq('id', user.id)
         .single();
 
-      // 2. Dacă nu există profil → îl creăm cu ambele date
       if (!profile) {
         const now = new Date();
-        const trialEnd = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000)); // +7 zile
+        const trialEnd = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000));
 
         const { data: newProfile } = await supabase
           .from('profiles')
@@ -57,14 +55,10 @@ export default function DashboardLayout({
         profile = newProfile;
       }
 
-      console.log("PROFILE DATA:", profile);
-
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
-        
-        // Verificăm trial-ul folosind trial_ends_at dacă există, altfel trial_started_at + 7 zile
         let isTrialActive = false;
-        
+
         if (profile.trial_ends_at) {
           isTrialActive = new Date(profile.trial_ends_at).getTime() > Date.now();
         } else if (profile.trial_started_at) {
