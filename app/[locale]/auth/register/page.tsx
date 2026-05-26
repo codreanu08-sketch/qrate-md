@@ -1,34 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Zap, Mail, Lock, Loader2, ArrowRight, ShieldCheck, Check } from 'lucide-react';
 import Link from 'next/link';
 
-// Importăm dicționarele de traduceri folosind alias-ul din root/messages
+// Importăm dicționarele de traduceri
 import roTranslations from '@/messages/ro.json';
 import ruTranslations from '@/messages/ru.json';
 
 export default function Register() {
   const pathname = usePathname();
+  const router = useRouter();
   
-  // Detectăm limba curentă din URL (implicit 'ro')
   const lang = pathname?.startsWith('/ru') ? 'ru' : 'ro';
   const t = lang === 'ru' ? ruTranslations : roTranslations;
 
-  // State-uri formular (am scos campurile de companie pentru ca se vor crea ulterior)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // State-uri consimțământ (GDPR / Normative maib)
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedMarketing, setAcceptedMarketing] = useState(false);
 
-  // Traduceri locale
   const localTexts = {
     ro: {
       admin_email_label: 'Email Administrator',
@@ -40,7 +37,6 @@ export default function Register() {
       privacy_pre_link: 'Am luat la cunoștință ',
       privacy_link_text: 'Politica de Confidențialitate',
       privacy_post_link: '. *',
-      marketing_text: 'Vreau să primesc analize și noutăți (Opțional).',
       gdpr_error: 'Te rugăm să accepți atât Termenii cât și Politica de Confidențialitate.',
     },
     ru: {
@@ -53,7 +49,6 @@ export default function Register() {
       privacy_pre_link: 'Я ознакомлен с ',
       privacy_link_text: 'Политикой конфиденциальности',
       privacy_post_link: '. *',
-      marketing_text: 'Я хочу получать аналитику и новости (Опционально).',
       gdpr_error: 'Пожалуйста, примите Условия использования и Политику конфиденциальности.',
     }
   };
@@ -62,7 +57,6 @@ export default function Register() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (loading) return;
 
     if (!acceptedTerms || !acceptedPrivacy) {
@@ -74,39 +68,33 @@ export default function Register() {
     setError('');
 
     try {
-      // 1. Creăm DOAR utilizatorul în Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            marketing_consent: acceptedMarketing,
-          }
+          data: { marketing_consent: acceptedMarketing },
+          emailRedirectTo: `${window.location.origin}/${lang}/dashboard`
         }
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error(t.Auth.errors.register_failed);
 
-      // 2. Îl trimitem direct în dashboard. 
-      // Acolo, logica ta de redirecționare îl va prinde și îl va trimite la /create-company dacă e nevoie!
-      window.location.href = `/${lang}/dashboard`;
+      router.push(`/${lang}/dashboard`);
     } catch (err: any) {
-      setError(err.message || t.Auth.errors.register_failed);
+      console.error("EROARE SUPABASE:", err);
+      setError(err.message || 'Eroare la înregistrare. Verifică consola (F12).');
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Decor Background */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-30">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-100 blur-[120px] rounded-full" />
       </div>
 
       <div className="max-w-md w-full">
-        {/* Logo Brand */}
         <div className="flex justify-center mb-10">
           <Link href={`/${lang}`} className="relative group cursor-pointer">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-emerald-600 rounded-2xl blur opacity-25"></div>
@@ -117,7 +105,6 @@ export default function Register() {
           </Link>
         </div>
 
-        {/* Cardul de Înregistrare */}
         <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] shadow-2xl shadow-emerald-100/50 p-8 md:p-10">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">{t.Auth.register_title}</h1>
@@ -127,7 +114,6 @@ export default function Register() {
           </div>
 
           <form onSubmit={handleRegister} className="space-y-6">
-            {/* Email Admin */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">
                 {currentLocal.admin_email_label}
@@ -145,7 +131,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Parolă */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">
                 {t.Auth.labels.password}
@@ -163,7 +148,6 @@ export default function Register() {
               </div>
             </div>
 
-            {/* CONSIMȚĂMÂNT GDPR */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
               <div className="flex items-start gap-4">
                 <div className="relative flex items-center mt-0.5">
@@ -179,9 +163,7 @@ export default function Register() {
                 </div>
                 <label htmlFor="terms" className="text-[11px] font-bold text-slate-500 leading-snug cursor-pointer select-none">
                   {currentLocal.terms_pre_link}
-                  <Link href={`/${lang}/legal/terms`} className="text-blue-600 hover:underline">
-                    {currentLocal.terms_link_text}
-                  </Link>
+                  <Link href={`/${lang}/legal/terms`} className="text-blue-600 hover:underline">{currentLocal.terms_link_text}</Link>
                   {currentLocal.terms_post_link}
                 </label>
               </div>
@@ -200,9 +182,7 @@ export default function Register() {
                 </div>
                 <label htmlFor="privacy" className="text-[11px] font-bold text-slate-500 leading-snug cursor-pointer select-none">
                   {currentLocal.privacy_pre_link}
-                  <Link href={`/${lang}/legal/privacy`} className="text-blue-600 hover:underline">
-                    {currentLocal.privacy_link_text}
-                  </Link>
+                  <Link href={`/${lang}/legal/privacy`} className="text-blue-600 hover:underline">{currentLocal.privacy_link_text}</Link>
                   {currentLocal.privacy_post_link}
                 </label>
               </div>
@@ -210,7 +190,6 @@ export default function Register() {
 
             {error && <p className="bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-xl text-center border border-red-100">{error}</p>}
 
-            {/* Buton Submit */}
             <button
               type="submit"
               disabled={loading || !acceptedTerms || !acceptedPrivacy}
@@ -232,9 +211,7 @@ export default function Register() {
           <div className="text-center mt-10">
             <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
               {t.Auth.has_account}{' '}
-              <Link href={`/${lang}/auth/login`} className="text-blue-600 hover:underline">
-                {t.Auth.login_link}
-              </Link>
+              <Link href={`/${lang}/auth/login`} className="text-blue-600 hover:underline">{t.Auth.login_link}</Link>
             </p>
           </div>
         </div>

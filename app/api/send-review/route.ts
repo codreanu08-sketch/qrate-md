@@ -11,71 +11,89 @@ export async function POST(request: Request) {
     const body = await request.json();
     const review = body.reviewData || body;
 
-    // === 1. Găsește Chat ID-ul și proprietarul companiei ===
+    // === 1. Găsește Chat ID-ul, proprietarul și EMAIL-UL proprietarului ===
     let CHAT_ID = null;
     let ownerId = null;
+    let ownerEmail = null;
 
     if (review.company_id) {
       const { data: company } = await supabase
         .from('companies')
-        .select('telegram_chat_id, owner_id')
+        .select(`
+          telegram_chat_id, 
+          owner_id,
+          profiles (email)
+        `)
         .eq('id', review.company_id)
         .maybeSingle();
 
-      if (company?.telegram_chat_id) {
-        CHAT_ID = company.telegram_chat_id;
-      }
-      if (company?.owner_id) {
-        ownerId = company.owner_id;
+      if (company?.telegram_chat_id) CHAT_ID = company.telegram_chat_id;
+      if (company?.owner_id) ownerId = company.owner_id;
+      // Preluăm emailul din relația profiles (ajusteză calea dacă structura e diferită)
+      if (company?.profiles && Array.isArray(company.profiles)) {
+         ownerEmail = company.profiles[0]?.email;
+      } else if (company?.profiles) {
+         ownerEmail = (company.profiles as any).email;
       }
     }
 
-    // Fallback (doar pentru test)
-    if (!CHAT_ID) CHAT_ID = '890236835';
+    if (!CHAT_ID) CHAT_ID = '890236835'; // Fallback
 
-    // === 2. VERIFICARE ABONAMENT PRO / TRIAL ACTIVE (trial_started_at) ===
+    // === 2. VERIFICARE ABONAMENT ===
     if (ownerId) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, trial_started_at') // Actualizat la trial_started_at
+        .select('subscription_tier, trial_started_at')
         .eq('id', ownerId)
         .maybeSingle();
 
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
-        
-        let isTrial = false;
-        if (profile.trial_started_at) {
-          const trialDate = new Date(profile.trial_started_at).getTime();
-          const currentDate = new Date().getTime();
-          if (!isNaN(trialDate)) {
-            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-            isTrial = (currentDate - trialDate) < sevenDaysInMs;
-          }
-        }
+        const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+        const isTrial = profile.trial_started_at && 
+                        (Date.now() - new Date(profile.trial_started_at).getTime()) < sevenDaysInMs;
 
-        // Dacă utilizatorul nu este PRO și i-a expirat și perioada de trial
         if (!isPro && !isTrial) {
-          console.log(`[Telegram Blocked] Compania ${review.company_id} are abonamentul expirat.`);
-          return NextResponse.json({ success: true, message: 'Notification skipped due to inactive subscription' });
+          return NextResponse.json({ success: true, message: 'Subscription inactive' });
         }
       }
     }
 
-    // === 3. Construiește mesajul complet ===
+    // === 3. NOTIFICARE EMAIL (Resend) - Doar pentru rating slab <= 3 ===
     const rating = Number(review.rating) || 5;
-    const stars = '⭐️'.repeat(rating);
+    if (rating <= 3 && ownerEmail) {
+      try {
+        await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: "QRate Alerte <alerta@qrate.md>",
+            to: [ownerEmail],
+            subject: `⚠️ Alertă Recenzie Negativă: ${rating} stele`,
+            html: `<h1>Notificare QRate</h1>
+                   <p>Ați primit o recenzie de <strong>${rating} stele</strong>.</p>
+                   <p>Comentariu: <em>"${review.comment || 'Niciun comentariu'}"</em></p>
+                   <br><a href="https://qrate.md/dashboard">Vezi detalii în Dashboard</a>`
+          }),
+        });
+      } catch (err) {
+        console.error("Eroare Resend:", err);
+      }
+    }
 
+    // === 4. NOTIFICARE TELEGRAM (Coada) ===
+    const stars = '⭐️'.repeat(rating);
     let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n`;
     message += `==========================\n`;
     message += `⭐ <b>Rating:</b> ${stars} (${rating}/5)\n`;
     message += `👤 <b>Client:</b> ${review.full_name || 'Client Anonim'}\n`;
-    
     if (review.phone) message += `📞 <b>Telefon:</b> ${review.phone}\n`;
     if (review.comment) message += `💬 <b>Comentariu:</b> "${review.comment}"\n`;
     message += `==========================`;
 
-    // === 4. Salvează în coadă ===
     await supabase.from('telegram_messages_queue').insert({
       chat_id: CHAT_ID,
       message_text: message,
@@ -86,7 +104,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    console.error(error);
+    console.error("Eroare API:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
