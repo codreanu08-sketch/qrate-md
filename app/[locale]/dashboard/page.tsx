@@ -177,7 +177,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
-  // === FUNCȚIE SEPARATĂ PENTRU ÎNCĂRCAREA DATELOR ===
   const loadCompanyData = async (cId: string) => {
     try {
       const [emp, loc] = await Promise.all([
@@ -192,7 +191,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     }
   };
 
-  // INIȚIALIZARE SECURE TRIAL & COMPANIE
+  // INIȚIALIZARE
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -262,11 +261,13 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     }
   }, [companyId, fetchBaseReviews]);
 
-  // === CREARE COMPANIE - FĂRĂ FLASH ===
+  // === CREARE COMPANIE FĂRĂ FLASH ===
   const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim()) return;
+
     setCreatingCompany(true);
+    setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -280,17 +281,16 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
       if (error) throw error;
 
-      // Setăm companyId
+      // === FIX: setăm imediat loading = false ===
       setCompanyId(data.id);
-      
-      // Încărcăm imediat datele (angajați + locații)
-      await loadCompanyData(data.id);
-      
-      // Resetăm formularul
+      setLoading(false);
       setNewCompanyName('');
-      
+
+      await loadCompanyData(data.id);
+
     } catch (err: any) {
       alert(err.message || "Eroare la crearea companiei");
+      setLoading(false);
     } finally {
       setCreatingCompany(false);
     }
@@ -358,7 +358,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'vo', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даeven', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'vo', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даeven', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'быl', 'nego', 'до', 'ваs', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -378,6 +378,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, activeEmployees, activeLocations, t]);
 
+  // === CONDIȚIE CORECTATĂ ===
   if (hasAccess === null || (loading && allReviews.length === 0 && companyId)) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
@@ -416,7 +417,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               </button>
             </div>
           </div>
-        ) : !companyId ? (
+        ) : !companyId && !creatingCompany ? (   {/* ← CONDIȚIE CORECTATĂ */}
           /* ECRAN ONBOARDING */
           <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-6 md:p-10 rounded-3xl shadow-xl text-center max-w-lg mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6 inline-block ring-8 ring-indigo-50/50">
