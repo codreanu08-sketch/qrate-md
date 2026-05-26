@@ -10,10 +10,8 @@ const supabaseAdmin = createClient(
 );
 
 export async function sendCustomResetEmail(email: string, locale: string) {
-  console.log(`[DEBUG] Trimitere resetare pentru: ${email}`);
-
-  // Folosim varianta cu '-debug' pentru a vedea dacă Supabase "fură" link-ul
-  const redirectTo = `https://www.qrate.md/${locale}/auth/update-password-debug`;
+  // URL-ul final pentru producție
+  const redirectTo = `https://www.qrate.md/${locale}/auth/update-password`;
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'recovery',
