@@ -20,43 +20,37 @@ export default function DashboardLayout({
   
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState<boolean>(false);
-  const [hasCompany, setHasCompany] = useState<boolean>(false);
 
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
     let isMounted = true;
 
-    async function checkSecurityAndCompany() {
+    async function checkSecurity() {
       try {
         setLoading(true);
 
-        // 1. Verificăm sesiunea curentă (mai rapid și safe decât getUser direct în layout client)
+        // 1. Verificăm sesiunea
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session?.user) {
           if (isMounted) router.push(`/${locale}/login`);
           return;
         }
 
-        const userId = session.user.id;
-
-        // 2. Interogăm Supabase pentru profil și companie în paralel
-        const [profileRes, companyRes] = await Promise.all([
-          supabase.from('profiles').select('subscription_tier, trial_started_at, trial_ends_at').eq('id', userId).maybeSingle(),
-          supabase.from('companies').select('id').eq('owner_id', userId).maybeSingle()
-        ]);
+        // 2. Verificăm doar profilul și dreptul de acces
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('subscription_tier, trial_started_at, trial_ends_at')
+          .eq('id', session.user.id)
+          .maybeSingle();
 
         if (!isMounted) return;
+        if (profileError) console.error("Eroare Supabase Profiles:", profileError);
 
-        if (profileRes.error) console.error("Eroare Supabase Profiles:", profileRes.error);
-        if (companyRes.error) console.error("Eroare Supabase Companies:", companyRes.error);
-
-        // 3. Verificăm Planul / Trial-ul
-        if (profileRes.data) {
-          const profile = profileRes.data;
+        if (profile) {
           const isPro = profile.subscription_tier === 'pro';
-          
           let isTrial = false;
+
           if (profile.trial_ends_at) {
             isTrial = new Date(profile.trial_ends_at).getTime() > Date.now();
           } else if (profile.trial_started_at) {
@@ -64,16 +58,13 @@ export default function DashboardLayout({
             const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
             isTrial = (Date.now() - trialDate) < sevenDaysInMs;
           } else {
-            isTrial = true; // Utilizator nou
+            isTrial = true; 
           }
 
           setHasAccess(isPro || isTrial);
         } else {
           setHasAccess(false);
         }
-
-        // 4. Setăm starea companiei
-        setHasCompany(!!companyRes.data);
 
       } catch (err) {
         console.error("Eroare critică în DashboardLayout:", err);
@@ -82,7 +73,7 @@ export default function DashboardLayout({
       }
     }
 
-    checkSecurityAndCompany();
+    checkSecurity();
 
     return () => {
       isMounted = false;
@@ -97,7 +88,6 @@ export default function DashboardLayout({
     );
   }
 
-  // Ecran blocat dacă nu are plan activ/trial
   if (!hasAccess && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -126,10 +116,8 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar-ul se randează condiționat, dar fluid */}
-      {hasCompany && <Sidebar />}
-      
-      <div className={`flex-1 w-full transition-all duration-300 ${hasCompany ? 'md:pl-72' : ''}`}>
+      <Sidebar />
+      <div className="flex-1 w-full md:pl-72">
         <main className="min-h-screen">{children}</main>
       </div>
     </div>
