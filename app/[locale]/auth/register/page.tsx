@@ -80,6 +80,9 @@ export default function Register() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Blocăm instant orice click-uri multiple ulterioare
+    if (loading) return;
+
     if (!acceptedTerms || !acceptedPrivacy) {
       setError(currentLocal.gdpr_error);
       return;
@@ -123,12 +126,11 @@ export default function Register() {
 
       if (companyError) throw companyError;
 
-      // Redirecționare dinamică bazată pe limba din sesiune
-      router.push(`/${lang}/dashboard`);
+      // Redirecționare forțată pe bază de browser pentru a asigura propagarea sesiunii
+      window.location.href = `/${lang}/dashboard`;
     } catch (err: any) {
       setError(err.message || t.Auth.errors.register_failed);
-    } finally {
-      setLoading(false);
+      setLoading(false); // Permitem reîncercarea doar în caz de eroare reală
     }
   };
 
