@@ -11,8 +11,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const review = body.reviewData || body;
 
-    // === 1. Găsește Chat ID-ul corect din COMPANIE ===
-    let CHAT_ID = null;
+    // === 1. Găsește CHAT_IDS, proprietarul și EMAIL-UL ===
+    let CHAT_IDS: string[] = [];
     let ownerId = null;
     let ownerEmail = null;
 
@@ -27,24 +27,22 @@ export async function POST(request: Request) {
         .eq('id', review.company_id)
         .maybeSingle();
 
+      // Extragem ID-urile (dacă sunt mai multe, le separăm prin virgulă)
       if (company?.telegram_chat_id) {
-        CHAT_ID = company.telegram_chat_id;
+        CHAT_IDS = company.telegram_chat_id.split(',').map((id: string) => id.trim());
       }
+      
       if (company?.owner_id) ownerId = company.owner_id;
-
-      // Email din relația profiles
-      if (company?.profiles && Array.isArray(company.profiles) && company.profiles.length > 0) {
-        ownerEmail = company.profiles[0]?.email;
-      } else if (company?.profiles && typeof company.profiles === 'object') {
-        ownerEmail = (company.profiles as any).email;
+      
+      if (company?.profiles && Array.isArray(company.profiles)) {
+          ownerEmail = company.profiles[0]?.email;
+      } else if (company?.profiles) {
+          ownerEmail = (company.profiles as any).email;
       }
     }
 
-    // === FĂRĂ FALLBACK HARDCODAT ===
-    if (!CHAT_ID) {
-      console.warn("⚠️ Nu s-a găsit telegram_chat_id pentru companie:", review.company_id);
-      return NextResponse.json({ success: false, message: "Chat ID lipsă" }, { status: 400 });
-    }
+    // Fallback dacă nu există niciun ID setat pentru companie
+    if (CHAT_IDS.length === 0) CHAT_IDS = ['890236835'];
 
     // === 2. VERIFICARE ABONAMENT ===
     if (ownerId) {
@@ -66,7 +64,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // === 3. NOTIFICARE EMAIL (doar pentru rating ≤ 3) ===
+    // === 3. NOTIFICARE EMAIL (Resend) - Doar pentru rating slab <= 3 ===
     const rating = Number(review.rating) || 5;
     if (rating <= 3 && ownerEmail) {
       try {
@@ -91,7 +89,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // === 4. NOTIFICARE TELEGRAM ===
+    // === 4. NOTIFICARE TELEGRAM (Coada - iterăm prin lista de CHAT_IDS) ===
     const stars = '⭐️'.repeat(rating);
     let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n`;
     message += `==========================\n`;
@@ -101,12 +99,17 @@ export async function POST(request: Request) {
     if (review.comment) message += `💬 <b>Comentariu:</b> "${review.comment}"\n`;
     message += `==========================`;
 
-    await supabase.from('telegram_messages_queue').insert({
-      chat_id: CHAT_ID,
-      message_text: message,
-      photo_url: review.photo_url || null,
-      status: 'pending'
-    });
+    // Inserăm în coadă pentru fiecare ID găsit
+    const queuePromises = CHAT_IDS.map(chatId => 
+      supabase.from('telegram_messages_queue').insert({
+        chat_id: chatId,
+        message_text: message,
+        photo_url: review.photo_url || null,
+        status: 'pending'
+      })
+    );
+
+    await Promise.all(queuePromises);
 
     return NextResponse.json({ success: true });
 
