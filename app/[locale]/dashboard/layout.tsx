@@ -3,7 +3,6 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Lock, RefreshCw } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({
@@ -17,60 +16,30 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const locale = params?.locale || 'ro';
-
+  
   const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
-    const checkAccess = async () => {
+    const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+     
       if (!user) {
         router.push(`/${locale}/login`);
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier, trial_started_at')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        const isPro = profile.subscription_tier === 'pro';
-        
-        // Trial activ dacă există trial_started_at (7 zile de la înregistrare)
-        const isTrialActive = !!profile.trial_started_at;
-
-        setHasAccess(isPro || isTrialActive);
-      } else {
-        setHasAccess(false);
-      }
-      
+      // Acces automat pentru toți userii logați
       setLoading(false);
     };
 
-    checkAccess();
+    checkUser();
   }, [router, locale]);
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center"><RefreshCw className="animate-spin" /></div>;
-  }
-
-  if (!hasAccess && !isSubscriptionPage) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-        <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md">
-          <Lock className="mx-auto mb-4 text-amber-500" size={48} />
-          <h2 className="text-2xl font-black mb-3">Trial Expirat</h2>
-          <p className="text-slate-600 mb-6">Perioada de 7 zile gratuită s-a încheiat. Pentru a continua, alege un plan.</p>
-          <button 
-            onClick={() => router.push(`/${locale}/dashboard/subscription`)}
-            className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black"
-          >
-            Vezi Planuri
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-b-2 border-indigo-600 rounded-full"></div>
       </div>
     );
   }
