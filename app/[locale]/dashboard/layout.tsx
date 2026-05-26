@@ -32,27 +32,28 @@ export default function DashboardLayout({
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('subscription_tier, subscription_ends_at')
+        .select('subscription_tier, trial_started_at')
         .eq('id', user.id)
         .single();
 
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
         
-        // Verificare trial folosind coloana corectă
-        let isTrial = false;
-        if (profile.subscription_ends_at) {
-          const trialEnd = new Date(profile.subscription_ends_at);
+        let isTrialActive = false;
+        
+        if (profile.trial_started_at) {
+          const trialStart = new Date(profile.trial_started_at);
+          const sevenDaysLater = new Date(trialStart.getTime() + (7 * 24 * 60 * 60 * 1000));
           const now = new Date();
-          isTrial = trialEnd.getTime() > now.getTime();
+          
+          isTrialActive = now.getTime() < sevenDaysLater.getTime();
         }
 
-        console.log("Trial check:", { isPro, isTrial, subscription_ends_at: profile.subscription_ends_at });
-        
-        setHasAccess(isPro || isTrial);
+        setHasAccess(isPro || isTrialActive);
       } else {
         setHasAccess(false);
       }
+      
       setLoading(false);
     };
 
@@ -68,8 +69,8 @@ export default function DashboardLayout({
       <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
         <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md">
           <Lock className="mx-auto mb-4 text-amber-500" size={48} />
-          <h2 className="text-2xl font-black mb-3">Acces Limitat</h2>
-          <p className="text-slate-600 mb-6">Trebuie să fii în trial sau abonat PRO.</p>
+          <h2 className="text-2xl font-black mb-3">Trial Expirat</h2>
+          <p className="text-slate-600 mb-6">Perioada de 7 zile gratuită s-a încheiat. Pentru a continua, alege un plan.</p>
           <button 
             onClick={() => router.push(`/${locale}/dashboard/subscription`)}
             className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-black"
