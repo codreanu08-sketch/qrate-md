@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const review = body.reviewData || body;
 
-    // === 1. Găsește Chat ID-ul, proprietarul și EMAIL-UL proprietarului ===
+    // === 1. Găsește Chat ID-ul corect din COMPANIE ===
     let CHAT_ID = null;
     let ownerId = null;
     let ownerEmail = null;
@@ -27,17 +27,24 @@ export async function POST(request: Request) {
         .eq('id', review.company_id)
         .maybeSingle();
 
-      if (company?.telegram_chat_id) CHAT_ID = company.telegram_chat_id;
+      if (company?.telegram_chat_id) {
+        CHAT_ID = company.telegram_chat_id;
+      }
       if (company?.owner_id) ownerId = company.owner_id;
-      // Preluăm emailul din relația profiles (ajusteză calea dacă structura e diferită)
-      if (company?.profiles && Array.isArray(company.profiles)) {
-         ownerEmail = company.profiles[0]?.email;
-      } else if (company?.profiles) {
-         ownerEmail = (company.profiles as any).email;
+
+      // Email din relația profiles
+      if (company?.profiles && Array.isArray(company.profiles) && company.profiles.length > 0) {
+        ownerEmail = company.profiles[0]?.email;
+      } else if (company?.profiles && typeof company.profiles === 'object') {
+        ownerEmail = (company.profiles as any).email;
       }
     }
 
-    if (!CHAT_ID) CHAT_ID = '890236835'; // Fallback
+    // === FĂRĂ FALLBACK HARDCODAT ===
+    if (!CHAT_ID) {
+      console.warn("⚠️ Nu s-a găsit telegram_chat_id pentru companie:", review.company_id);
+      return NextResponse.json({ success: false, message: "Chat ID lipsă" }, { status: 400 });
+    }
 
     // === 2. VERIFICARE ABONAMENT ===
     if (ownerId) {
@@ -59,7 +66,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // === 3. NOTIFICARE EMAIL (Resend) - Doar pentru rating slab <= 3 ===
+    // === 3. NOTIFICARE EMAIL (doar pentru rating ≤ 3) ===
     const rating = Number(review.rating) || 5;
     if (rating <= 3 && ownerEmail) {
       try {
@@ -84,7 +91,7 @@ export async function POST(request: Request) {
       }
     }
 
-    // === 4. NOTIFICARE TELEGRAM (Coada) ===
+    // === 4. NOTIFICARE TELEGRAM ===
     const stars = '⭐️'.repeat(rating);
     let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n`;
     message += `==========================\n`;
