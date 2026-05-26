@@ -417,7 +417,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               </button>
             </div>
           </div>
-        ) : !companyId && !creatingCompany ? (   {/* ← CONDIȚIE CORECTATĂ */}
+        ) : !companyId && !creatingCompany ? (   
           /* ECRAN ONBOARDING */
           <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-6 md:p-10 rounded-3xl shadow-xl text-center max-w-lg mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6 inline-block ring-8 ring-indigo-50/50">
