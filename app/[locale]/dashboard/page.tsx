@@ -200,7 +200,9 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 
       const isPro = profile?.subscription_tier === 'pro';
       const trialDate = profile?.trial_started_at ? new Date(profile.trial_started_at).getTime() : 0;
-      const isTrial = trialDate && (Date.now() - trialDate < 7 * 24 * 60 * 60 * 1000);
+      
+      // FIX: Asigurăm că isTrial este boolean
+      const isTrial = trialDate > 0 && (Date.now() - trialDate < 7 * 24 * 60 * 60 * 1000);
 
       setHasAccess(isPro || isTrial);
 
@@ -299,7 +301,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даже', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'быl', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даeven', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
