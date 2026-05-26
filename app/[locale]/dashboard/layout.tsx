@@ -22,26 +22,31 @@ export default function DashboardLayout({
   const [hasAccess, setHasAccess] = useState<boolean>(false);
   const [hasCompany, setHasCompany] = useState<boolean>(false);
 
-  const isCreateCompanyPage = pathname?.endsWith('/dashboard/create-company');
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
+    let isMounted = true;
+
     async function checkSecurityAndCompany() {
       try {
         setLoading(true);
 
-        // 1. Verificăm autentificarea
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-          router.push(`/${locale}/login`);
+        // 1. Verificăm sesiunea curentă (mai rapid și safe decât getUser direct în layout client)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session?.user) {
+          if (isMounted) router.push(`/${locale}/login`);
           return;
         }
 
-        // 2. Interogăm Supabase (folosim maybeSingle ca să nu crape codul)
+        const userId = session.user.id;
+
+        // 2. Interogăm Supabase pentru profil și companie în paralel
         const [profileRes, companyRes] = await Promise.all([
-          supabase.from('profiles').select('subscription_tier, trial_started_at').eq('id', user.id).maybeSingle(),
-          supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle()
+          supabase.from('profiles').select('subscription_tier, trial_started_at, trial_ends_at').eq('id', userId).maybeSingle(),
+          supabase.from('companies').select('id').eq('owner_id', userId).maybeSingle()
         ]);
+
+        if (!isMounted) return;
 
         if (profileRes.error) console.error("Eroare Supabase Profiles:", profileRes.error);
         if (companyRes.error) console.error("Eroare Supabase Companies:", companyRes.error);
@@ -50,48 +55,39 @@ export default function DashboardLayout({
         if (profileRes.data) {
           const profile = profileRes.data;
           const isPro = profile.subscription_tier === 'pro';
+          
           let isTrial = false;
-
-          if (profile.trial_started_at) {
+          if (profile.trial_ends_at) {
+            isTrial = new Date(profile.trial_ends_at).getTime() > Date.now();
+          } else if (profile.trial_started_at) {
             const trialDate = new Date(profile.trial_started_at).getTime();
-            const currentDate = new Date().getTime();
-            if (!isNaN(trialDate)) {
-              const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
-              const timpScurs = currentDate - trialDate;
-              isTrial = timpScurs >= 0 && timpScurs < sevenDaysInMs;
-            }
+            const sevenDaysInMs = 7 * 24 * 60 * 60 * 1000;
+            isTrial = (Date.now() - trialDate) < sevenDaysInMs;
+          } else {
+            isTrial = true; // Utilizator nou
           }
+
           setHasAccess(isPro || isTrial);
         } else {
           setHasAccess(false);
         }
 
-        // 4. Verificăm existența companiei
-        const companyExists = !!companyRes.data;
-        setHasCompany(companyExists);
-
-        // === LOGICA CRITICĂ DE REDIRECȚIONARE + REFRESH ANTI-CACHE ===
-        if (!companyExists && !isCreateCompanyPage && !isSubscriptionPage) {
-          router.refresh(); // Șterge cache-ul vechi al rutelor Next.js
-          router.push(`/${locale}/dashboard/create-company`);
-          return;
-        }
-
-        if (companyExists && isCreateCompanyPage) {
-          router.refresh(); // Forțează layout-ul să vadă că firma s-a creat
-          router.push(`/${locale}/dashboard`);
-          return;
-        }
+        // 4. Setăm starea companiei
+        setHasCompany(!!companyRes.data);
 
       } catch (err) {
         console.error("Eroare critică în DashboardLayout:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     checkSecurityAndCompany();
-  }, [pathname, locale, isCreateCompanyPage, isSubscriptionPage, router]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, locale, isSubscriptionPage, router]);
 
   if (loading) {
     return (
@@ -101,6 +97,7 @@ export default function DashboardLayout({
     );
   }
 
+  // Ecran blocat dacă nu are plan activ/trial
   if (!hasAccess && !isSubscriptionPage) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
@@ -127,18 +124,12 @@ export default function DashboardLayout({
     );
   }
 
-  if (isCreateCompanyPage) {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <main className="min-h-screen">{children}</main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      <Sidebar />
-      <div className="flex-1 w-full md:pl-72">
+      {/* Sidebar-ul se randează condiționat, dar fluid */}
+      {hasCompany && <Sidebar />}
+      
+      <div className={`flex-1 w-full transition-all duration-300 ${hasCompany ? 'md:pl-72' : ''}`}>
         <main className="min-h-screen">{children}</main>
       </div>
     </div>
