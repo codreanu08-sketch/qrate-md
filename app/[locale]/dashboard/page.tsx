@@ -36,13 +36,9 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   const [liveEvent, setLiveEvent] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
-
-  // State-uri noi pentru crearea companiei inline
   const [newCompanyName, setNewCompanyName] = useState('');
   const [creatingCompany, setCreatingCompany] = useState(false);
-
   const [limits, setLimits] = useState({ maxLocations: 99, maxEmployees: 99 });
-
   const [selLocation, setSelLocation] = useState('all');
   const [selEmployee, setSelEmployee] = useState('all');
   const [selPeriod, setSelPeriod] = useState('7d');
@@ -181,6 +177,21 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
+  // === FUNCȚIE SEPARATĂ PENTRU ÎNCĂRCAREA DATELOR ===
+  const loadCompanyData = async (cId: string) => {
+    try {
+      const [emp, loc] = await Promise.all([
+        supabase.from('employees').select('id, name').eq('company_id', cId).order('created_at', { ascending: true }),
+        supabase.from('locations').select('id, name').eq('company_id', cId).order('created_at', { ascending: true })
+      ]);
+
+      setRawEmployees(emp.data || []);
+      setRawLocations(loc.data || []);
+    } catch (err) {
+      console.error("Eroare la încărcarea datelor companiei:", err);
+    }
+  };
+
   // INIȚIALIZARE SECURE TRIAL & COMPANIE
   useEffect(() => {
     async function init() {
@@ -214,8 +225,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       }
 
       const isPro = profile?.subscription_tier === 'pro';
-      
-      // REPARAT: Dacă utilizatorul este complet nou și nu are trial_ends_at setat încă în DB, îi dăm acces implicit adevărat (true)
       const isTrialActive = currentTrialEndsAt 
         ? new Date(currentTrialEndsAt).getTime() > Date.now() 
         : true;
@@ -234,7 +243,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         .eq('owner_id', user.id)
         .maybeSingle();
 
-      // REPARAT: Nu mai redirecționăm, setăm starea pe null pentru a activa onboarding-ul inline
       if (!company) {
         setCompanyId(null);
         setLoading(false);
@@ -242,14 +250,8 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       }
 
       setCompanyId(company.id);
-
-      const [emp, loc] = await Promise.all([
-        supabase.from('employees').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true }),
-        supabase.from('locations').select('id, name').eq('company_id', company.id).order('created_at', { ascending: true })
-      ]);
-
-      setRawEmployees(emp.data || []);
-      setRawLocations(loc.data || []);
+      await loadCompanyData(company.id);
+      setLoading(false);
     }
     init();
   }, [router, locale]);
@@ -260,8 +262,8 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     }
   }, [companyId, fetchBaseReviews]);
 
-  // Logica de creare companie inline
-const handleCreateCompanyInline = async (e: React.FormEvent) => {
+  // === CREARE COMPANIE - FĂRĂ FLASH ===
+  const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim()) return;
     setCreatingCompany(true);
@@ -278,12 +280,18 @@ const handleCreateCompanyInline = async (e: React.FormEvent) => {
 
       if (error) throw error;
 
-      // DOAR setăm companyId. 
-      // Nu curățăm manual celelalte state-uri, lăsăm React să facă update-ul.
+      // Setăm companyId
       setCompanyId(data.id);
+      
+      // Încărcăm imediat datele (angajați + locații)
+      await loadCompanyData(data.id);
+      
+      // Resetăm formularul
+      setNewCompanyName('');
       
     } catch (err: any) {
       alert(err.message || "Eroare la crearea companiei");
+    } finally {
       setCreatingCompany(false);
     }
   };
@@ -350,7 +358,7 @@ const handleCreateCompanyInline = async (e: React.FormEvent) => {
       pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
     }));
 
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'во', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даeven', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'vo', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даeven', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'был', 'nego', 'до', 'вас', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -409,7 +417,7 @@ const handleCreateCompanyInline = async (e: React.FormEvent) => {
             </div>
           </div>
         ) : !companyId ? (
-          /* REPARAT: ECRAN ONBOARDING INLINE DACA UTILIZATORUL NU ARE COMPANIE */
+          /* ECRAN ONBOARDING */
           <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-6 md:p-10 rounded-3xl shadow-xl text-center max-w-lg mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6 inline-block ring-8 ring-indigo-50/50">
               <Building size={36} className="stroke-[2]" />
