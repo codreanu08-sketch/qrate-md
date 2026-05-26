@@ -51,7 +51,7 @@ export default function AllReviewsDashboard() {
 
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
-  const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '1m' | '3m' | 'custom'>('7d');
+  const [timeFilter, setTimeFilter] = useState<'all' | '7d' | '1m' | '3m' | 'custom'>('all'); // ← SCHIMBAT
   const [customDate, setCustomDate] = useState<string>('');
 
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -293,6 +293,21 @@ export default function AllReviewsDashboard() {
                   </div>
                 </div>
               </div>
+
+              {/* BUTON RESET FILTRE */}
+              <div className="mt-4 flex justify-end">
+                <button 
+                  onClick={() => {
+                    setSelectedLocation('all');
+                    setSelectedEmployee('all');
+                    setTimeFilter('all');
+                    setCustomDate('');
+                  }}
+                  className="text-xs text-blue-600 hover:underline font-bold"
+                >
+                  {locale === 'ru' ? 'Сбросить фильтры' : 'Resetează filtrele'}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
@@ -309,7 +324,18 @@ export default function AllReviewsDashboard() {
                  </div>
                ) : paginatedReviews.length === 0 ? (
                  <div className="bg-white p-16 rounded-[2rem] text-center border border-dashed border-gray-200 shadow-sm">
-                    <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest">{t('no_results')}</p>
+                    <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest mb-2">{t('no_results')}</p>
+                    <button 
+                      onClick={() => {
+                        setSelectedLocation('all');
+                        setSelectedEmployee('all');
+                        setTimeFilter('all');
+                        setCustomDate('');
+                      }}
+                      className="text-blue-600 text-sm font-black underline"
+                    >
+                      {locale === 'ru' ? 'Сбросить фильтры' : 'Resetează filtrele'}
+                    </button>
                  </div>
                ) : (
                  paginatedReviews.map((rev) => (
