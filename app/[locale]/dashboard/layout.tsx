@@ -2,8 +2,6 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { Lock, RefreshCw } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({
@@ -17,84 +15,32 @@ export default function DashboardLayout({
   const router = useRouter();
   const pathname = usePathname();
   const locale = params?.locale || 'ro';
-  
-  const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState<boolean>(false);
 
+  const [loading, setLoading] = useState(true);
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   useEffect(() => {
-    let isMounted = true;
-
-    async function checkSecurity() {
-      try {
-        setLoading(true);
-
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          if (isMounted) router.push(`/${locale}/login`);
-          return;
-        }
-
-        // === VERIFICARE TRIAL + ABONAMENT ===
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_tier, trial_ends_at')
-          .eq('id', session.user.id)
-          .maybeSingle();
-
-        if (!isMounted) return;
-
-        if (profile) {
-          const isPro = profile.subscription_tier === 'pro';
-          const isTrialActive = profile.trial_ends_at 
-            ? new Date(profile.trial_ends_at).getTime() > Date.now() 
-            : false;
-
-          setHasAccess(isPro || isTrialActive);
-        } else {
-          setHasAccess(false);
-        }
-
-      } catch (err) {
-        console.error("Eroare în DashboardLayout:", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    checkSecurity();
-
-    return () => { isMounted = false; };
-  }, [pathname, locale, router]);
+    // TEMPORAR: Dăm acces automat la toți
+    setTimeout(() => {
+      setLoading(false);
+    }, 300);
+  }, []);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <RefreshCw className="animate-spin text-indigo-600" size={32} />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
-  if (!hasAccess && !isSubscriptionPage) {
+  // TEMPORAR: Permitem accesul la toată lumea (doar pentru test)
+  if (!isSubscriptionPage) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4">
-        <div className="bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-2xl w-full">
-          <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50">
-            <Lock size={40} className="stroke-[2.5]" />
-          </div>
-          <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">
-            Funcționalitate Premium Limitată
-          </h1>
-          <p className="text-slate-600 font-medium text-base mb-8 max-w-md mx-auto leading-relaxed">
-            Accesul la secțiunile de analiză, gestionare angajați și setări avansate este disponibil doar în versiunea **PRO**.
-          </p>
-          <button 
-            onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
-            className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg"
-          >
-            Upgrade la Planul Pro
-          </button>
+      <div className="min-h-screen bg-slate-50 flex">
+        <Sidebar />
+        <div className="flex-1 w-full md:pl-72">
+          <main className="min-h-screen">{children}</main>
         </div>
       </div>
     );
