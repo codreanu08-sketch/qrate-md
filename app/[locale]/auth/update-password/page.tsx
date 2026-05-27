@@ -76,7 +76,7 @@ function UpdatePasswordContent() {
     };
 
     // Ascultă și event-ul PASSWORD_RECOVERY
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, _session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, _session: any) => {
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setIsReady(true);
         setLoading(false);
