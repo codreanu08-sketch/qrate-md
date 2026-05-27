@@ -25,9 +25,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!CHAT_ID) {
-      CHAT_ID = '8074285302'; // fallback temporar la noul tău chat
-    }
+    
 
     const rating = Number(review.rating) || 5;
     const stars = '⭐️'.repeat(rating);
