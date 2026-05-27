@@ -67,34 +67,11 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         let resolvedCompanyId = null;
         let resolvedLocationId = null;
 
-        if (employeeId) {
-          const { data: empData } = await supabase
-            .from('employees')
-            .select('name, company_id, location_id')
-            .eq('id', employeeId)
-            .maybeSingle();
+        // Verificăm dacă slug-ul este UUID (ID direct)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
-          if (empData) {
-            setTargetName(empData.name);
-            setIsEmployee(true);
-            setCompanyId(empData.company_id);
-            setLocationId(empData.location_id);
-            setFetchingIds(false);
-            return;
-          }
-        }
-        
-        const { data: locData } = await supabase
-          .from('locations')
-          .select('id, name, company_id')
-          .eq('id', slug)
-          .maybeSingle();
-
-        if (locData) {
-          resolvedLocationId = locData.id;
-          resolvedCompanyId = locData.company_id;
-          setTargetName(locData.name);
-          setIsEmployee(false);
+        if (isUUID) {
+          resolvedCompanyId = slug;
         } else {
           const { data: compData } = await supabase
             .from('companies')
@@ -105,18 +82,27 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
           if (compData) {
             resolvedCompanyId = compData.id;
             setTargetName(compData.name);
-            setIsEmployee(false);
-            const { data: fallbackLoc } = await supabase
-              .from('locations')
-              .select('id')
-              .eq('company_id', compData.id)
-              .limit(1)
-              .maybeSingle();
-            if (fallbackLoc) resolvedLocationId = fallbackLoc.id;
           }
         }
+
+        // Luăm locația implicită dacă avem company
+        if (resolvedCompanyId) {
+          const { data: fallbackLoc } = await supabase
+            .from('locations')
+            .select('id, name')
+            .eq('company_id', resolvedCompanyId)
+            .limit(1)
+            .maybeSingle();
+
+          if (fallbackLoc) {
+            resolvedLocationId = fallbackLoc.id;
+            if (!targetName) setTargetName(fallbackLoc.name);
+          }
+        }
+
         setCompanyId(resolvedCompanyId);
         setLocationId(resolvedLocationId);
+
       } catch (err) {
         console.error("Eroare la identificare:", err);
       } finally {
@@ -169,7 +155,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
         employee_id: employeeId || null,
-        telegram_chat_id: null   // Important: lăsăm null ca trigger-ul să completeze automat
+        telegram_chat_id: null   // Important pentru trigger
       };
 
       console.log("DEBUG - Trimit reviewData:", reviewData);
