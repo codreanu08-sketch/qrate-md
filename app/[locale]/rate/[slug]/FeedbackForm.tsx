@@ -86,6 +86,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
 
         if (companyError || !company) {
           console.error('Company not found:', companyError);
+          setFetchingIds(false); // ✅ fix: nu rămâne blocat pe spinner
           return;
         }
 
