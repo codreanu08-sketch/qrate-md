@@ -15,13 +15,13 @@ interface FeedbackFormProps {
 
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const searchParams = useSearchParams(); // ✅ citește ?location= din URL
+  const searchParams = useSearchParams();
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
+  const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null); // ✅ NOU
   const [targetName, setTargetName] = useState<string>('');
-  const [isEmployee, setIsEmployee] = useState<boolean>(false);
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
 
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
@@ -29,15 +29,12 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
   const t = (messages as any)?.PublicFeedback || {
     step: locale === 'ro' ? 'Pasul 1/1' : 'Шаг 1/1',
     heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв для',
-    title_line1: locale === 'ro' ? 'Părerea Ta' : 'Ваше Мнение',
-    title_line2: locale === 'ro' ? 'Contează' : 'Важно Для Нас',
-    subtitle: locale === 'ro' ? 'Ajută-ne să devenim mai buni evaluând experiența ta.' : 'Помогите нам стать лучше, оценив ваш визит.',
     label_step1: locale === 'ro' ? 'Alege nota ta' : 'Выберите оценку',
     label_step2: locale === 'ro' ? 'Detalii despre vizită' : 'Детали визита',
     label_step3: locale === 'ro' ? 'Atașează o poză (opțional)' : 'Прикрепить фото (опционально)',
     placeholder_name: locale === 'ro' ? 'Numele tău complet' : 'Ваше полное имя',
     placeholder_phone: locale === 'ro' ? 'Telefon (ex: 07xx...)' : 'Телефон',
-    placeholder_comment: locale === 'ro' ? 'Comentariul tău (ce ți-a plăcut, ce putem îmbunătăți)...' : 'Ваш комментарий (что понравилось, что улучшить)...',
+    placeholder_comment: locale === 'ro' ? 'Comentariul tău (ce ți-a plăcut, ce putem îmbunătăți)...' : 'Ваш комментарий...',
     btn_add_img: locale === 'ro' ? 'Adaugă imagine' : 'Добавить фото',
     btn_del_img: locale === 'ro' ? 'Șterge Poza' : 'Удалить фото',
     btn_change_img: locale === 'ro' ? 'Schimbă' : 'Изменить',
@@ -67,7 +64,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     const fetchIds = async () => {
       setFetchingIds(true);
       try {
-        // 1. Ia compania după ID (slug = companies.id)
+        // 1. Ia compania
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('id, name, telegram_chat_id')
@@ -83,33 +80,47 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         setTargetName(company.name);
         setTelegramChatId(company.telegram_chat_id ?? null);
 
-        // 2. ✅ location_id vine din ?location= în URL (generat de QR)
-        const locationFromUrl = searchParams.get('location');
+        // 2. Citește toți query params din URL
+        const locationFromUrl = searchParams.get('location');  // ?location=UUID
+        const employeeFromUrl = searchParams.get('employee');  // ?employee=UUID
 
+        // 3. ✅ Rezolvă employee_id — prioritate: URL > prop
+        const finalEmployeeId = employeeFromUrl || employeeId || null;
+        setResolvedEmployeeId(finalEmployeeId);
+
+        // 4. Rezolvă location_id
         if (locationFromUrl) {
+          // Location vine din URL direct (QR locație sau QR angajat)
           setLocationId(locationFromUrl);
-        } else if (employeeId) {
-          // 3. Dacă e QR de angajat — ia location din employee
-          const { data: employee, error: employeeError } = await supabase
+
+          // Dacă e angajat, afișează numele lui în header
+          if (finalEmployeeId) {
+            const { data: employee } = await supabase
+              .from('employees')
+              .select('name')
+              .eq('id', finalEmployeeId)
+              .single();
+            if (employee) setTargetName(employee.name);
+          }
+        } else if (finalEmployeeId) {
+          // Nu avem location în URL — o luăm din tabelul employees
+          const { data: employee } = await supabase
             .from('employees')
             .select('name, location_id')
-            .eq('id', employeeId)
+            .eq('id', finalEmployeeId)
             .single();
-
-          if (!employeeError && employee) {
+          if (employee) {
             setLocationId(employee.location_id ?? null);
             setTargetName(employee.name);
-            setIsEmployee(true);
           }
         } else {
-          // 4. Fallback — ia prima locație a companiei
+          // Fallback — prima locație a companiei
           const { data: location } = await supabase
             .from('locations')
             .select('id')
             .eq('company_id', company.id)
             .limit(1)
             .single();
-
           if (location) setLocationId(location.id);
         }
       } catch (err) {
@@ -160,16 +171,16 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       const reviewData = {
         company_slug: slug,
-        company_id: companyId,           // ✅ UUID real din companies
-        location_id: locationId,         // ✅ UUID real din URL ?location=
+        company_id: companyId,              // ✅ UUID real din companies
+        location_id: locationId,            // ✅ din ?location= sau din employees
         rating: rating,
         full_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
-        employee_id: employeeId || null,
-        telegram_chat_id: telegramChatId // ✅ din companies
+        employee_id: resolvedEmployeeId,    // ✅ din ?employee= sau din prop
+        telegram_chat_id: telegramChatId    // ✅ din companies
       };
 
       console.log("DEBUG - Trimit reviewData:", reviewData);
@@ -274,9 +285,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
                 <div className="bg-slate-50 group-hover:bg-blue-50 p-4 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors">
                   <Camera size={24} />
                 </div>
-                <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors">
-                  {t.btn_add_img}
-                </span>
+                <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors">{t.btn_add_img}</span>
               </button>
             ) : (
               <div className="relative bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 shadow-sm animate-in fade-in duration-300">
@@ -305,10 +314,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             className="w-full py-6 bg-slate-950 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-slate-950 transition-all flex items-center justify-center gap-2"
           >
             {loading ? (
-              <>
-                <Loader2 className="animate-spin" size={20} />
-                {t.sending}
-              </>
+              <><Loader2 className="animate-spin" size={20} />{t.sending}</>
             ) : (
               t.btn_submit
             )}

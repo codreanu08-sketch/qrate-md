@@ -28,7 +28,6 @@ export default function EmployeesPage() {
   const [showDeleteModal, setShowDeleteModal] = useState<any>(null);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
 
-  // Stări pentru crearea companiei direct în pagină
   const [newCompanyName, setNewCompanyName] = useState('');
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
 
@@ -53,7 +52,6 @@ export default function EmployeesPage() {
 
       if (compError) throw compError;
       
-      // Dacă nu are companie, oprim încărcarea aici și îi afișăm ecranul de creare companie
       if (!company) {
         setCompanyId(null);
         setLoading(false);
@@ -62,7 +60,6 @@ export default function EmployeesPage() {
 
       setCompanyId(company.id);
 
-      // Executăm ambele query-uri în paralel pentru a reduce timpul de așteptare
       const [locationsResponse, employeesResponse] = await Promise.all([
         supabase.from('locations').select('id, name').eq('company_id', company.id),
         supabase.from('employees').select(`*, reviews(*)`).eq('company_id', company.id).order('created_at', { ascending: false })
@@ -109,7 +106,6 @@ export default function EmployeesPage() {
     fetchInitialData();
   }, [fetchInitialData]);
 
-  // Funcția care creează compania direct din această pagină
   const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim() || isCreatingCompany) return;
@@ -128,7 +124,7 @@ export default function EmployeesPage() {
       if (createError) throw createError;
 
       setNewCompanyName('');
-      await fetchInitialData(); // Reîncărcăm datele, acum companyId nu va mai fi null
+      await fetchInitialData();
     } catch (err: any) {
       alert("Eroare la crearea companiei: " + err.message);
     } finally {
@@ -200,18 +196,9 @@ export default function EmployeesPage() {
     if (!showDeleteModal) return;
     setLoading(true);
     try {
-      await supabase
-        .from('reviews')
-        .delete()
-        .eq('employee_id', showDeleteModal.id);
-
-      const { error: employeeDeleteError } = await supabase
-        .from('employees')
-        .delete()
-        .eq('id', showDeleteModal.id);
-
+      await supabase.from('reviews').delete().eq('employee_id', showDeleteModal.id);
+      const { error: employeeDeleteError } = await supabase.from('employees').delete().eq('id', showDeleteModal.id);
       if (employeeDeleteError) throw employeeDeleteError;
-
       setShowDeleteModal(null);
       await fetchInitialData();
     } catch (err: any) {
@@ -226,7 +213,6 @@ export default function EmployeesPage() {
     setExpandedEmployee(prev => prev === empId ? null : empId);
   };
 
-  // 1. STATE DE LOADING INTERN
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center font-sans">
@@ -236,7 +222,6 @@ export default function EmployeesPage() {
     );
   }
 
-  // 2. STATE DE ONBOARDING: DACĂ USERUL NU ARE COMPANIE CREATĂ
   if (!companyId) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 flex items-center justify-center font-sans text-slate-900">
@@ -248,7 +233,6 @@ export default function EmployeesPage() {
           <p className="text-slate-400 font-medium text-sm leading-relaxed italic mb-8">
             Pentru a putea gestiona angajații și codurile QR, trebuie mai întâi să introduci numele companiei tale.
           </p>
-          
           <form onSubmit={handleCreateCompanyInline} className="space-y-4">
             <input 
               type="text"
@@ -270,7 +254,6 @@ export default function EmployeesPage() {
     );
   }
 
-  // 3. INTERFAȚA STANDARD (Se randează doar dacă există companyId)
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 lg:p-12 font-sans text-slate-900">
       <div className="max-w-[1400px] mx-auto">
@@ -280,7 +263,6 @@ export default function EmployeesPage() {
           <p className="text-slate-500 font-medium text-lg italic border-l-4 border-blue-500 pl-4">{t('subtitle')}</p>
         </header>
 
-        {/* FORMULAR DE ÎNREGISTRARE */}
         <section className="bg-white p-8 md:p-14 rounded-[3.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.03)] border border-slate-100 mb-16">
           <div className="mb-8">
             <h2 className="text-[11px] font-black text-blue-600 uppercase tracking-[0.3em] mb-2">{t('form.header')}</h2>
@@ -342,7 +324,6 @@ export default function EmployeesPage() {
           </form>
         </section>
 
-        {/* GRIDUL DE ANGAJAȚI */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {employees.length === 0 ? (
             <div className="col-span-full bg-white py-32 rounded-[4rem] border-2 border-dashed border-slate-100 text-center shadow-inner">
@@ -350,9 +331,9 @@ export default function EmployeesPage() {
             </div>
           ) : (
             employees.map(emp => {
-              const dynamicSlug = emp.location_id || companyId;
-              const qrUrl = mounted && typeof window !== 'undefined'
-                ? `${window.location.origin}/${locale}/rate/${dynamicSlug}?employee=${emp.id}` 
+              // ✅ FIX: întotdeauna company_id ca slug, location și employee ca query params
+              const qrUrl = mounted && typeof window !== 'undefined' && companyId
+                ? `${window.location.origin}/${locale}/rate/${companyId}?employee=${emp.id}${emp.location_id ? `&location=${emp.location_id}` : ''}`
                 : '';
               
               const isExpanded = expandedEmployee === emp.id;
@@ -513,7 +494,6 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* MODAL ȘTERGERE */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-6">
           <div className="bg-white p-10 md:p-14 rounded-[4rem] max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-300 text-center">
