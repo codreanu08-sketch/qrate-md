@@ -13,6 +13,7 @@ export async function POST(request: Request) {
 
     let CHAT_ID = null;
 
+    // === AUTOMAT: Luăm chat_id din companies ===
     if (review.company_id) {
       const { data: company } = await supabase
         .from('companies')
@@ -25,9 +26,9 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fallback temporar
     if (!CHAT_ID) {
-      CHAT_ID = '890236835';
+      console.warn("⚠️ telegram_chat_id nu a fost găsit pentru company:", review.company_id);
+      CHAT_ID = '890236835'; // fallback temporar
     }
 
     const rating = Number(review.rating) || 5;
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
       status: 'pending'
     });
 
-    return NextResponse.json({ success: true, chat_id_used: CHAT_ID });
+    return NextResponse.json({ success: true, chat_id: CHAT_ID });
 
   } catch (error: any) {
     console.error("Eroare send-review:", error);
