@@ -169,7 +169,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
         employee_id: employeeId || null,
-        telegram_chat_id: null   // ← Important: lăsăm null ca trigger-ul să completeze
+        telegram_chat_id: null   // Important: lăsăm null ca trigger-ul să completeze automat
       };
 
       console.log("DEBUG - Trimit reviewData:", reviewData);
