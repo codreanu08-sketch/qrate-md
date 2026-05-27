@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{ slug: string; locale: string }>;
-  searchParams: Promise<{ employee?: string }>;
+  searchParams: Promise<{ employee?: string; location?: string }>; // ✅ adăugat location
 }
 
 export async function generateMetadata({ params }: PageProps) {
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps) {
 
 export default async function PublicFeedbackPage({ params, searchParams }: PageProps) {
   const { slug, locale } = await params;
-  const { employee: employeeId } = await searchParams;
+  const { employee: employeeId, location: locationId } = await searchParams; // ✅ citește și location
 
   if (locale !== 'ro' && locale !== 'ru') {
     notFound();
@@ -67,7 +67,8 @@ export default async function PublicFeedbackPage({ params, searchParams }: PageP
       <FeedbackForm 
         slug={slug} 
         locale={locale as 'ro' | 'ru'} 
-        employeeId={employeeId || undefined} 
+        employeeId={employeeId || undefined}
+        locationId={locationId || undefined} // ✅ pasează location ca prop
       />
     </>
   );

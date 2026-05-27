@@ -11,16 +11,17 @@ interface FeedbackFormProps {
   slug: string;
   locale: 'ro' | 'ru';
   employeeId?: string;
+  locationId?: string; // ✅ pasat din page.tsx
 }
 
-export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
+export default function FeedbackForm({ slug, locale, employeeId, locationId: locationIdProp }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
   const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
-  const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null); // ✅ NOU
+  const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null);
   const [targetName, setTargetName] = useState<string>('');
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
 
@@ -80,20 +81,16 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         setTargetName(company.name);
         setTelegramChatId(company.telegram_chat_id ?? null);
 
-        // 2. Citește toți query params din URL
-        const locationFromUrl = searchParams.get('location');  // ?location=UUID
-        const employeeFromUrl = searchParams.get('employee');  // ?employee=UUID
+        // 2. ✅ Prioritate: prop din page.tsx > query param din URL
+        const finalLocationId = locationIdProp || searchParams.get('location');
+        const finalEmployeeId = employeeId || searchParams.get('employee');
 
-        // 3. ✅ Rezolvă employee_id — prioritate: URL > prop
-        const finalEmployeeId = employeeFromUrl || employeeId || null;
         setResolvedEmployeeId(finalEmployeeId);
 
-        // 4. Rezolvă location_id
-        if (locationFromUrl) {
-          // Location vine din URL direct (QR locație sau QR angajat)
-          setLocationId(locationFromUrl);
-
-          // Dacă e angajat, afișează numele lui în header
+        // 3. Rezolvă location_id
+        if (finalLocationId) {
+          setLocationId(finalLocationId);
+          // Dacă e angajat, afișează numele lui
           if (finalEmployeeId) {
             const { data: employee } = await supabase
               .from('employees')
@@ -103,7 +100,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             if (employee) setTargetName(employee.name);
           }
         } else if (finalEmployeeId) {
-          // Nu avem location în URL — o luăm din tabelul employees
+          // Fără location — ia din tabelul employees
           const { data: employee } = await supabase
             .from('employees')
             .select('name, location_id')
@@ -131,7 +128,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     };
 
     fetchIds();
-  }, [slug, employeeId, searchParams]);
+  }, [slug, employeeId, locationIdProp, searchParams]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -171,16 +168,16 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       const reviewData = {
         company_slug: slug,
-        company_id: companyId,              // ✅ UUID real din companies
-        location_id: locationId,            // ✅ din ?location= sau din employees
+        company_id: companyId,
+        location_id: locationId,
         rating: rating,
         full_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
-        employee_id: resolvedEmployeeId,    // ✅ din ?employee= sau din prop
-        telegram_chat_id: telegramChatId    // ✅ din companies
+        employee_id: resolvedEmployeeId,
+        telegram_chat_id: telegramChatId
       };
 
       console.log("DEBUG - Trimit reviewData:", reviewData);
@@ -252,14 +249,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step1}</label>
             <div className="flex justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
               {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHover(star)}
-                  onMouseLeave={() => setHover(0)}
-                  className="p-1 focus:outline-none"
-                >
+                <button key={star} type="button" onClick={() => setRating(star)} onMouseEnter={() => setHover(star)} onMouseLeave={() => setHover(0)} className="p-1 focus:outline-none">
                   <Star size={48} className={`transition-all ${(hover || rating) >= star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-200'}`} />
                 </button>
               ))}
@@ -277,14 +267,8 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step3}</label>
             <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             {!imagePreview ? (
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-3 bg-white border border-dashed border-slate-200 hover:border-blue-500 hover:bg-blue-50/10 transition-all p-8 rounded-2xl group"
-              >
-                <div className="bg-slate-50 group-hover:bg-blue-50 p-4 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors">
-                  <Camera size={24} />
-                </div>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex flex-col items-center justify-center gap-3 bg-white border border-dashed border-slate-200 hover:border-blue-500 hover:bg-blue-50/10 transition-all p-8 rounded-2xl group">
+                <div className="bg-slate-50 group-hover:bg-blue-50 p-4 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors"><Camera size={24} /></div>
                 <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors">{t.btn_add_img}</span>
               </button>
             ) : (
@@ -297,27 +281,15 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
                   <p className="text-[10px] font-bold text-slate-400 mt-0.5">{(imageFile ? (imageFile.size / (1024 * 1024)).toFixed(2) : 0)} MB</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-black uppercase tracking-wider rounded-lg transition-colors">
-                    {t.btn_change_img}
-                  </button>
-                  <button type="button" onClick={removeImage} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" title={t.btn_del_img}>
-                    <X size={16} />
-                  </button>
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-black uppercase tracking-wider rounded-lg transition-colors">{t.btn_change_img}</button>
+                  <button type="button" onClick={removeImage} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" title={t.btn_del_img}><X size={16} /></button>
                 </div>
               </div>
             )}
           </section>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-6 bg-slate-950 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-slate-950 transition-all flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <><Loader2 className="animate-spin" size={20} />{t.sending}</>
-            ) : (
-              t.btn_submit
-            )}
+          <button type="submit" disabled={loading} className="w-full py-6 bg-slate-950 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-slate-950 transition-all flex items-center justify-center gap-2">
+            {loading ? (<><Loader2 className="animate-spin" size={20} />{t.sending}</>) : (t.btn_submit)}
           </button>
         </form>
       </div>
