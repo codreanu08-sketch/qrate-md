@@ -1,77 +1,86 @@
-// app/api/orders/confirm/route.ts
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export async function POST(request: Request) {
   try {
-    // 1. Preluăm datele prin formData() trimise din configuratorul interfeței
     const formData = await request.formData();
     
     const plan = formData.get('plan') || 'START';
-    // Preluat corect conform 'locationsCount' trimis din frontend
     const locations = formData.get('locationsCount') || '1'; 
     const totalAmount = formData.get('totalAmountPaidNow') || '0';
     const futureMonthlyAmount = formData.get('futureMonthlyAmount') || '0';
     const notes = (formData.get('notes') as string) || 'Fără specificații.';
     const qrCodeImage = formData.get('qrCodeImage') as File | null;
 
-    // Extragere array-uri din frontend (dacă dorești să le folosești ulterior în baza de date)
     const activeLocationIdsStr = formData.get('activeLocationIds') || '[]';
     const activeEmployeeIdsStr = formData.get('activeEmployeeIds') || '[]';
     
     const activeLocationsCount = JSON.parse(activeLocationIdsStr as string).length;
     const activeEmployeesCount = JSON.parse(activeEmployeeIdsStr as string).length;
 
-    // Datele sigure pentru Telegram Bot
-    const botToken = "8494478065:AAHAS1icJCUe5q-Te5KsWraC2-o4BcYbrbw"; 
-    const chatId = "890236835";
+    // === OBȚINEM USER-UL LOGAT ȘI CHAT_ID-UL DIN COMPANIE ===
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let CHAT_ID = "890236835"; // fallback temporar
 
-    // 2. Formatăm mesajul principal folosind HTML stabil
+    if (user) {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('telegram_chat_id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (company?.telegram_chat_id) {
+        CHAT_ID = company.telegram_chat_id;
+      }
+    }
+
+    // === MESAJ TELEGRAM ===
     const message = `
 <b>🔔 COMANDĂ NOUĂ / MODIFICARE LICENȚĂ QRATE.MD</b>
 ----------------------------------
 📦 <b>Plan ales:</b> ${plan}
 🏢 <b>Locații Contractate:</b> ${locations} sloturi
-📍 <b>Locații Active selectate:</b> ${activeLocationsCount}
-👥 <b>Angajați Activi selectați:</b> ${activeEmployeesCount}
+📍 <b>Locații Active:</b> ${activeLocationsCount}
+👥 <b>Angajați Activi:</b> ${activeEmployeesCount}
 ----------------------------------
-📝 <b>Specificații / Note Client:</b>
-<i>${notes.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</i>
+📝 <b>Note:</b> ${notes.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
 ----------------------------------
 💰 <b>DE PLATĂ ACUM:</b> ${totalAmount} MDL
-💳 <b>Tarif Viitor Abonament:</b> ${futureMonthlyAmount} MDL/lună
+💳 <b>Tarif Lunar:</b> ${futureMonthlyAmount} MDL
 `;
 
-    let telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    let telegramBody: FormData | string = '';
-    let headers: HeadersInit = {};
+    let telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN || "8494478065:AAHAS1icJCUe5q-Te5KsWraC2-o4BcYbrbw"}/sendMessage`;
+    let telegramBody: any = '';
+    let headers: HeadersInit = { 'Content-Type': 'application/json' };
 
-    // 3. Logica de expediere: Dacă avem o imagine pentru codul QR personalizat
     if (qrCodeImage && qrCodeImage.size > 0) {
-      telegramUrl = `https://api.telegram.org/bot${botToken}/sendPhoto`;
+      telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN || "8494478065:AAHAS1icJCUe5q-Te5KsWraC2-o4BcYbrbw"}/sendPhoto`;
       
       const telegramForm = new FormData();
-      telegramForm.append('chat_id', chatId);
+      telegramForm.append('chat_id', CHAT_ID);
       telegramForm.append('caption', message);
       telegramForm.append('parse_mode', 'HTML');
       
-      // Convertim fișierul într-un Blob compatibil cu API-ul Telegram
       const arrayBuffer = await qrCodeImage.arrayBuffer();
       const blob = new Blob([arrayBuffer], { type: qrCodeImage.type });
       telegramForm.append('photo', blob, qrCodeImage.name);
       
       telegramBody = telegramForm;
-      // Nu setăm manual Content-Type pentru FormData, lăsăm browserul/serverul să-și pună boundary-ul perfect
+      delete headers['Content-Type']; // FormData gestionează singur boundary-ul
     } else {
-      // Dacă nu s-a atașat nicio imagine, trimitem payload JSON standard
-      headers = { 'Content-Type': 'application/json' };
       telegramBody = JSON.stringify({
-        chat_id: chatId,
+        chat_id: CHAT_ID,
         text: message,
         parse_mode: 'HTML',
       });
     }
 
-    // 4. Executăm cererea externă către API-ul Telegram
     const response = await fetch(telegramUrl, {
       method: 'POST',
       headers: headers,
@@ -81,21 +90,14 @@ export async function POST(request: Request) {
     const data = await response.json();
 
     if (!response.ok || !data.ok) {
-      console.error('❌ Eroare directă de la API Telegram:', data);
-      return NextResponse.json(
-        { error: 'Telegram API a respins mesajul.', details: data }, 
-        { status: 502 }
-      );
+      console.error('Telegram Error:', data);
+      return NextResponse.json({ error: 'Telegram API error', details: data }, { status: 502 });
     }
 
-    // Returnăm succes și poți adăuga opțional o proprietate `payUrl` dacă vrei să-l trimiți spre MAIB
-    return NextResponse.json({ success: true, payUrl: null });
+    return NextResponse.json({ success: true, chat_id_used: CHAT_ID });
 
   } catch (error: any) {
-    console.error('💥 Eroare critică pe server:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error', message: error?.message || String(error) }, 
-      { status: 500 }
-    );
+    console.error('Eroare confirm order:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
