@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
     for (const msg of pendingMessages) {
       try {
-        // === VERIFICARE SUBSCRIPTION ===
+        // === VERIFICARE ABONAMENT (folosind companies.telegram_chat_id) ===
         let canSend = true;
 
         if (msg.chat_id) {
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
             .from('companies')
             .select('subscription_status, subscription_ends_at')
             .eq('telegram_chat_id', msg.chat_id)
-            .single();
+            .maybeSingle();   // ← changed to maybeSingle
 
           if (company) {
             const isActive = company.subscription_status === 'active' && 
@@ -58,7 +58,6 @@ export async function GET(request: Request) {
         }
 
         if (!canSend) {
-          // Marcăm ca failed dacă abonamentul a expirat
           await supabase
             .from('telegram_messages_queue')
             .update({ status: 'failed' })
@@ -66,7 +65,7 @@ export async function GET(request: Request) {
           continue;
         }
 
-        // === TRIMITERE NORMALĂ ===
+        // === TRIMITERE TELEGRAM ===
         const hasPhoto = !!msg.photo_url;
         const method = hasPhoto ? 'sendPhoto' : 'sendMessage';
 
@@ -104,7 +103,6 @@ export async function GET(request: Request) {
             .eq('id', msg.id);
         }
 
-        // Delay important pentru a nu bloca botul
         await new Promise(r => setTimeout(r, 700));
 
       } catch (err) {
@@ -118,7 +116,7 @@ export async function GET(request: Request) {
     });
 
   } catch (error: any) {
-    console.error("Eroare critică:", error);
+    console.error("Eroare critică în Cron:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

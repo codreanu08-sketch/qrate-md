@@ -13,7 +13,6 @@ export async function POST(request: Request) {
 
     let CHAT_ID = null;
 
-    // === LUĂM telegram_chat_id DIRECT DIN COMPANIE ===
     if (review.company_id) {
       const { data: company } = await supabase
         .from('companies')
@@ -26,13 +25,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // Fallback doar dacă nu avem nimic (temporar)
+    // Fallback temporar
     if (!CHAT_ID) {
-      console.warn("⚠️ Nu s-a găsit telegram_chat_id pentru company:", review.company_id);
       CHAT_ID = '890236835';
     }
 
-    // === Restul codului (mesaj + coadă) ===
     const rating = Number(review.rating) || 5;
     const stars = '⭐️'.repeat(rating);
 
@@ -50,10 +47,7 @@ export async function POST(request: Request) {
       status: 'pending'
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      chat_id_used: CHAT_ID 
-    });
+    return NextResponse.json({ success: true, chat_id_used: CHAT_ID });
 
   } catch (error: any) {
     console.error("Eroare send-review:", error);
