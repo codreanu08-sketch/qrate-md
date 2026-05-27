@@ -1,19 +1,18 @@
 'use client';
 
-import { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Zap, Lock } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 
 function UpdatePasswordContent() {
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  
-  const hasProcessed = useRef(false);
+  const searchParams = useSearchParams();
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -21,50 +20,97 @@ function UpdatePasswordContent() {
   );
 
   useEffect(() => {
-    const hash = window.location.hash;
-    
-    if (hash && !hasProcessed.current) {
-      hasProcessed.current = true;
-      setLoading(true);
+    const processToken = async () => {
+      // Metoda 1: token_hash în query params (link nou Supabase)
+      const token_hash = searchParams.get('token_hash');
+      const type = searchParams.get('type');
 
-      // Tipizare explicita pentru a evita eroarea de build TypeScript
-      supabase.auth.onAuthStateChange((event: any, session: any) => {
-        if (event === 'PASSWORD_RECOVERY' || session) {
-          setIsReady(true);
-          setLoading(false);
-        }
-      });
-    } else {
-      // Tipizare explicita pentru a evita eroarea de build TypeScript
-      supabase.auth.getSession().then(({ data }: any) => {
-        if (data.session) {
-          setIsReady(true);
+      if (token_hash && type === 'recovery') {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash,
+          type: 'recovery',
+        });
+        if (error) {
+          setError("Link invalid sau expirat. Solicită un nou link.");
         } else {
-          setError("Link invalid sau expirat.");
+          setIsReady(true);
         }
-      });
-    }
-  }, [supabase]);
+        setLoading(false);
+        return;
+      }
+
+      // Metoda 2: hash fragment în URL (#access_token=...&type=recovery)
+      const hash = window.location.hash;
+      if (hash) {
+        const params = new URLSearchParams(hash.substring(1));
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const type = params.get('type');
+
+        if (access_token && type === 'recovery') {
+          const { error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token: refresh_token || '',
+          });
+          if (error) {
+            setError("Link invalid sau expirat. Solicită un nou link.");
+          } else {
+            setIsReady(true);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Metoda 3: sesiune deja activă
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setIsReady(true);
+        setLoading(false);
+        return;
+      }
+
+      // Nimic nu a funcționat
+      setError("Link invalid sau expirat. Solicită un nou link de resetare.");
+      setLoading(false);
+    };
+
+    // Ascultă și event-ul PASSWORD_RECOVERY
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, _session) => {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+        setIsReady(true);
+        setLoading(false);
+      }
+    });
+
+    processToken();
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 6) {
+      setError("Parola trebuie să aibă minim 6 caractere.");
+      return;
+    }
     setLoading(true);
     setError('');
-    
+
     const { error: updateError } = await supabase.auth.updateUser({ password });
 
     if (updateError) {
       setError(updateError.message);
       setLoading(false);
     } else {
-      alert("Parola a fost actualizată!");
+      await supabase.auth.signOut();
+      alert("Parola a fost actualizată cu succes!");
       router.push('/ro/auth/login');
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Background Decor */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100/50 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-100/50 rounded-full blur-[120px]" />
@@ -86,32 +132,46 @@ function UpdatePasswordContent() {
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Introdu noua ta parolă securizată</p>
           </div>
 
-          <form onSubmit={handleUpdate} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Noua Parolă</label>
-              <div className="relative">
-                <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  required
-                  disabled={!isReady && !loading}
-                  className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-medium text-slate-900"
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+          {loading ? (
+            <div className="flex flex-col items-center gap-4 py-8">
+              <Loader2 className="animate-spin text-blue-600" size={32} />
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Se verifică link-ul...</p>
             </div>
+          ) : error && !isReady ? (
+            <div className="text-center py-4">
+              <p className="bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-xl border border-red-100 mb-4">{error}</p>
+              <Link href="/ro/auth/login" className="text-blue-600 text-xs font-black uppercase tracking-widest hover:underline">
+                Înapoi la Login
+              </Link>
+            </div>
+          ) : (
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-4">Noua Parolă</label>
+                <div className="relative">
+                  <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                    minLength={6}
+                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:border-blue-500 transition-all font-medium text-slate-900"
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
 
-            {error && <p className="bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-xl text-center border border-red-100">{error}</p>}
-            
-            <button 
-              type="submit"
-              disabled={loading || !isReady}
-              className="w-full bg-[#0F172A] hover:bg-blue-600 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3"
-            >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : 'Actualizează Parola'}
-            </button>
-          </form>
+              {error && <p className="bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-xl text-center border border-red-100">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#0F172A] hover:bg-blue-600 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : 'Actualizează Parola'}
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
