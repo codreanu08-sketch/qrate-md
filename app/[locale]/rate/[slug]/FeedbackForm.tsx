@@ -64,25 +64,21 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     async function getCorrectIdentifiers() {
       try {
         setFetchingIds(true);
-        let resolvedCompanyId = null;
-        let resolvedLocationId = null;
 
-        // Slug-ul este UUID → îl tratăm direct ca company_id
+        // IMPORTANT: Slug-ul din URL este UUID → îl folosim direct ca company_id
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
-        if (isUUID) {
-          resolvedCompanyId = slug;
-        } else {
+        let resolvedCompanyId = isUUID ? slug : null;
+        let resolvedLocationId = null;
+
+        if (!resolvedCompanyId) {
           const { data: compData } = await supabase
             .from('companies')
             .select('id, name')
             .eq('slug', slug)
             .maybeSingle();
 
-          if (compData) {
-            resolvedCompanyId = compData.id;
-            setTargetName(compData.name);
-          }
+          if (compData) resolvedCompanyId = compData.id;
         }
 
         if (resolvedCompanyId) {
@@ -95,12 +91,14 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
           if (locData) {
             resolvedLocationId = locData.id;
-            if (!targetName) setTargetName(locData.name);
+            setTargetName(locData.name);
           }
         }
 
         setCompanyId(resolvedCompanyId);
         setLocationId(resolvedLocationId);
+
+        console.log("DEBUG - Company resolved:", { slug, companyId: resolvedCompanyId });
 
       } catch (err) {
         console.error("Eroare la identificare:", err);
