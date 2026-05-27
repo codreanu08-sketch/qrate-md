@@ -23,7 +23,28 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
   
-  const t = (messages as any)?.PublicFeedback || { /* ... defaults ... */ };
+  const t = (messages as any)?.PublicFeedback || {
+    step: locale === 'ro' ? 'Pasul 1/1' : 'Шаг 1/1',
+    heading_for: locale === 'ro' ? 'Feedback pentru' : 'Отзыв для',
+    title_line1: locale === 'ro' ? 'Părerea Ta' : 'Ваше Мнение',
+    title_line2: locale === 'ro' ? 'Contează' : 'Важно Для Нас',
+    subtitle: locale === 'ro' ? 'Ajută-ne să devenim mai buni evaluând experiența ta.' : 'Помогите нам стать лучше, оценив ваш визит.',
+    label_step1: locale === 'ro' ? 'Alege nota ta' : 'Выберите оценку',
+    label_step2: locale === 'ro' ? 'Detalii despre vizită' : 'Детали визита',
+    label_step3: locale === 'ro' ? 'Atașează o poză (opțional)' : 'Прикрепить фото (опционально)',
+    placeholder_name: locale === 'ro' ? 'Numele tău complet' : 'Ваше полное имя',
+    placeholder_phone: locale === 'ro' ? 'Telefon (ex: 07xx...)' : 'Телефон',
+    placeholder_comment: locale === 'ro' ? 'Comentariul tău (ce ți-a plăcut, ce putem îmbunătăți)...' : 'Ваш комментарий (что понравилось, что улучшить)...',
+    btn_add_img: locale === 'ro' ? 'Adaugă imagine' : 'Добавить фото',
+    btn_del_img: locale === 'ro' ? 'Șterge Poza' : 'Удалить фото',
+    btn_change_img: locale === 'ro' ? 'Schimbă' : 'Изменить',
+    btn_submit: locale === 'ro' ? 'Trimite Feedback Acum' : 'Отправить отзыв',
+    sending: locale === 'ro' ? 'Se trimite...' : 'Отправка...',
+    alert_stars: locale === 'ro' ? 'Te rugăm să alegi o notă (pasul 1)' : 'Пожалуйста, выберите оценку (шаг 1)',
+    success_title: locale === 'ro' ? 'Super!' : 'Супер!',
+    success_text: locale === 'ro' ? 'Feedback-ul tău a fost trimis cu succes. Apreciem implicarea ta!' : 'Ваш отзыв успешно отправлен. Мы ценим ваше участие!',
+    no_comment: (messages as any)?.Dashboard?.feed?.no_comment || (locale === 'ro' ? 'Clientul nu a lăsat un comentariu' : 'Клиент не оставил комментария')
+  };
 
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number>(0);
@@ -148,7 +169,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
         employee_id: employeeId || null,
-        telegram_chat_id: null   // Va fi completat automat de trigger
+        telegram_chat_id: null   // ← Important: lăsăm null ca trigger-ul să completeze
       };
 
       console.log("DEBUG - Trimit reviewData:", reviewData);
@@ -193,8 +214,127 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
-      {/* restul codului rămâne la fel */}
-      {/* ... (header + form) ... */}
+      <header className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-100 z-50">
+        <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="bg-blue-600 rounded-xl p-2"><Zap className="text-white fill-white" size={16} /></div>
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{t.heading_for}</span>
+              <span className="text-sm font-black text-slate-950 uppercase tracking-widest truncate">{targetName}</span>
+            </div>
+          </div>
+          <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full uppercase">{t.step}</div>
+        </div>
+      </header>
+
+      <div className="max-w-xl mx-auto px-5 pt-8 pb-16">
+        <form onSubmit={handleSubmit} className="space-y-10">
+          {/* Rating Section */}
+          <section className="space-y-4">
+            <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step1}</label>
+            <div className="flex justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button 
+                  key={star} 
+                  type="button" 
+                  onClick={() => setRating(star)} 
+                  onMouseEnter={() => setHover(star)}
+                  onMouseLeave={() => setHover(0)}
+                  className="p-1 focus:outline-none"
+                >
+                  <Star size={48} className={`transition-all ${(hover || rating) >= star ? 'fill-yellow-400 text-yellow-500' : 'text-slate-200'}`} />
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* Detalii Section */}
+          <section className="space-y-4">
+            <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step2}</label>
+            <input type="text" placeholder={t.placeholder_name} required className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
+            <input type="text" placeholder={t.placeholder_phone} className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+            <textarea placeholder={t.placeholder_comment} rows={5} className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all resize-none" value={formData.comment} onChange={(e) => setFormData({...formData, comment: e.target.value})} />
+          </section>
+
+          {/* Photo Section */}
+          <section className="space-y-4">
+            <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step3}</label>
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleImageChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
+
+            {!imagePreview ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex flex-col items-center justify-center gap-3 bg-white border border-dashed border-slate-200 hover:border-blue-500 hover:bg-blue-50/10 transition-all p-8 rounded-2xl group"
+              >
+                <div className="bg-slate-50 group-hover:bg-blue-50 p-4 rounded-xl text-slate-400 group-hover:text-blue-500 transition-colors">
+                  <Camera size={24} />
+                </div>
+                <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors">
+                  {t.btn_add_img}
+                </span>
+              </button>
+            ) : (
+              <div className="relative bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 shadow-sm animate-in fade-in duration-300">
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black text-slate-700 uppercase tracking-tight truncate">
+                    {imageFile?.name}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                    {(imageFile ? (imageFile.size / (1024 * 1024)).toFixed(2) : 0)} MB
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-black uppercase tracking-wider rounded-lg transition-colors"
+                  >
+                    {t.btn_change_img}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all"
+                    title={t.btn_del_img}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <button 
+            type="submit" 
+            disabled={loading} 
+            className="w-full py-6 bg-slate-950 text-white rounded-[2rem] font-black uppercase tracking-widest shadow-2xl hover:bg-blue-600 disabled:opacity-50 disabled:hover:bg-slate-950 transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                {t.sending}
+              </>
+            ) : (
+              t.btn_submit
+            )}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
