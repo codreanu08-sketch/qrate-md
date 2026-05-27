@@ -49,7 +49,6 @@ export default function LocationsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAdding, setIsAdding] = useState(false);
 
-  // Stări noi pentru procesul de creare a companiei direct în pagină
   const [newCompanyName, setNewCompanyName] = useState('');
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
 
@@ -73,7 +72,6 @@ export default function LocationsPage() {
     }
   }, [locale]);
 
-  // Modificăm funcția de inițializare să nu mai facă redirect extern
   const getInitialData = useCallback(async () => {
     try {
       setLoading(true);
@@ -96,7 +94,6 @@ export default function LocationsPage() {
         if (company.logo_url) setLogoUrl(company.logo_url);
         await fetchData(company.id);
       } else {
-        // În loc de redirect, setăm companyId pe null și oprim loading-ul ca să randeze widgetul local
         setCompanyId(null);
         setLoading(false);
       }
@@ -111,7 +108,6 @@ export default function LocationsPage() {
     getInitialData();
   }, [getInitialData]);
 
-  // Funcție nouă pentru crearea companiei inline
   const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim() || isCreatingCompany) return;
@@ -131,7 +127,6 @@ export default function LocationsPage() {
       if (createError) throw createError;
 
       setNewCompanyName('');
-      // Reîncărcăm datele paginii prin metoda principală
       await getInitialData();
     } catch (err: any) {
       setErrorMessage(locale === 'ru' ? "Ошибка при создании компании: " + err.message : "Eroare la crearea companiei: " + err.message);
@@ -297,14 +292,12 @@ export default function LocationsPage() {
 
   const selectedLocationObj = locations.find(l => l.id === selectedLocationId);
 
-  // 1. LOADING STATE PRINCIPAL
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
       <Loader2 className="animate-spin text-blue-600" size={40} />
     </div>
   );
 
-  // 2. INLINE ONBOARDING STATE: DACĂ USERUL NU ARE COMPANIE ÎNREGISTRATĂ
   if (!companyId) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 flex items-center justify-center font-sans text-slate-900">
@@ -352,7 +345,6 @@ export default function LocationsPage() {
     );
   }
 
-  // 3. INTERFAȚA STANDARD (Rulată doar când firma există în sistem)
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
@@ -479,7 +471,11 @@ export default function LocationsPage() {
             {locations.map((loc) => {
               const locReviews = lastReviews.filter(r => r.location_id === loc.id);
               const isSelected = selectedLocationId === loc.id;
-              const qrUrl = typeof window !== 'undefined' ? `${window.location.origin}/${locale}/review/${loc.id}` : '';
+
+              // ✅ FIX: URL-ul QR conține company_id + location_id ca query param
+              const qrUrl = typeof window !== 'undefined' 
+                ? `${window.location.origin}/${locale}/rate/${companyId}?location=${loc.id}` 
+                : '';
 
               return (
                 <div 
@@ -507,6 +503,7 @@ export default function LocationsPage() {
                     </div>
                   </div>
 
+                  {/* QR ascuns pentru download (mare) */}
                   <div className="hidden">
                     {qrUrl && (
                       <QRCodeCanvas 
@@ -518,6 +515,7 @@ export default function LocationsPage() {
                     )}
                   </div>
 
+                  {/* QR vizibil */}
                   <div className="bg-slate-50 p-6 rounded-[2.5rem] mb-6 self-center border border-transparent shadow-inner">
                     {qrUrl && (
                       <QRCodeCanvas 
@@ -534,6 +532,8 @@ export default function LocationsPage() {
                     <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
                       {t('card.reviews_count', { count: locReviews.length })}
                     </p>
+                    {/* ✅ Afișează URL-ul QR pentru verificare vizuală */}
+                    <p className="text-[9px] text-slate-300 mt-1 break-all px-2">{qrUrl}</p>
                   </div>
 
                   <div className="flex flex-col gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
@@ -594,7 +594,6 @@ export default function LocationsPage() {
               {filteredReviews.map((review) => (
                 <div key={review.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-slate-100/50 transition-colors">
                   <div className="space-y-1.5 w-full sm:w-auto">
-                    
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex gap-0.5 text-amber-500">
                         {[...Array(5)].map((_, i) => (
@@ -609,13 +608,11 @@ export default function LocationsPage() {
                       <span className="text-xs bg-white text-slate-600 border px-2 py-0.5 rounded-md font-black uppercase text-[10px]">
                         {review.locations?.name || (locale === 'ru' ? "Удаленная локация" : "Locație ștearsă")}
                       </span>
-
                       {review.name && (
                         <span className="text-xs bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-bold text-[10px]">
                           {review.name}
                         </span>
                       )}
-
                       {review.phone && (
                         <a 
                           href={`tel:${review.phone.replace(/\s+/g, '')}`} 
@@ -625,12 +622,10 @@ export default function LocationsPage() {
                         </a>
                       )}
                     </div>
-                    
                     <p className="text-base font-semibold text-slate-700 italic tracking-wide mt-1">
                       {review.comment ? `"${review.comment}"` : <span className="text-slate-400 font-normal text-sm">{t('reviews_section.no_comment')}</span>}
                     </p>
                   </div>
-                  
                   <div className="text-right shrink-0">
                     <ClientFriendlyDate dateString={review.created_at} locale={locale} />
                   </div>

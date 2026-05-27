@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Zap, Star, CheckCircle2, Loader2, Camera, X } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import ru from '@/messages/ru.json';
@@ -14,6 +15,7 @@ interface FeedbackFormProps {
 
 export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const searchParams = useSearchParams(); // ✅ citește ?location= din URL
 
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [locationId, setLocationId] = useState<string | null>(null);
@@ -61,12 +63,11 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     comment: ''
   });
 
-  // ✅ FIX PRINCIPAL: Fetch complet din Supabase
   useEffect(() => {
     const fetchIds = async () => {
       setFetchingIds(true);
       try {
-        // 1. Ia compania după ID (slug-ul din URL = companies.id)
+        // 1. Ia compania după ID (slug = companies.id)
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('id, name, telegram_chat_id')
@@ -82,11 +83,16 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
         setTargetName(company.name);
         setTelegramChatId(company.telegram_chat_id ?? null);
 
-        // 2. Dacă există employeeId — ia location_id din angajat
-        if (employeeId) {
+        // 2. ✅ location_id vine din ?location= în URL (generat de QR)
+        const locationFromUrl = searchParams.get('location');
+
+        if (locationFromUrl) {
+          setLocationId(locationFromUrl);
+        } else if (employeeId) {
+          // 3. Dacă e QR de angajat — ia location din employee
           const { data: employee, error: employeeError } = await supabase
             .from('employees')
-            .select('id, name, location_id')
+            .select('name, location_id')
             .eq('id', employeeId)
             .single();
 
@@ -96,7 +102,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             setIsEmployee(true);
           }
         } else {
-          // 3. Fără employee — ia prima locație a companiei
+          // 4. Fallback — ia prima locație a companiei
           const { data: location } = await supabase
             .from('locations')
             .select('id')
@@ -114,7 +120,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     };
 
     fetchIds();
-  }, [slug, employeeId]);
+  }, [slug, employeeId, searchParams]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,14 +161,14 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
       const reviewData = {
         company_slug: slug,
         company_id: companyId,           // ✅ UUID real din companies
-        location_id: locationId,         // ✅ UUID real din locations
+        location_id: locationId,         // ✅ UUID real din URL ?location=
         rating: rating,
         full_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
-        employee_id: employeeId || null, // ✅ din props
+        employee_id: employeeId || null,
         telegram_chat_id: telegramChatId // ✅ din companies
       };
 
@@ -206,7 +212,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
     );
   }
 
-  // Afișează loading cât timp se fetch-uiesc datele
   if (fetchingIds) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -232,7 +237,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       <div className="max-w-xl mx-auto px-5 pt-8 pb-16">
         <form onSubmit={handleSubmit} className="space-y-10">
-          {/* Rating Section */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step1}</label>
             <div className="flex justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
@@ -251,7 +255,6 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             </div>
           </section>
 
-          {/* Detalii Section */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step2}</label>
             <input type="text" placeholder={t.placeholder_name} required className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all" value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} />
@@ -259,18 +262,9 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             <textarea placeholder={t.placeholder_comment} rows={5} className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all resize-none" value={formData.comment} onChange={(e) => setFormData({ ...formData, comment: e.target.value })} />
           </section>
 
-          {/* Photo Section */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step3}</label>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              accept="image/*"
-              className="hidden"
-            />
-
+            <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
             {!imagePreview ? (
               <button
                 type="button"
@@ -287,34 +281,17 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             ) : (
               <div className="relative bg-white border border-slate-100 p-4 rounded-2xl flex items-center gap-4 shadow-sm animate-in fade-in duration-300">
                 <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0">
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-black text-slate-700 uppercase tracking-tight truncate">
-                    {imageFile?.name}
-                  </p>
-                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                    {(imageFile ? (imageFile.size / (1024 * 1024)).toFixed(2) : 0)} MB
-                  </p>
+                  <p className="text-xs font-black text-slate-700 uppercase tracking-tight truncate">{imageFile?.name}</p>
+                  <p className="text-[10px] font-bold text-slate-400 mt-0.5">{(imageFile ? (imageFile.size / (1024 * 1024)).toFixed(2) : 0)} MB</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-black uppercase tracking-wider rounded-lg transition-colors"
-                  >
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-slate-50 text-slate-600 hover:bg-slate-100 text-xs font-black uppercase tracking-wider rounded-lg transition-colors">
                     {t.btn_change_img}
                   </button>
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all"
-                    title={t.btn_del_img}
-                  >
+                  <button type="button" onClick={removeImage} className="p-2 bg-red-50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all" title={t.btn_del_img}>
                     <X size={16} />
                   </button>
                 </div>
