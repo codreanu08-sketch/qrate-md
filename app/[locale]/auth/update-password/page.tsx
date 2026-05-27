@@ -19,7 +19,7 @@ function UpdatePasswordContent() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
   );
 
-  useEffect(() => {
+  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
     const processToken = async () => {
       // Metoda 1: token_hash în query params (link nou Supabase)
       const token_hash = searchParams.get('token_hash');
@@ -105,7 +105,7 @@ function UpdatePasswordContent() {
     } else {
       await supabase.auth.signOut();
       alert("Parola a fost actualizată cu succes!");
-      router.push('/ro/auth/login');
+      router.push('/auth/login' as any);
     }
   };
 
@@ -140,7 +140,7 @@ function UpdatePasswordContent() {
           ) : error && !isReady ? (
             <div className="text-center py-4">
               <p className="bg-red-50 text-red-500 text-[11px] font-bold p-4 rounded-xl border border-red-100 mb-4">{error}</p>
-              <Link href="/ro/auth/login" className="text-blue-600 text-xs font-black uppercase tracking-widest hover:underline">
+              <Link href="/auth/login" className="text-blue-600 text-xs font-black uppercase tracking-widest hover:underline">
                 Înapoi la Login
               </Link>
             </div>
