@@ -61,53 +61,10 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
   });
 
   useEffect(() => {
-    async function getCorrectIdentifiers() {
-      try {
-        setFetchingIds(true);
-
-        // IMPORTANT: Slug-ul din URL este UUID → îl folosim direct ca company_id
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
-
-        let resolvedCompanyId = isUUID ? slug : null;
-        let resolvedLocationId = null;
-
-        if (!resolvedCompanyId) {
-          const { data: compData } = await supabase
-            .from('companies')
-            .select('id, name')
-            .eq('slug', slug)
-            .maybeSingle();
-
-          if (compData) resolvedCompanyId = compData.id;
-        }
-
-        if (resolvedCompanyId) {
-          const { data: locData } = await supabase
-            .from('locations')
-            .select('id, name')
-            .eq('company_id', resolvedCompanyId)
-            .limit(1)
-            .maybeSingle();
-
-          if (locData) {
-            resolvedLocationId = locData.id;
-            setTargetName(locData.name);
-          }
-        }
-
-        setCompanyId(resolvedCompanyId);
-        setLocationId(resolvedLocationId);
-
-        console.log("DEBUG - Company resolved:", { slug, companyId: resolvedCompanyId });
-
-      } catch (err) {
-        console.error("Eroare la identificare:", err);
-      } finally {
-        setFetchingIds(false);
-      }
-    }
-    if (slug) getCorrectIdentifiers();
-  }, [slug, employeeId]);
+    // SOLUȚIE DIRECTĂ: Slug-ul din URL este UUID-ul companiei
+    setCompanyId(slug);
+    setFetchingIds(false);
+  }, [slug]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,7 +100,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       const reviewData = {
         company_slug: slug,
-        company_id: companyId,
+        company_id: slug,                    // ← SOLUȚIA DIRECTĂ
         location_id: locationId,
         rating: rating,
         full_name: formData.fullName,
@@ -203,7 +160,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             <div className="bg-blue-600 rounded-xl p-2"><Zap className="text-white fill-white" size={16} /></div>
             <div className="flex flex-col">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{t.heading_for}</span>
-              <span className="text-sm font-black text-slate-950 uppercase tracking-widest truncate">{targetName}</span>
+              <span className="text-sm font-black text-slate-950 uppercase tracking-widest truncate">{targetName || "Companie"}</span>
             </div>
           </div>
           <div className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-full uppercase">{t.step}</div>
@@ -212,6 +169,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
 
       <div className="max-w-xl mx-auto px-5 pt-8 pb-16">
         <form onSubmit={handleSubmit} className="space-y-10">
+          {/* Rating Section */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step1}</label>
             <div className="flex justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
@@ -230,6 +188,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             </div>
           </section>
 
+          {/* Detalii Section */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step2}</label>
             <input type="text" placeholder={t.placeholder_name} required className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all" value={formData.fullName} onChange={(e) => setFormData({...formData, fullName: e.target.value})} />
@@ -237,6 +196,7 @@ export default function FeedbackForm({ slug, locale, employeeId }: FeedbackFormP
             <textarea placeholder={t.placeholder_comment} rows={5} className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all resize-none" value={formData.comment} onChange={(e) => setFormData({...formData, comment: e.target.value})} />
           </section>
 
+          {/* Photo Section */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step3}</label>
             
