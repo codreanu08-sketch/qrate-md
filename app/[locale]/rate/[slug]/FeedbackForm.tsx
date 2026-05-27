@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Zap, Star, CheckCircle2, Loader2, Camera, X } from 'lucide-react';
+import { Zap, Star, CheckCircle2, Loader2, Camera, X, User } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import ru from '@/messages/ru.json';
 import ro from '@/messages/ro.json';
@@ -11,7 +11,14 @@ interface FeedbackFormProps {
   slug: string;
   locale: 'ro' | 'ru';
   employeeId?: string;
-  locationId?: string; // ✅ pasat din page.tsx
+  locationId?: string;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  position: string;
+  photo_url: string | null;
 }
 
 export default function FeedbackForm({ slug, locale, employeeId, locationId: locationIdProp }: FeedbackFormProps) {
@@ -25,6 +32,10 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
   const [targetName, setTargetName] = useState<string>('');
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
 
+  // ✅ Lista angajaților pentru selecție
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+
   const messages = useMemo(() => (locale === 'ro' ? ro : ru), [locale]);
 
   const t = (messages as any)?.PublicFeedback || {
@@ -33,6 +44,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
     label_step1: locale === 'ro' ? 'Alege nota ta' : 'Выберите оценку',
     label_step2: locale === 'ro' ? 'Detalii despre vizită' : 'Детали визита',
     label_step3: locale === 'ro' ? 'Atașează o poză (opțional)' : 'Прикрепить фото (опционально)',
+    label_employee: locale === 'ro' ? 'Cui adresezi recenzia? (opțional)' : 'Кому адресуете отзыв? (необязательно)',
     placeholder_name: locale === 'ro' ? 'Numele tău complet' : 'Ваше полное имя',
     placeholder_phone: locale === 'ro' ? 'Telefon (ex: 07xx...)' : 'Телефон',
     placeholder_comment: locale === 'ro' ? 'Comentariul tău (ce ți-a plăcut, ce putem îmbunătăți)...' : 'Ваш комментарий...',
@@ -81,44 +93,51 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
         setTargetName(company.name);
         setTelegramChatId(company.telegram_chat_id ?? null);
 
-        // 2. ✅ Prioritate: prop din page.tsx > query param din URL
+        // 2. Rezolvă location și employee din props sau URL
         const finalLocationId = locationIdProp || searchParams.get('location');
         const finalEmployeeId = employeeId || searchParams.get('employee');
 
-        setResolvedEmployeeId(finalEmployeeId);
-
-        // 3. Rezolvă location_id
-        if (finalLocationId) {
-          setLocationId(finalLocationId);
-          // Dacă e angajat, afișează numele lui
-          if (finalEmployeeId) {
-            const { data: employee } = await supabase
-              .from('employees')
-              .select('name')
-              .eq('id', finalEmployeeId)
-              .single();
-            if (employee) setTargetName(employee.name);
-          }
-        } else if (finalEmployeeId) {
-          // Fără location — ia din tabelul employees
-          const { data: employee } = await supabase
+        if (finalLocationId) setLocationId(finalLocationId);
+        
+        // 3. Dacă vine cu employee specific (QR personal al angajatului)
+        if (finalEmployeeId) {
+          setResolvedEmployeeId(finalEmployeeId);
+          const { data: emp } = await supabase
             .from('employees')
-            .select('name, location_id')
+            .select('id, name, position, photo_url, location_id')
             .eq('id', finalEmployeeId)
             .single();
-          if (employee) {
-            setLocationId(employee.location_id ?? null);
-            setTargetName(employee.name);
+          if (emp) {
+            setTargetName(emp.name);
+            setSelectedEmployee(emp);
+            if (!finalLocationId && emp.location_id) setLocationId(emp.location_id);
           }
         } else {
-          // Fallback — prima locație a companiei
-          const { data: location } = await supabase
-            .from('locations')
-            .select('id')
+          // 4. ✅ QR al companiei/locației — încarcă lista angajaților pentru selecție
+          let query = supabase
+            .from('employees')
+            .select('id, name, position, photo_url')
             .eq('company_id', company.id)
-            .limit(1)
-            .single();
-          if (location) setLocationId(location.id);
+            .order('name');
+
+          // Dacă avem location, filtrează după ea
+          if (finalLocationId) {
+            query = query.eq('location_id', finalLocationId);
+          }
+
+          const { data: empList } = await query;
+          setEmployees(empList || []);
+
+          // Fallback location dacă nu avem
+          if (!finalLocationId) {
+            const { data: loc } = await supabase
+              .from('locations')
+              .select('id')
+              .eq('company_id', company.id)
+              .limit(1)
+              .single();
+            if (loc) setLocationId(loc.id);
+          }
         }
       } catch (err) {
         console.error('fetchIds error:', err);
@@ -129,6 +148,17 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
 
     fetchIds();
   }, [slug, employeeId, locationIdProp, searchParams]);
+
+  const handleSelectEmployee = (emp: Employee) => {
+    if (selectedEmployee?.id === emp.id) {
+      // Deselectează dacă dai click din nou
+      setSelectedEmployee(null);
+      setResolvedEmployeeId(null);
+    } else {
+      setSelectedEmployee(emp);
+      setResolvedEmployeeId(emp.id);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,7 +206,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
         email: formData.email,
         comment: formData.comment || t.no_comment,
         photo_url: finalPhotoUrl,
-        employee_id: resolvedEmployeeId,
+        employee_id: resolvedEmployeeId,  // ✅ ales de client sau din QR personal
         telegram_chat_id: telegramChatId
       };
 
@@ -245,6 +275,61 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
 
       <div className="max-w-xl mx-auto px-5 pt-8 pb-16">
         <form onSubmit={handleSubmit} className="space-y-10">
+
+          {/* ✅ SECȚIUNEA ANGAJAȚI — apare doar dacă compania are angajați și nu e QR personal */}
+          {employees.length > 0 && !employeeId && !searchParams.get('employee') && (
+            <section className="space-y-4">
+              <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">
+                {t.label_employee}
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {employees.map((emp) => {
+                  const isSelected = selectedEmployee?.id === emp.id;
+                  return (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      onClick={() => handleSelectEmployee(emp)}
+                      className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                        isSelected
+                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-100'
+                          : 'border-slate-100 bg-white hover:border-blue-200'
+                      }`}
+                    >
+                      {emp.photo_url ? (
+                        <img
+                          src={emp.photo_url}
+                          alt={emp.name}
+                          className="w-12 h-12 rounded-xl object-cover shrink-0 border-2 border-white shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                          <User size={22} className="text-slate-400" />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className={`text-xs font-black uppercase truncate ${isSelected ? 'text-blue-700' : 'text-slate-800'}`}>
+                          {emp.name}
+                        </p>
+                        {emp.position && (
+                          <p className="text-[10px] font-bold text-slate-400 truncate mt-0.5">
+                            {emp.position}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedEmployee && (
+                <p className="text-[11px] text-blue-600 font-bold text-center">
+                  {locale === 'ro' ? `✓ Recenzie pentru ${selectedEmployee.name}` : `✓ Отзыв для ${selectedEmployee.name}`}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* RATING */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step1}</label>
             <div className="flex justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
@@ -256,6 +341,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             </div>
           </section>
 
+          {/* DETALII */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step2}</label>
             <input type="text" placeholder={t.placeholder_name} required className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all" value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} />
@@ -263,6 +349,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             <textarea placeholder={t.placeholder_comment} rows={5} className="w-full p-5 bg-white border border-slate-100 rounded-2xl outline-none focus:border-slate-400 transition-all resize-none" value={formData.comment} onChange={(e) => setFormData({ ...formData, comment: e.target.value })} />
           </section>
 
+          {/* FOTO */}
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step3}</label>
             <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" className="hidden" />
