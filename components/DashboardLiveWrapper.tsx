@@ -39,7 +39,7 @@ export default function DashboardLiveWrapper({ locale }: Props) {
     getCompany();
 
     // Re-verific dacă sesiunea se schimbă
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       if (!session) { setCompanyId(null); return; }
       getCompany();
     });
