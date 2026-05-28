@@ -34,8 +34,31 @@
     },
     "messages": {
       "reset_sent": "Link-ul pentru resetarea parolei a fost trimis.",
-      "register_success": "Înregistrare reușită! Verifică poșta electronică pentru confirmare."
+      "register_success": "Înregistrare reușită!"
     }
+  },
+  "PublicFeedback": {
+    "step": "Pasul 1/1",
+    "heading_for": "Feedback pentru",
+    "title_line1": "Părerea Ta",
+    "title_line2": "Contează",
+    "subtitle": "Ajută-ne să devenim mai buni evaluând experiența ta.",
+    "label_step1": "Alege nota ta",
+    "label_step2": "Detalii despre vizită",
+    "label_step3": "Atașează o poză (opțional)",
+    "label_employee": "Cui adresezi recenzia? (opțional)",
+    "placeholder_name": "Numele tău complet",
+    "placeholder_phone": "Telefon (ex: 07xx...)",
+    "placeholder_comment": "Comentariul tău (ce ți-a plăcut, ce putem îmbunătăți)...",
+    "btn_add_img": "Adaugă imagine",
+    "btn_del_img": "Șterge Poza",
+    "btn_change_img": "Schimbă",
+    "btn_submit": "Trimite Feedback Acum",
+    "sending": "Se trimite...",
+    "alert_stars": "Te rugăm să alegi o notă (pasul 1)",
+    "success_title": "Super!",
+    "success_text": "Feedback-ul tău a fost trimis cu succes. Apreciem implicarea ta!",
+    "no_comment": "Clientul nu a lăsat un comentariu"
   },
   "Dashboard": {
     "admin_panel": "Panou Administrator",
@@ -243,7 +266,7 @@
         "desc": "{count, plural, one {# locație} few {# locații} other {# de locații}}",
         "features": {
           "locations": "1 Locație unică",
-          "employees": "Maximum 4 angajați activi în sistem",
+          "employees": "Maximum 5 angajați activi în sistem",
           "qr_collection": "Colectare simplă a recenziilor prin cod QR",
           "telegram_alerts": "Notificări instantanee pe Telegram la fiecare recenzie",
           "dashboard": "Panou de control de bază pentru vizualizarea datelor",
@@ -412,24 +435,6 @@
       "phone_placeholder": "Mesajul tău...",
       "phone_btn": "Trimite recenzia"
     },
-    "sectors_section": {
-      "badge": "Domenii de activitate",
-      "title": "Se potrivește perfect afacerii tale"
-    },
-    "sectors": {
-      "restaurants": {
-        "title": "Restaurante",
-        "desc": "Îmbunătățește serviciile pe baza recenziilor reale și controlează activitatea chelnerilor."
-      },
-      "retail": {
-        "title": "Retail / Comerț cu amănuntul",
-        "desc": "Monitorizează calitatea deservirii în fiecare punct de vânzare."
-      },
-      "delivery": {
-        "title": "Livrare",
-        "desc": "Obține feedback instantaneu după livrare folosind stickere aplicate pe ambalaj."
-      }
-    },
     "pricing": {
       "badge": "Tarife",
       "title_part1": "Configurație",
@@ -454,27 +459,7 @@
         "more_locations": "Locații",
         "month": "lună",
         "btn_activate_dashboard": "Activează în Panou",
-        "btn_send_request": "Trimite cerere pentru planul Pro",
-        "start_name": "Plan Start",
-        "start_feat_1": "1 Locație unică",
-        "start_feat_2": "Maximum 4 angajați activi în sistem",
-        "start_feat_3": "Colectare simplă a recenziilor prin cod QR",
-        "start_feat_4": "Notificări instantanee pe Telegram la fiecare recenzie",
-        "start_feat_5": "Panou de control de bază pentru vizualizarea datelor",
-        "start_feat_6": "Profil de administrator securizat (Supabase Auth)",
-        "start_feat_7": "Suport tehnic prin email",
-        "pro_name": "Plan Pro",
-        "pro_feat_1": "Toate funcționalitățile planului Start sunt incluse",
-        "pro_feat_2": "Managementul filialelor (Adăugarea și controlul mai multor locații)",
-        "pro_feat_3": "Număr absolut nelimitat de angajați",
-        "pro_feat_4": "Statistici în timp real și grafice inteligente de eficiență",
-        "pro_feat_5": "Filtrare inteligentă a recenziilor negative (Scut de protecție a reputației)",
-        "pro_feat_6": "Suport prioritar din partea echipei + integrare rapidă în locații",
-        "enterprise_per_loc": "600 MDL",
-        "enterprise_auto_unlock": "Toate avantajele planului Pro se deblochează automat",
-        "enterprise_feat_1": "Management avansat al filialelor inclus",
-        "enterprise_feat_2": "Tracking live al eficienței (Angajați nelimitați)",
-        "enterprise_feat_3": "Filtrare inteligentă a recenziilor primite"
+        "btn_send_request": "Trimite cerere pentru planul Pro"
       },
       "total": {
         "estimated_total": "Sumă estimată spre plată",
