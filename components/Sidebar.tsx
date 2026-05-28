@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useParams, useRouter } from 'next/navigation';
-import { Home, MapPin, Users, MessageSquare, LogOut, CreditCard, Sparkles, Zap, Settings, ArrowRight } from 'lucide-react';
+import { Home, MapPin, Users, MessageSquare, LogOut, CreditCard, Sparkles, Zap, Settings, ArrowRight, BarChart3 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 
@@ -27,7 +27,6 @@ export default function Sidebar() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // === FOLOSIM trial_started_at în loc de created_at ===
       const { data: profile } = await supabase
         .from('profiles')
         .select('subscription_tier, trial_started_at, trial_ends_at')
@@ -36,22 +35,16 @@ export default function Sidebar() {
 
       if (profile) {
         const isPro = profile.subscription_tier === 'pro';
-        
         let remaining = 0;
 
         if (profile.trial_ends_at) {
-          // Dacă avem trial_ends_at → calculăm zile rămase
           const endDate = new Date(profile.trial_ends_at);
           const now = new Date();
-          const diffInMs = endDate.getTime() - now.getTime();
-          remaining = Math.ceil(diffInMs / (1000 * 3600 * 24));
+          remaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
         } else if (profile.trial_started_at) {
-          // Fallback: calculăm din trial_started_at + 7 zile
           const startDate = new Date(profile.trial_started_at);
           const endDate = new Date(startDate.getTime() + (7 * 24 * 60 * 60 * 1000));
-          const now = new Date();
-          const diffInMs = endDate.getTime() - now.getTime();
-          remaining = Math.ceil(diffInMs / (1000 * 3600 * 24));
+          remaining = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 3600 * 24));
         }
 
         setTrialDays(!isPro && remaining > 0 ? remaining : null);
@@ -85,6 +78,7 @@ export default function Sidebar() {
 
   const menuItems = useMemo(() => [
     { name: tDashboard?.sidebar?.menu?.dashboard || 'Dashboard', href: `/${locale}/dashboard`, icon: Home },
+    { name: locale === 'ru' ? 'Аналитика' : 'Analytics', href: `/${locale}/dashboard/analytics`, icon: BarChart3, isPro: true },
     { name: tDashboard?.sidebar?.menu?.locations || 'Locații', href: `/${locale}/dashboard/locations`, icon: MapPin },
     { name: tDashboard?.sidebar?.menu?.employees || 'Angajați', href: `/${locale}/dashboard/employees`, icon: Users },
     { name: tDashboard?.sidebar?.menu?.reviews || 'Recenzii', href: `/${locale}/dashboard/reviews`, icon: MessageSquare },
@@ -136,14 +130,34 @@ export default function Sidebar() {
                     key={item.href} 
                     href={item.href} 
                     className={`flex items-center justify-between px-4 py-2.5 rounded-2xl font-black transition-all duration-200 group relative ${
-                      isActive ? 'bg-gradient-to-r from-blue-500/[0.08] to-transparent text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      isActive 
+                        ? 'bg-gradient-to-r from-blue-500/[0.08] to-transparent text-blue-600' 
+                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
                     <div className="flex items-center gap-3.5">
-                      <Icon size={18} className={`transition-all duration-200 ${isActive ? 'text-blue-500 scale-110' : 'text-slate-400 group-hover:text-blue-500 group-hover:scale-105'}`} strokeWidth={isActive ? 2.5 : 2} />
+                      <Icon 
+                        size={18} 
+                        className={`transition-all duration-200 ${
+                          isActive 
+                            ? 'text-blue-500 scale-110' 
+                            : item.isPro 
+                              ? 'text-indigo-400 group-hover:text-indigo-500 group-hover:scale-105'
+                              : 'text-slate-400 group-hover:text-blue-500 group-hover:scale-105'
+                        }`} 
+                        strokeWidth={isActive ? 2.5 : 2} 
+                      />
                       <span className="text-[13px] uppercase tracking-wide font-black">{item.name}</span>
                     </div>
-                    {isActive && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-sm shadow-blue-500/50" />}
+                    <div className="flex items-center gap-1.5">
+                      {/* ✅ Badge PRO pentru Analytics */}
+                      {item.isPro && !isActive && (
+                        <span className="text-[8px] font-black bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                          PRO
+                        </span>
+                      )}
+                      {isActive && <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-sm shadow-blue-500/50" />}
+                    </div>
                   </Link>
                 );
               })}
@@ -180,7 +194,7 @@ export default function Sidebar() {
       </aside>
 
       {/* MOBILE BOTTOM NAV */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-2 py-1 shadow-[0_-10px_30px_rgba(0,0,0,0.04)] flex justify-around items-center select-none" aria-label="Navigare Mobil">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 px-2 py-1 shadow-[0_-10px_30px_rgba(0,0,0,0.04)] flex justify-around items-center select-none">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -188,23 +202,21 @@ export default function Sidebar() {
             <Link 
               key={item.href} 
               href={item.href} 
-              className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-xl transition-all relative ${
+              className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-xl transition-all relative ${
                 isActive ? 'text-blue-600 font-black' : 'text-slate-400 font-medium'
               }`}
             >
-              <Icon size={20} className={`${isActive ? 'scale-110 text-blue-600' : 'text-slate-400'}`} strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[9px] uppercase tracking-tighter mt-1 text-center truncate max-w-[55px]">
+              <Icon size={19} className={`${isActive ? 'scale-110 text-blue-600' : item.isPro ? 'text-indigo-400' : 'text-slate-400'}`} strokeWidth={isActive ? 2.5 : 2} />
+              <span className="text-[8px] uppercase tracking-tighter mt-1 text-center truncate max-w-[50px]">
                 {item.name.split(' ')[0]}
               </span>
-              {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-blue-500 rounded-full" />
-              )}
+              {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-0.5 bg-blue-500 rounded-full" />}
             </Link>
           );
         })}
-        <button onClick={handleSignOut} className="flex flex-col items-center justify-center py-1.5 px-3 text-slate-400" title="Logout">
-          <LogOut size={20} strokeWidth={2} />
-          <span className="text-[9px] uppercase tracking-tighter mt-1">{locale === 'ru' ? 'Выйти' : 'Ieșire'}</span>
+        <button onClick={handleSignOut} className="flex flex-col items-center justify-center py-1.5 px-2 text-slate-400">
+          <LogOut size={19} strokeWidth={2} />
+          <span className="text-[8px] uppercase tracking-tighter mt-1">{locale === 'ru' ? 'Выйти' : 'Ieșire'}</span>
         </button>
       </nav>
     </>
