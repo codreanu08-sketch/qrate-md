@@ -10,7 +10,17 @@ export const routing = defineRouting({
     '/': '/',
     '/auth/login': '/auth/login',
     '/auth/register': '/auth/register',
-    '/dashboard': '/dashboard'
+    '/auth/update-password': '/auth/update-password',
+    '/dashboard': '/dashboard',
+    '/dashboard/analytics': '/dashboard/analytics',
+    '/dashboard/locations': '/dashboard/locations',
+    '/dashboard/employees': '/dashboard/employees',
+    '/dashboard/reviews': '/dashboard/reviews',
+    '/dashboard/subscription': '/dashboard/subscription',
+    '/dashboard/settings': '/dashboard/settings',
+    '/terms': '/terms',
+    '/privacy': '/privacy',
+    '/refund': '/refund',
   }
 });
 
