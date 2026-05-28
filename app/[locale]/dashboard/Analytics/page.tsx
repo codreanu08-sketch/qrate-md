@@ -342,7 +342,7 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* KEYWORDS + MOOD */}
+        {/* KEYWORDS + MOOoD */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
           {/* Keywords */}
