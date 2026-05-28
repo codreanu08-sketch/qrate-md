@@ -3,6 +3,7 @@ import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import "@/app/globals.css";
+import DashboardLiveWrapper from '@/components/DashboardLiveWrapper';
 
 export default async function LocaleLayout({
   children,
@@ -13,7 +14,6 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params;
 
-  // Verificare strictă locale
   if (!routing.locales.includes(locale as any)) {
     notFound();
   }
@@ -30,13 +30,14 @@ export default async function LocaleLayout({
       <body className="antialiased min-h-full w-full max-w-full overflow-x-hidden bg-slate-50 text-slate-900 flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          {/* ✅ Live Activity Feed — apare doar pe paginile dashboard */}
+          <DashboardLiveWrapper locale={locale} />
         </NextIntlClientProvider>
       </body>
     </html>
   );
 }
 
-// Important pentru Static Generation pe Vercel
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
