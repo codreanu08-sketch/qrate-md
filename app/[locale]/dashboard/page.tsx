@@ -7,7 +7,8 @@ import { useTranslations } from 'next-intl';
 import { 
   Star, MapPin, User, MessageCircle, Zap, Trophy, Clock, 
   Award, Download, RefreshCw, Bot, Copy, Check, TrendingUp, 
-  AlertTriangle, BrainCircuit, Smartphone, Lock, BarChart3, Building
+  AlertTriangle, BrainCircuit, Smartphone, Lock, BarChart3, Building,
+  TrendingDown, Sparkles
 } from 'lucide-react';
 
 interface Review {
@@ -107,10 +108,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   };
 
   const exportReviewsToCSV = (reviewsToExport: Review[]) => {
-    if (reviewsToExport.length === 0) {
-      alert(t('noReviewsExport'));
-      return;
-    }
+    if (reviewsToExport.length === 0) { alert(t('noReviewsExport')); return; }
     const headers = [t('csvDate'), t('csvEmp'), t('csvLoc'), t('csvRating'), t('csvComment'), t('csvClient')];
     const csvContent = [
       headers.join(","),
@@ -123,7 +121,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         review.full_name || "Anonim"
       ].join(","))
     ].join("\n");
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -133,16 +130,12 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     URL.revokeObjectURL(url);
   };
 
-  const activeLocations = useMemo(() => {
-    return rawLocations.slice(0, limits.maxLocations);
-  }, [rawLocations, limits.maxLocations]);
+  const activeLocations = useMemo(() => rawLocations.slice(0, limits.maxLocations), [rawLocations, limits.maxLocations]);
 
   const activeEmployees = useMemo(() => {
     const allowedPool = rawEmployees.slice(0, limits.maxEmployees);
     if (selLocation !== 'all') {
-      const employeesWithReviewsInLocation = allReviews
-        .filter(r => r.location_id === selLocation && r.employee_id)
-        .map(r => r.employee_id);
+      const employeesWithReviewsInLocation = allReviews.filter(r => r.location_id === selLocation && r.employee_id).map(r => r.employee_id);
       return allowedPool.filter(emp => employeesWithReviewsInLocation.includes(emp.id));
     }
     return allowedPool;
@@ -151,29 +144,16 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
   // Realtime
   useEffect(() => {
     if (!companyId) return;
-    const channel = supabase
-      .channel(`realtime:reviews:company:${companyId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'reviews', filter: `company_id=eq.${companyId}` },
+    const channel = supabase.channel(`realtime:reviews:company:${companyId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'reviews', filter: `company_id=eq.${companyId}` },
         async (payload: any) => {
-          const { data, error } = await supabase
-            .from('reviews')
-            .select(`*, employees ( name ), locations ( name )`)
-            .eq('id', payload.new.id)
-            .single();
-
+          const { data, error } = await supabase.from('reviews').select(`*, employees ( name ), locations ( name )`).eq('id', payload.new.id).single();
           if (data && !error) {
-            setAllReviews((prev) => {
-              if (prev.some(r => r.id === data.id)) return prev;
-              return [data, ...prev];
-            });
+            setAllReviews((prev) => { if (prev.some(r => r.id === data.id)) return prev; return [data, ...prev]; });
             setLiveEvent(true);
             setTimeout(() => setLiveEvent(false), 5000);
           }
-        }
-      )
-      .subscribe();
+        }).subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [companyId]);
 
@@ -183,71 +163,34 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
         supabase.from('employees').select('id, name').eq('company_id', cId).order('created_at', { ascending: true }),
         supabase.from('locations').select('id, name').eq('company_id', cId).order('created_at', { ascending: true })
       ]);
-
       setRawEmployees(emp.data || []);
       setRawLocations(loc.data || []);
-    } catch (err) {
-      console.error("Eroare la încărcarea datelor companiei:", err);
-    }
+    } catch (err) { console.error("Eroare la încărcarea datelor companiei:", err); }
   };
 
-  // INIȚIALIZARE
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push(`/${locale}/login`);
-        return;
-      }
+      if (!user) { router.push(`/${locale}/login`); return; }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier, trial_ends_at')
-        .eq('id', user.id)
-        .single();
-
+      const { data: profile } = await supabase.from('profiles').select('subscription_tier, trial_ends_at').eq('id', user.id).single();
       let currentTrialEndsAt = profile?.trial_ends_at;
 
       if (!currentTrialEndsAt) {
         const sapteZileInViitor = new Date();
         sapteZileInViitor.setDate(sapteZileInViitor.getDate() + 7);
         const viitorIso = sapteZileInViitor.toISOString();
-
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ trial_ends_at: viitorIso })
-          .eq('id', user.id);
-        
-        if (!updateError) {
-          currentTrialEndsAt = viitorIso;
-        }
+        const { error: updateError } = await supabase.from('profiles').update({ trial_ends_at: viitorIso }).eq('id', user.id);
+        if (!updateError) currentTrialEndsAt = viitorIso;
       }
 
       const isPro = profile?.subscription_tier === 'pro';
-      const isTrialActive = currentTrialEndsAt 
-        ? new Date(currentTrialEndsAt).getTime() > Date.now() 
-        : true;
-
+      const isTrialActive = currentTrialEndsAt ? new Date(currentTrialEndsAt).getTime() > Date.now() : true;
       setHasAccess(isPro || isTrialActive);
+      setLimits(isPro ? { maxLocations: 99, maxEmployees: 99 } : { maxLocations: 1, maxEmployees: 4 });
 
-      if (isPro) {
-        setLimits({ maxLocations: 99, maxEmployees: 99 });
-      } else {
-        setLimits({ maxLocations: 1, maxEmployees: 4 });
-      }
-
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('owner_id', user.id)
-        .maybeSingle();
-
-      if (!company) {
-        setCompanyId(null);
-        setLoading(false);
-        return;
-      }
-
+      const { data: company } = await supabase.from('companies').select('id').eq('owner_id', user.id).maybeSingle();
+      if (!company) { setCompanyId(null); setLoading(false); return; }
       setCompanyId(company.id);
       await loadCompanyData(company.id);
       setLoading(false);
@@ -255,45 +198,21 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     init();
   }, [router, locale]);
 
-  useEffect(() => { 
-    if (companyId) {
-      fetchBaseReviews(companyId); 
-    }
-  }, [companyId, fetchBaseReviews]);
+  useEffect(() => { if (companyId) fetchBaseReviews(companyId); }, [companyId, fetchBaseReviews]);
 
-  // === CREARE COMPANIE FĂRĂ FLASH ===
   const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim()) return;
-
-    setCreatingCompany(true);
-    setLoading(true);
-
+    setCreatingCompany(true); setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data, error } = await supabase
-        .from('companies')
-        .insert([{ name: newCompanyName.trim(), owner_id: user.id }])
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from('companies').insert([{ name: newCompanyName.trim(), owner_id: user.id }]).select().single();
       if (error) throw error;
-
-      // === FIX: setăm imediat loading = false ===
-      setCompanyId(data.id);
-      setLoading(false);
-      setNewCompanyName('');
-
+      setCompanyId(data.id); setLoading(false); setNewCompanyName('');
       await loadCompanyData(data.id);
-
-    } catch (err: any) {
-      alert(err.message || "Eroare la crearea companiei");
-      setLoading(false);
-    } finally {
-      setCreatingCompany(false);
-    }
+    } catch (err: any) { alert(err.message || "Eroare la crearea companiei"); setLoading(false); }
+    finally { setCreatingCompany(false); }
   };
 
   const filteredReviews = useMemo(() => {
@@ -301,64 +220,87 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       const isLocAllowed = activeLocations.some(l => l.id === r.location_id);
       const isEmpAllowed = !r.employee_id || activeEmployees.some(e => e.id === r.employee_id);
       if (!isLocAllowed || !isEmpAllowed) return false;
-
       const matchLoc = selLocation === 'all' || r.location_id === selLocation;
       const matchEmp = selEmployee === 'all' || (r.employee_id && r.employee_id === selEmployee);
       return matchLoc && matchEmp;
     });
   }, [allReviews, selLocation, selEmployee, activeLocations, activeEmployees]);
 
+  // ✅ AI PREDICTIONS — calcul trend din date existente
+  const aiPrediction = useMemo(() => {
+    if (filteredReviews.length < 5) return null;
+
+    // Împarte în 4 săptămâni
+    const now = Date.now();
+    const weeks = [0, 1, 2, 3].map(i => {
+      const start = now - (i + 1) * 7 * 86400000;
+      const end = now - i * 7 * 86400000;
+      const weekReviews = filteredReviews.filter(r => {
+        const t = new Date(r.created_at).getTime();
+        return t >= start && t < end;
+      });
+      return {
+        week: 4 - i,
+        avg: weekReviews.length > 0 ? weekReviews.reduce((s, r) => s + r.rating, 0) / weekReviews.length : null,
+        count: weekReviews.length
+      };
+    }).reverse();
+
+    const validWeeks = weeks.filter(w => w.avg !== null);
+    if (validWeeks.length < 2) return null;
+
+    // Calculează trendul liniar
+    const avgs = validWeeks.map(w => w.avg as number);
+    const trend = (avgs[avgs.length - 1] - avgs[0]) / avgs.length;
+    const lastAvg = avgs[avgs.length - 1];
+    const predicted = Math.min(5, Math.max(1, lastAvg + trend * 4));
+
+    const trendDirection = trend > 0.05 ? 'up' : trend < -0.05 ? 'down' : 'stable';
+    const confidence = Math.min(95, 60 + validWeeks.length * 10);
+
+    return {
+      predicted: predicted.toFixed(1),
+      trend: (trend * 4).toFixed(2),
+      trendDirection,
+      confidence,
+      weeks,
+      lastAvg: lastAvg.toFixed(1)
+    };
+  }, [filteredReviews]);
+
   const analytics = useMemo(() => {
     if (!filteredReviews.length) return { 
       avg: "0.0", today: 0, velocity: 0, 
       dynamicCardLabel: t('mvpCardLabel'), dynamicCardValue: "N/A",
-      distribution: [ {star: 5, pct: 0, count: 0}, {star: 4, pct: 0, count: 0}, {star: 3, pct: 0, count: 0}, {star: 2, pct: 0, count: 0}, {star: 1, pct: 0, count: 0} ],
-      aiInsight: t('aiNoData'),
-      topWords: []
+      distribution: [{star: 5, pct: 0, count: 0}, {star: 4, pct: 0, count: 0}, {star: 3, pct: 0, count: 0}, {star: 2, pct: 0, count: 0}, {star: 1, pct: 0, count: 0}],
+      aiInsight: t('aiNoData'), topWords: []
     };
     
     let totalScore = 0;
     const empPerformance: Record<string, number[]> = {};
     const todayStr = new Date().toISOString().split('T')[0];
-    let recentCount = 0;
-    let previousCount = 0;
-    let allText = "";
-
+    let recentCount = 0, previousCount = 0, allText = "";
     const now = new Date().getTime();
     const fortyEightHoursAgo = now - (48 * 60 * 60 * 1000);
     const ninetySixHoursAgo = now - (96 * 60 * 60 * 1000);
-
     const starCounts = { 5:0, 4:0, 3:0, 2:0, 1:0 };
 
     filteredReviews.forEach(r => {
       totalScore += r.rating;
       if (r.rating >= 1 && r.rating <= 5) starCounts[r.rating as keyof typeof starCounts]++;
       if (r.comment) allText += " " + r.comment.toLowerCase();
-
       const empName = r.employees?.name;
-      if (empName) {
-        if (!empPerformance[empName]) empPerformance[empName] = [];
-        empPerformance[empName].push(r.rating);
-      }
+      if (empName) { if (!empPerformance[empName]) empPerformance[empName] = []; empPerformance[empName].push(r.rating); }
       const rTime = new Date(r.created_at).getTime();
       if (rTime >= fortyEightHoursAgo) recentCount++;
       if (rTime >= ninetySixHoursAgo && rTime < fortyEightHoursAgo) previousCount++;
     });
 
     const avg = (totalScore / filteredReviews.length).toFixed(1);
-    let velocityPercent = previousCount > 0 ? Math.round(((recentCount - previousCount) / previousCount) * 100) : (recentCount > 0 ? 100 : 0);
-    
-    const leaderboard = Object.entries(empPerformance)
-      .map(([name, scores]) => ({ name, avg: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1), count: scores.length }))
-      .sort((a, b) => Number(b.avg) - Number(a.avg) || b.count - a.count);
-
-    const distribution = [5, 4, 3, 2, 1].map(star => ({
-      star,
-      count: starCounts[star as keyof typeof starCounts],
-      pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100)
-    }));
-
-    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'unul', 'care', 'и', 'в', 'vo', 'не', 'что', 'он', 'на', 'я', 'с', 'со', 'как', 'а', 'то', 'все', 'она', 'так', 'его', 'но', 'да', 'ты', 'к', 'у', 'je', 'вы', 'за', 'бы', 'по', 'только', 'ее', 'мне', 'быlo', 'вот', 'от', 'меня', 'еще', 'o', 'из', 'еmu', 'теперь', 'когда', 'даeven', 'ну', 'вдруг', 'ли', 'если', 'уже', 'или', 'ни', 'быть', 'быl', 'nego', 'до', 'ваs', 'niбудь', 'опять', 'уж', 'там', 'едва', 'какой', 'до', 'одin', 'пока', 'даже'];
+    const velocityPercent = previousCount > 0 ? Math.round(((recentCount - previousCount) / previousCount) * 100) : (recentCount > 0 ? 100 : 0);
+    const leaderboard = Object.entries(empPerformance).map(([name, scores]) => ({ name, avg: (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1), count: scores.length })).sort((a, b) => Number(b.avg) - Number(a.avg) || b.count - a.count);
+    const distribution = [5, 4, 3, 2, 1].map(star => ({ star, count: starCounts[star as keyof typeof starCounts], pct: Math.round((starCounts[star as keyof typeof starCounts] / filteredReviews.length) * 100) }));
+    const stopWords = ['și', 'sau', 'cu', 'la', 'de', 'din', 'este', 'pentru', 'că', 'am', 'fost', 'mai', 'tot', 'nu', 'dar', 'pe', 'sunt', 'un', 'o', 'foarte', 'и', 'в', 'не', 'что', 'на', 'я', 'с', 'как', 'а', 'то', 'все', 'она', 'его', 'но', 'да', 'ты', 'к', 'у'];
     const words = allText.match(/[a-ăâîșțzа-яё]+/g) || [];
     const wordFreq: Record<string, number> = {};
     words.forEach(w => { if (w.length > 3 && !stopWords.includes(w)) wordFreq[w] = (wordFreq[w] || 0) + 1; });
@@ -368,7 +310,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     const targetName = selEmployee !== 'all' ? activeEmployees.find(e => e.id === selEmployee)?.name : (selLocation !== 'all' ? activeLocations.find(l => l.id === selLocation)?.name : t('aiGeneralLevel'));
     
     if (Number(avg) >= 4.5) {
-      aiInsight = `${t('aiExcellentPrefix')} ${targetName}! ${t('aiExcellentMiddle')} "${topWords[0] || t('wordQuality')}" ${t('and')} "${topWords[1] || t('wordGood')}". ${t('aiExcellentSuffix')}`;
+      aiInsight = `${t('aiExcellentPrefix')} ${targetName}! ${t('aiExcellentMiddle')} "${topWords[0] || t('wordQuality')}" și "${topWords[1] || t('wordGood')}". ${t('aiExcellentSuffix')}`;
     } else if (Number(avg) >= 3.5) {
       aiInsight = `${t('aiModeratePrefix')} ${targetName}. ${t('aiModerateMiddle')} "${topWords[0] || t('wordTime')}".`;
     } else {
@@ -378,13 +320,8 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
     return { avg, today: filteredReviews.filter(r => r.created_at.startsWith(todayStr)).length, velocity: velocityPercent, dynamicCardLabel: selEmployee !== 'all' ? t('empReviewsLabel') : t('mvpCardLabel'), dynamicCardValue: selEmployee !== 'all' ? filteredReviews.length : (leaderboard[0]?.name || "N/A"), distribution, aiInsight, topWords };
   }, [filteredReviews, selEmployee, selLocation, activeEmployees, activeLocations, t]);
 
-  // === CONDIȚIE CORECTATĂ ===
   if (hasAccess === null || (loading && allReviews.length === 0 && companyId)) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
-        <RefreshCw className="animate-spin text-indigo-600" size={32} />
-      </div>
-    );
+    return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><RefreshCw className="animate-spin text-indigo-600" size={32} /></div>;
   }
 
   return (
@@ -392,62 +329,26 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
       <div className="max-w-7xl mx-auto space-y-8">
         
         {hasAccess === false ? (
-          <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-xl mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50">
-              <Lock size={40} className="stroke-[2.5]" />
-            </div>
-            <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">
-              Funcționalitate Premium Limitată
-            </h1>
-            <p className="text-slate-600 font-medium text-sm mb-8 max-w-md leading-relaxed">
-              Accesul la dashboard-ul avansat de analiză, statistici AI în timp real și exportul centralizat al recenziilor este disponibil doar în versiunea **PRO**.
-            </p>
+          <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-xl mx-auto my-6">
+            <div className="p-5 bg-amber-50 text-amber-600 rounded-2xl mb-6 inline-block ring-8 ring-amber-50/50"><Lock size={40} className="stroke-[2.5]" /></div>
+            <h1 className="font-black text-2xl md:text-3xl text-slate-900 mb-3 tracking-tight">Funcționalitate Premium Limitată</h1>
+            <p className="text-slate-600 font-medium text-sm mb-8 max-w-md leading-relaxed">Accesul la dashboard-ul avansat este disponibil doar în versiunea PRO.</p>
             <div className="w-full space-y-3">
-              <button 
-                onClick={() => router.push(`/${locale}/dashboard/subscription`)} 
-                className="w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-indigo-100 active:scale-[0.98]"
-              >
-                Upgrade la Planul Pro
-              </button>
-              <button 
-                onClick={() => router.push(`/${locale}/`)} 
-                className="w-full text-center bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all"
-              >
-                Înapoi la Pagina Principală
-              </button>
+              <button onClick={() => router.push(`/${locale}/dashboard/subscription`)} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg">Upgrade la Planul Pro</button>
+              <button onClick={() => router.push(`/${locale}/`)} className="w-full bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all">Înapoi la Pagina Principală</button>
             </div>
           </div>
-        ) : !companyId && !creatingCompany ? (   
-          /* ECRAN ONBOARDING */
-          <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-6 md:p-10 rounded-3xl shadow-xl text-center max-w-lg mx-auto my-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6 inline-block ring-8 ring-indigo-50/50">
-              <Building size={36} className="stroke-[2]" />
-            </div>
-            <h1 className="font-black text-2xl text-slate-950 mb-2 tracking-tight">
-              Configurează Profilul Companiei
-            </h1>
-            <p className="text-slate-500 font-medium text-sm mb-6 max-w-sm leading-relaxed">
-              Pentru a putea accesa panoul de control și a gestiona recenziile, introdu numele companiei sau brandului tău.
-            </p>
+        ) : !companyId && !creatingCompany ? (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white border border-slate-200 p-6 md:p-10 rounded-3xl shadow-xl text-center max-w-lg mx-auto my-6">
+            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-6 inline-block ring-8 ring-indigo-50/50"><Building size={36} className="stroke-[2]" /></div>
+            <h1 className="font-black text-2xl text-slate-950 mb-2 tracking-tight">Configurează Profilul Companiei</h1>
+            <p className="text-slate-500 font-medium text-sm mb-6 max-w-sm leading-relaxed">Pentru a putea accesa panoul de control și a gestiona recenziile, introdu numele companiei sau brandului tău.</p>
             <form onSubmit={handleCreateCompanyInline} className="w-full space-y-4">
               <div className="text-left">
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 px-1">
-                  Numele Companiei
-                </label>
-                <input 
-                  type="text" 
-                  required
-                  placeholder="Ex: My Delivery SRL"
-                  value={newCompanyName}
-                  onChange={(e) => setNewCompanyName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                />
+                <label className="block text-xs font-black text-slate-500 uppercase tracking-wider mb-2 px-1">Numele Companiei</label>
+                <input type="text" required placeholder="Ex: My Delivery SRL" value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all" />
               </div>
-              <button 
-                type="submit" 
-                disabled={creatingCompany}
-                className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all disabled:opacity-50 active:scale-[0.98] shadow-md"
-              >
+              <button type="submit" disabled={creatingCompany} className="w-full bg-slate-900 hover:bg-slate-800 text-white px-6 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all disabled:opacity-50 shadow-md">
                 {creatingCompany ? 'Se salvează...' : 'Creează Compania'}
               </button>
             </form>
@@ -462,17 +363,12 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                 </div>
                 <div className="flex flex-col">
                   <span className="font-black text-xl leading-none text-slate-800">QRate.MD Enterprise</span>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${liveEvent ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    {liveEvent ? t('navLiveEvent') : t('navSubTitle')}
-                  </span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${liveEvent ? 'text-emerald-600' : 'text-slate-400'}`}>{liveEvent ? t('navLiveEvent') : t('navSubTitle')}</span>
                 </div>
               </div>
-
               <div className="flex items-center gap-2">
-                <button onClick={runAudit} title={t('syncTooltip')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center">
-                  <RefreshCw size={18}/>
-                </button>
-                <button onClick={() => exportReviewsToCSV(filteredReviews)} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-200 hover:shadow-lg hover:-translate-y-0.5">
+                <button onClick={runAudit} title={t('syncTooltip')} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition-all flex items-center justify-center"><RefreshCw size={18}/></button>
+                <button onClick={() => exportReviewsToCSV(filteredReviews)} className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md shadow-emerald-200">
                   <Download size={16} /> {t('navExportBtn')}
                 </button>
               </div>
@@ -489,35 +385,21 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                   <span className="flex items-center gap-1.5"><AlertTriangle size={16} className="text-rose-500"/> {t('headerChurn')}: <strong className="text-slate-700">{calculateChurnRisk()}%</strong></span>
                 </div>
               </div>
-              
               <div className="flex flex-wrap gap-3 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100">
-                <select 
-                  className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" 
-                  onChange={(e) => {
-                    setSelLocation(e.target.value);
-                    setSelEmployee('all');
-                  }} 
-                  value={selLocation}
-                >
+                <select className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" onChange={(e) => { setSelLocation(e.target.value); setSelEmployee('all'); }} value={selLocation}>
                   <option value="all">📍 {t('filterAllLocations')}</option>
                   {activeLocations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
-
-                <select 
-                  className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" 
-                  onChange={(e) => setSelEmployee(e.target.value)} 
-                  value={selEmployee}
-                >
+                <select className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer" onChange={(e) => setSelEmployee(e.target.value)} value={selEmployee}>
                   <option value="all">👥 {t('filterAllEmployees')}</option>
                   {activeEmployees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                 </select>
-
                 <div className="flex bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
-                   {['7d', '1m', '3m', 'all'].map((p) => (
-                     <button key={p} onClick={() => setSelPeriod(p)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${selPeriod === p ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}>
-                       {p === 'all' ? t('periodAll') : p}
-                     </button>
-                   ))}
+                  {['7d', '1m', '3m', 'all'].map((p) => (
+                    <button key={p} onClick={() => setSelPeriod(p)} className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${selPeriod === p ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}>
+                      {p === 'all' ? t('periodAll') : p}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -530,6 +412,95 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               <StatCard label={analytics.dynamicCardLabel} value={analytics.dynamicCardValue} icon={<Trophy size={24} className="text-indigo-500" />} />
             </div>
 
+            {/* ✅ AI PREDICTIONS CARD */}
+            {aiPrediction && (
+              <div className="bg-gradient-to-br from-violet-900 via-indigo-900 to-slate-900 rounded-3xl border border-violet-700/50 shadow-2xl p-6 md:p-8 text-white relative overflow-hidden">
+                <div className="absolute -right-8 -top-8 opacity-10"><Sparkles size={120} /></div>
+                <div className="absolute -left-4 -bottom-4 opacity-5"><BrainCircuit size={100} /></div>
+
+                <div className="flex items-center gap-3 mb-6 z-10 relative">
+                  <div className="p-2.5 bg-white/10 rounded-xl backdrop-blur-sm">
+                    <Sparkles size={20} className="text-violet-300" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-lg uppercase tracking-tight text-white">
+                      {locale === 'ru' ? 'AI Predicție — Luna Viitoare' : 'AI Predicție — Luna Viitoare'}
+                    </h3>
+                    <p className="text-[10px] font-bold text-violet-300 uppercase tracking-wider">
+                      {locale === 'ru' ? `Încredere: ${aiPrediction.confidence}%` : `Încredere: ${aiPrediction.confidence}%`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 z-10 relative">
+
+                  {/* Predicție principală */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10 flex flex-col items-center justify-center text-center">
+                    <p className="text-[10px] font-black text-violet-300 uppercase tracking-wider mb-2">
+                      {locale === 'ru' ? 'Nota prezisă' : 'Nota prezisă'}
+                    </p>
+                    <p className="text-5xl font-black text-white">★{aiPrediction.predicted}</p>
+                    <div className={`flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-xs font-black ${
+                      aiPrediction.trendDirection === 'up' ? 'bg-emerald-500/20 text-emerald-300' :
+                      aiPrediction.trendDirection === 'down' ? 'bg-rose-500/20 text-rose-300' :
+                      'bg-slate-500/20 text-slate-300'
+                    }`}>
+                      {aiPrediction.trendDirection === 'up' ? <TrendingUp size={12} /> : aiPrediction.trendDirection === 'down' ? <TrendingDown size={12} /> : '→'}
+                      {aiPrediction.trendDirection === 'up' ? (locale === 'ru' ? 'Tendință pozitivă' : 'Tendință pozitivă') :
+                       aiPrediction.trendDirection === 'down' ? (locale === 'ru' ? 'Tendință negativă' : 'Tendință negativă') :
+                       (locale === 'ru' ? 'Stabil' : 'Stabil')}
+                    </div>
+                  </div>
+
+                  {/* Grafic săptămâni */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
+                    <p className="text-[10px] font-black text-violet-300 uppercase tracking-wider mb-3">
+                      {locale === 'ru' ? 'Trend 4 săptămâni' : 'Trend 4 săptămâni'}
+                    </p>
+                    <div className="flex items-end justify-between gap-1 h-16">
+                      {aiPrediction.weeks.map((w, i) => {
+                        const h = w.avg ? ((w.avg - 1) / 4) * 100 : 0;
+                        return (
+                          <div key={i} className="flex flex-col items-center gap-1 flex-1">
+                            <div className="w-full rounded-t-lg bg-violet-400/60" style={{ height: `${Math.max(h, w.avg ? 8 : 2)}%`, minHeight: w.avg ? '8px' : '2px' }} />
+                            <span className="text-[8px] font-bold text-violet-300">S{w.week}</span>
+                            <span className="text-[8px] font-black text-white">{w.avg ? `${w.avg.toFixed(1)}` : '-'}</span>
+                          </div>
+                        );
+                      })}
+                      {/* Predicție luna viitoare */}
+                      <div className="flex flex-col items-center gap-1 flex-1">
+                        <div className="w-full rounded-t-lg bg-violet-300 border border-violet-200/50" style={{ height: `${Math.max(((parseFloat(aiPrediction.predicted) - 1) / 4) * 100, 8)}%`, minHeight: '8px' }} />
+                        <span className="text-[8px] font-black text-violet-200">{locale === 'ru' ? 'Pred.' : 'Pred.'}</span>
+                        <span className="text-[8px] font-black text-white">★{aiPrediction.predicted}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recomandare */}
+                  <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
+                    <p className="text-[10px] font-black text-violet-300 uppercase tracking-wider mb-3">
+                      {locale === 'ru' ? 'Recomandare AI' : 'Recomandare AI'}
+                    </p>
+                    <p className="text-sm font-medium text-violet-100 leading-relaxed">
+                      {aiPrediction.trendDirection === 'up'
+                        ? (locale === 'ru'
+                          ? `La ritmul actual vei atinge ★${aiPrediction.predicted} luna viitoare. Continuă să menții calitatea serviciilor!`
+                          : `La ritmul actual vei atinge ★${aiPrediction.predicted} luna viitoare. Continuă să menții calitatea serviciilor!`)
+                        : aiPrediction.trendDirection === 'down'
+                        ? (locale === 'ru'
+                          ? `Tendință negativă detectată. Acționează acum pentru a preveni scăderea spre ★${aiPrediction.predicted}.`
+                          : `Tendință negativă detectată. Acționează acum pentru a preveni scăderea spre ★${aiPrediction.predicted}.`)
+                        : (locale === 'ru'
+                          ? `Rating stabil la ★${aiPrediction.lastAvg}. Încearcă să crești calitatea pentru a depăși ★${(parseFloat(aiPrediction.predicted) + 0.2).toFixed(1)}.`
+                          : `Rating stabil la ★${aiPrediction.lastAvg}. Încearcă să crești calitatea pentru a depăși ★${(parseFloat(aiPrediction.predicted) + 0.2).toFixed(1)}.`)
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* ANALYTICS SECTION */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col">
@@ -537,9 +508,7 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                 <div className="space-y-4 flex-grow">
                   {analytics.distribution.map((item) => (
                     <div key={item.star} className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 w-12 text-sm font-bold text-slate-600">
-                        {item.star} <Star size={14} className="text-amber-400 fill-amber-400" />
-                      </div>
+                      <div className="flex items-center gap-1 w-12 text-sm font-bold text-slate-600">{item.star} <Star size={14} className="text-amber-400 fill-amber-400" /></div>
                       <div className="flex-grow h-4 bg-slate-100 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full transition-all duration-1000 ${item.star >= 4 ? 'bg-emerald-500' : item.star === 3 ? 'bg-amber-400' : 'bg-rose-500'}`} style={{ width: `${item.pct}%` }}></div>
                       </div>
@@ -548,13 +517,10 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                   ))}
                 </div>
               </div>
-
               <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-6 rounded-3xl border border-indigo-800 shadow-lg text-white flex flex-col relative overflow-hidden">
                 <div className="absolute -right-10 -bottom-10 opacity-10"><BrainCircuit size={150} /></div>
                 <h3 className="text-lg font-black text-indigo-200 mb-4 flex items-center gap-2 z-10"><BrainCircuit size={20}/> {t('aiTitle')}</h3>
-                <p className="text-indigo-50 leading-relaxed font-medium text-sm z-10 bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm flex-grow">
-                  {analytics.aiInsight}
-                </p>
+                <p className="text-indigo-50 leading-relaxed font-medium text-sm z-10 bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm flex-grow">{analytics.aiInsight}</p>
                 <div className="mt-4 z-10">
                   <span className="text-xs font-bold text-indigo-300 uppercase tracking-widest mb-2 block">{t('aiKeywords')}:</span>
                   <div className="flex flex-wrap gap-2">
@@ -571,28 +537,21 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
               <h2 className="text-2xl font-black mb-6 text-slate-900 flex items-center gap-2">
                 {t('feedTitle')} <span className="bg-indigo-100 text-indigo-700 text-xs py-1 px-2.5 rounded-full">{filteredReviews.length}</span>
               </h2>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredReviews.length > 0 ? (
                   filteredReviews.map((rev) => (
                     <div key={rev.id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 hover:border-indigo-300 hover:shadow-xl transition-all duration-300 flex flex-col group relative overflow-hidden">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex gap-1 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} size={16} className={i < rev.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"} />
-                          ))}
+                          {[...Array(5)].map((_, i) => <Star key={i} size={16} className={i < rev.rating ? "text-amber-400 fill-amber-400" : "text-slate-200"} />)}
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md">
-                          {new Date(rev.created_at).toLocaleDateString('ro-RO')}
-                        </span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md">{new Date(rev.created_at).toLocaleDateString('ro-RO')}</span>
                       </div>
-                      
                       <div className="flex-grow mb-6">
                         <p className={`text-base font-medium leading-relaxed ${rev.comment ? 'text-slate-800' : 'text-slate-400 italic'}`}>
                           {rev.comment ? `"${rev.comment}"` : t('feedNoComment')}
                         </p>
                       </div>
-                      
                       <div className="flex flex-col gap-2.5 py-4 border-t border-slate-100 mb-2">
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2 text-slate-500"><User size={16} className="text-slate-400" /> {t('feedClient')}</span>
@@ -607,32 +566,22 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
                           <span className="font-semibold text-slate-700">{rev.locations?.name || '-'}</span>
                         </div>
                       </div>
-
                       <div className="mt-auto">
                         {activeReplyId === rev.id ? (
                           <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 animate-in fade-in slide-in-from-bottom-2">
                             <p className="text-xs text-slate-700 font-medium mb-3 italic">"{generateSmartReply(rev)}"</p>
                             <div className="flex gap-2">
-                              <button 
-                                onClick={() => copyToClipboard(generateSmartReply(rev), rev.id)}
-                                className="flex-1 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] uppercase tracking-wider font-black py-2.5 rounded-xl transition-colors"
-                              >
+                              <button onClick={() => copyToClipboard(generateSmartReply(rev), rev.id)} className="flex-1 flex justify-center items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] uppercase tracking-wider font-black py-2.5 rounded-xl transition-colors">
                                 {copiedId === rev.id ? <><Check size={14} /> {t('btnCopied')}</> : <><Copy size={14} /> {t('btnCopy')}</>}
                               </button>
-                              <button 
-                                onClick={() => sendToWhatsApp(generateSmartReply(rev))}
-                                className="flex-1 flex justify-center items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white text-[10px] uppercase tracking-wider font-black py-2.5 rounded-xl transition-colors"
-                              >
+                              <button onClick={() => sendToWhatsApp(generateSmartReply(rev))} className="flex-1 flex justify-center items-center gap-2 bg-[#25D366] hover:bg-[#1da851] text-white text-[10px] uppercase tracking-wider font-black py-2.5 rounded-xl transition-colors">
                                 <Smartphone size={14} /> WhatsApp
                               </button>
                             </div>
                             <button onClick={() => setActiveReplyId(null)} className="w-full text-center text-[10px] text-slate-400 mt-3 font-bold hover:text-slate-600">{t('btnCancel')}</button>
                           </div>
                         ) : (
-                          <button 
-                            onClick={() => setActiveReplyId(rev.id)}
-                            className="w-full flex items-center justify-center gap-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-black uppercase tracking-wider text-[10px] py-3.5 rounded-xl transition-colors group-hover:bg-indigo-600 group-hover:text-white"
-                          >
+                          <button onClick={() => setActiveReplyId(rev.id)} className="w-full flex items-center justify-center gap-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 font-black uppercase tracking-wider text-[10px] py-3.5 rounded-xl transition-colors group-hover:bg-indigo-600 group-hover:text-white">
                             <Bot size={16} /> {t('btnAction')}
                           </button>
                         )}
@@ -650,7 +599,6 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
             </div>
           </>
         )}
-
       </div>
     </div>
   );
@@ -659,24 +607,18 @@ export default function AdminDashboardPage({ params }: { params: { locale: strin
 function StatCard({ label, value, icon, isAlert, trend, trendUp }: any) {
   return (
     <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:border-indigo-300 hover:shadow-lg transition-all duration-300 group flex items-center justify-between relative overflow-hidden">
-      <div className="absolute -right-6 -top-6 opacity-5 group-hover:scale-150 transition-transform duration-500 pointer-events-none">
-        {icon}
-      </div>
+      <div className="absolute -right-6 -top-6 opacity-5 group-hover:scale-150 transition-transform duration-500 pointer-events-none">{icon}</div>
       <div className="min-w-0 z-10">
         <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate">{label}</p>
         <div className="flex items-baseline gap-2">
           <p className="text-3xl font-black text-slate-900 tracking-tight truncate">{value}</p>
           {trend && (
-            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${trendUp ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-              {trend}
-            </span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-0.5 ${trendUp ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>{trend}</span>
           )}
         </div>
       </div>
       <div className="relative shrink-0 z-10">
-        <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-indigo-50 group-hover:scale-110 transition-all duration-300 border border-slate-100">
-          {icon}
-        </div>
+        <div className="bg-slate-50 p-4 rounded-2xl group-hover:bg-indigo-50 group-hover:scale-110 transition-all duration-300 border border-slate-100">{icon}</div>
         {isAlert && <span className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 border-2 border-white rounded-full animate-pulse"></span>}
       </div>
     </div>
