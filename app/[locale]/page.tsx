@@ -322,7 +322,7 @@ export default function LandingPage() {
                       </ul>
                     </div>
                     <Link
-                      href={isLoggedIn ? "/dashboard/subscription" : "/auth/register"}
+                      href={isLoggedIn ? "/dashboard" as any : "/auth/register"}
                       className={`mt-6 block w-full py-4 rounded-2xl font-black uppercase text-xs tracking-[0.3em] text-center transition-all ${isSelected ? 'bg-blue-600 text-white hover:bg-slate-950' : 'bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white'}`}
                       onClick={(e) => e.stopPropagation()}
                     >
