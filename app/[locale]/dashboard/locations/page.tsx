@@ -4,22 +4,11 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import dynamic from 'next/dynamic';
 import { 
   Trash2, Download, Star, AlertTriangle, Loader2,
-  Building2, Image as ImageIcon, X, MapPin, Truck, Phone, Link2, Map
+  Building2, Image as ImageIcon, X, MapPin, Truck, Phone, Link2
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
-
-// ✅ Import dinamic MapView — evită SSR errors Leaflet
-const MapView = dynamic(() => import('@/components/MapView'), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-[400px] bg-slate-100 rounded-3xl flex items-center justify-center">
-      <Loader2 className="animate-spin text-blue-600" size={32} />
-    </div>
-  )
-});
 
 function ClientFriendlyDate({ dateString, locale }: { dateString: string; locale: string }) {
   const [mounted, setMounted] = useState(false);
@@ -44,17 +33,14 @@ export default function LocationsPage() {
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [showMap, setShowMap] = useState(false); // ✅ toggle hartă
   
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newAddress, setNewAddress] = useState('');
-  const [newLat, setNewLat] = useState(''); // ✅ NOU
-  const [newLng, setNewLng] = useState(''); // ✅ NOU
   const [type, setType] = useState('Physical');
   const [logoUrl, setLogoUrl] = useState('');
   const [welcomeMessage, setWelcomeMessage] = useState('');
-  const [googleReviewUrl, setGoogleReviewUrl] = useState('');
+  const [googleReviewUrl, setGoogleReviewUrl] = useState(''); // ✅ NOU
   const [showDeleteModal, setShowDeleteModal] = useState<{id: string, name: string} | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -85,9 +71,11 @@ export default function LocationsPage() {
       setLoading(true);
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) { router.push(`/${locale}/login`); return; }
+      
       const { data: company, error: compError } = await supabase
         .from('companies').select('id, logo_url').eq('owner_id', user.id).maybeSingle();
       if (compError) throw compError;
+
       if (company) {
         setCompanyId(company.id);
         if (company.logo_url) setLogoUrl(company.logo_url);
@@ -107,7 +95,8 @@ export default function LocationsPage() {
   const handleCreateCompanyInline = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCompanyName.trim() || isCreatingCompany) return;
-    setIsCreatingCompany(true); setErrorMessage(null);
+    setIsCreatingCompany(true);
+    setErrorMessage(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Sesiune expirată.");
@@ -117,7 +106,9 @@ export default function LocationsPage() {
       await getInitialData();
     } catch (err: any) {
       setErrorMessage(locale === 'ru' ? "Ошибка при создании компании: " + err.message : "Eroare la crearea companiei: " + err.message);
-    } finally { setIsCreatingCompany(false); }
+    } finally {
+      setIsCreatingCompany(false);
+    }
   };
 
   const downloadQR = (id: string, name: string, locLogo: string) => {
@@ -196,14 +187,11 @@ export default function LocationsPage() {
       type: type,
       logo_url: logoUrl || null,
       welcome_message: welcomeMessage,
-      google_review_url: googleReviewUrl.trim() || null,
-      latitude: newLat ? parseFloat(newLat) : null,   // ✅ NOU
-      longitude: newLng ? parseFloat(newLng) : null,  // ✅ NOU
+      google_review_url: googleReviewUrl.trim() || null, // ✅ NOU
     }]).select();
 
     if (!error) {
       setNewName(''); setNewAddress(''); setLogoUrl(''); setGoogleReviewUrl('');
-      setNewLat(''); setNewLng('');
       if (fileInputRef.current) fileInputRef.current.value = '';
       setSuccessMessage(t('success_added'));
       setTimeout(() => setSuccessMessage(null), 4000);
@@ -226,23 +214,6 @@ export default function LocationsPage() {
     }
   };
 
-  // ✅ Date pentru hartă — calculează avg rating per locație
-  const locationsForMap = locations.map(loc => {
-    const locReviews = lastReviews.filter(r => r.location_id === loc.id);
-    const avg = locReviews.length > 0
-      ? locReviews.reduce((s: number, r: any) => s + r.rating, 0) / locReviews.length
-      : 0;
-    return {
-      id: loc.id,
-      name: loc.name,
-      address: loc.address,
-      latitude: loc.latitude,
-      longitude: loc.longitude,
-      avgRating: parseFloat(avg.toFixed(1)),
-      reviewCount: locReviews.length,
-    };
-  });
-
   const filteredReviews = selectedLocationId ? lastReviews.filter(r => r.location_id === selectedLocationId) : lastReviews;
   const selectedLocationObj = locations.find(l => l.id === selectedLocationId);
 
@@ -255,7 +226,7 @@ export default function LocationsPage() {
           <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-[2rem] flex items-center justify-center mb-6 mx-auto"><Building2 size={36} /></div>
           <h2 className="text-3xl font-[900] tracking-tight uppercase text-slate-900 mb-3">{locale === 'ru' ? 'Настройте Компанию' : 'Configurează Compania'}</h2>
           <p className="text-slate-400 font-medium text-sm leading-relaxed italic mb-8">
-            {locale === 'ru' ? 'Укажите название вашей компании.' : 'Introduci numele companiei tale.'}
+            {locale === 'ru' ? 'Чтобы начать добавлять локации и генерировать QR-коды, укажите название вашей компании.' : 'Pentru a putea adăuga locații și genera coduri QR, trebuie mai întâi să introduci numele companiei tale.'}
           </p>
           {errorMessage && <div className="bg-rose-500 text-white px-4 py-2 rounded-xl text-sm font-bold mb-4">{errorMessage}</div>}
           <form onSubmit={handleCreateCompanyInline} className="space-y-4">
@@ -274,49 +245,16 @@ export default function LocationsPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
-
-        {/* HEADER */}
         <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl font-black text-slate-900">{t('title')}</h1>
             <p className="text-slate-500">{t('description')}</p>
           </div>
-          <div className="flex items-center gap-3">
-            {/* ✅ Toggle Hartă */}
-            {locations.length > 0 && (
-              <button onClick={() => setShowMap(!showMap)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-black text-xs uppercase tracking-wider transition-all ${showMap ? 'bg-blue-600 text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300'}`}>
-                <Map size={16} />
-                {showMap ? (locale === 'ru' ? 'Ascunde harta' : 'Ascunde harta') : (locale === 'ru' ? 'Hartă' : 'Hartă')}
-              </button>
-            )}
-            <div className="flex flex-col gap-2">
-              {successMessage && <div className="bg-emerald-500 text-white px-6 py-2.5 rounded-2xl font-bold shadow-md text-center text-sm">{successMessage}</div>}
-              {errorMessage && <div className="bg-rose-500 text-white px-6 py-2.5 rounded-2xl font-bold shadow-md text-center text-sm">{errorMessage}</div>}
-            </div>
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+            {successMessage && <div className="bg-emerald-500 text-white px-6 py-2.5 rounded-2xl font-bold shadow-md text-center text-sm">{successMessage}</div>}
+            {errorMessage && <div className="bg-rose-500 text-white px-6 py-2.5 rounded-2xl font-bold shadow-md text-center text-sm">{errorMessage}</div>}
           </div>
         </div>
-
-        {/* ✅ HARTA MOLDOVA */}
-        {showMap && locations.length > 0 && (
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-xl border border-slate-100 mb-10">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-black text-lg uppercase flex items-center gap-2">
-                <Map size={20} className="text-blue-500" />
-                {locale === 'ru' ? 'Harta Locațiilor' : 'Harta Locațiilor'}
-              </h3>
-              <div className="text-[10px] font-bold text-slate-400 uppercase">
-                {locale === 'ru' ? 'Click pe pin pentru a filtra recenziile' : 'Click pe pin pentru a filtra recenziile'}
-              </div>
-            </div>
-            <MapView
-              locations={locationsForMap}
-              onSelectLocation={(id) => setSelectedLocationId(selectedLocationId === id ? null : id)}
-              selectedLocationId={selectedLocationId}
-              locale={locale}
-            />
-          </div>
-        )}
 
         {/* FORMULAR ADĂUGARE LOCAȚIE */}
         <form onSubmit={handleAddLocation} className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-slate-100 mb-12">
@@ -341,26 +279,7 @@ export default function LocationsPage() {
                 <input type="text" placeholder={t('form.placeholder_address')} value={newAddress} onChange={(e) => setNewAddress(e.target.value)}
                   className="w-full bg-slate-50 rounded-2xl py-3.5 px-5 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent" />
               </div>
-
-              {/* ✅ Coordonate pentru hartă */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5 flex items-center gap-1">
-                    <Map size={11} className="text-blue-500" /> Lat
-                  </label>
-                  <input type="number" step="any" placeholder="47.0105" value={newLat} onChange={(e) => setNewLat(e.target.value)}
-                    className="w-full bg-slate-50 rounded-2xl py-3.5 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">Lng</label>
-                  <input type="number" step="any" placeholder="28.8638" value={newLng} onChange={(e) => setNewLng(e.target.value)}
-                    className="w-full bg-slate-50 rounded-2xl py-3.5 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
-                </div>
-              </div>
-              <p className="text-[10px] text-slate-400 italic -mt-2">
-                {locale === 'ru' ? 'Coordonatele sunt opționale — caută pe Google Maps și copiază.' : 'Coordonatele sunt opționale — caută pe Google Maps și copiază.'}
-              </p>
-
+              {/* ✅ NOU — Câmp Google Review URL */}
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5 flex items-center gap-1.5">
                   <Link2 size={12} className="text-blue-500" />
@@ -368,6 +287,9 @@ export default function LocationsPage() {
                 </label>
                 <input type="url" placeholder="https://g.page/r/..." value={googleReviewUrl} onChange={(e) => setGoogleReviewUrl(e.target.value)}
                   className="w-full bg-slate-50 rounded-2xl py-3.5 px-5 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent" />
+                <p className="text-[10px] text-slate-400 mt-1 ml-1 italic">
+                  {locale === 'ru' ? 'Клиенты с 4-5 звёздами увидят кнопку для отзыва на Google.' : 'Clienții cu 4-5 stele vor vedea butonul de recenzie Google.'}
+                </p>
               </div>
             </div>
             <div className="space-y-4">
@@ -387,7 +309,7 @@ export default function LocationsPage() {
               <div>
                 <label className="block text-xs font-black text-slate-500 mb-1.5">{t('form.welcome_label')}</label>
                 <textarea placeholder={t('form.welcome_placeholder')} value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)}
-                  className="w-full bg-slate-50 rounded-2xl p-4 font-bold text-slate-800 outline-none resize-none focus:ring-2 focus:ring-blue-500 border border-transparent" rows={3} />
+                  className="w-full bg-slate-50 rounded-2xl p-4 font-bold text-slate-800 outline-none resize-none focus:ring-2 focus:ring-blue-500 border border-transparent" rows={2} />
               </div>
             </div>
           </div>
@@ -400,7 +322,7 @@ export default function LocationsPage() {
         {/* Grid Locații */}
         {locations.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-[2.5rem] border border-dashed border-slate-200 text-slate-400 font-bold mb-12 px-4">
-            {locale === 'ru' ? "У вас нет добавленных локаций." : "Nu ai nicio locație adăugată. Folosește formularul de mai sus."}
+            {locale === 'ru' ? "У вас нет добавленных локаций для этой компании. Используйте форму выше." : "Nu ai nicio locație adăugată pentru această companie. Folosește formularul de mai sus."}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
@@ -416,15 +338,16 @@ export default function LocationsPage() {
                       {loc.type === 'Delivery' ? <><Truck size={12} className="text-blue-500" />{t('form.type_delivery')}</> : <><MapPin size={12} className="text-emerald-500" />{t('form.type_physical')}</>}
                     </div>
                     <div className="flex items-center gap-2">
+                      {/* ✅ Badge Google dacă are link */}
                       {loc.google_review_url && (
                         <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase">
-                          <svg viewBox="0 0 24 24" className="w-3 h-3"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                          <svg viewBox="0 0 24 24" className="w-3 h-3" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                          </svg>
                           Google
-                        </div>
-                      )}
-                      {loc.latitude && (
-                        <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg text-[9px] font-black uppercase">
-                          <Map size={10} /> GPS
                         </div>
                       )}
                       <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs ${locReviews.length > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
@@ -439,7 +362,6 @@ export default function LocationsPage() {
                   <div className="text-center mb-6">
                     <h3 className="font-black text-slate-800 text-xl uppercase truncate px-2">{loc.name}</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{t('card.reviews_count', { count: locReviews.length })}</p>
-                    {loc.address && <p className="text-[10px] text-slate-300 mt-1 truncate px-2">{loc.address}</p>}
                   </div>
                   <div className="flex flex-col gap-3 mt-auto" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => downloadQR(loc.id, loc.name, loc.logo_url)}
@@ -465,7 +387,7 @@ export default function LocationsPage() {
                 {selectedLocationId ? t('reviews_section.title_filtered', { name: selectedLocationObj?.name }) : (locale === 'ru' ? t('reviews_section.title_all') : "Toate recenziile companiei")}
               </h3>
               <p className="text-xs text-slate-400 font-bold uppercase mt-1">
-                {selectedLocationId ? (locale === 'ru' ? "Фильтр активен" : "Filtru activat") : (locale === 'ru' ? "Apasă pe o locație pentru a filtra" : "Apasă pe o locație pentru a filtra")}
+                {selectedLocationId ? (locale === 'ru' ? "Фильтр активен для этой локации" : "Filtru activat pe această locație") : (locale === 'ru' ? "Нажмите на локацию выше, чтобы отфильтровать" : "Apasă pe o locație de mai sus pentru a filtra")}
               </p>
             </div>
             {selectedLocationId && (
@@ -476,7 +398,7 @@ export default function LocationsPage() {
           </div>
           {filteredReviews.length === 0 ? (
             <div className="text-center py-12 text-slate-400 font-bold bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-              {selectedLocationId ? t('reviews_section.empty') : (locale === 'ru' ? "Нет отзывов." : "Nu există recenzii deocamdată.")}
+              {selectedLocationId ? t('reviews_section.empty') : (locale === 'ru' ? "У вашей компании пока нет зарегистрированных отзывов." : "Compania dumneavoastră nu a primit nicio recenzie deocamdată.")}
             </div>
           ) : (
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
@@ -490,8 +412,12 @@ export default function LocationsPage() {
                       <span className="text-xs bg-white text-slate-600 border px-2 py-0.5 rounded-md font-black uppercase text-[10px]">
                         {review.locations?.name || (locale === 'ru' ? "Удаленная локация" : "Locație ștearsă")}
                       </span>
+                      {/* ✅ Badge Google redirect */}
                       {review.redirected_to_google && (
-                        <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-black text-[10px]">Google</span>
+                        <span className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-black text-[10px]">
+                          <svg viewBox="0 0 24 24" className="w-3 h-3"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                          Google
+                        </span>
                       )}
                       {review.phone && (
                         <a href={`tel:${review.phone.replace(/\s+/g, '')}`} className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-bold text-[10px] hover:bg-blue-100 transition-colors">
@@ -519,7 +445,7 @@ export default function LocationsPage() {
             <div className="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-rose-100"><AlertTriangle size={24} /></div>
             <h4 className="text-xl font-black text-slate-900 mb-2">{t('delete_modal.title', { name: showDeleteModal.name })}</h4>
             <p className="text-slate-500 text-xs font-medium mb-6 leading-relaxed">
-              {locale === 'ru' ? t('delete_modal.subtitle') : <>Sigur vrei să ștergi această locație?</>}
+              {locale === 'ru' ? t('delete_modal.subtitle') : <>Sigur vrei să ștergi această locație? Toate codurile QR și datele asociate vor deveni inaccesibile.</>}
             </p>
             <div className="flex gap-3">
               <button type="button" onClick={() => setShowDeleteModal(null)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-xl uppercase text-xs tracking-wider transition-colors">{t('delete_modal.cancel')}</button>
