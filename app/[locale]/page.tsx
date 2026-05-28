@@ -5,13 +5,15 @@ import {
   Zap, Check, Mail, Trash2, Plus, Truck, QrCode, 
   Send, BarChart3, Globe, Cookie, ShieldCheck, LogOut, 
   LayoutDashboard, ShieldAlert, BellRing,
-  Activity, Star, Trophy, Sparkles, Building
+  Activity, Star, Trophy, Sparkles, Building,
+  MessageCircle, TrendingUp, Shield, Clock, Users,
+  Smartphone, MapPin, Bot, RefreshCw, ExternalLink,
+  ChevronRight, Flame, Target, Award
 } from 'lucide-react';
 import { Link, usePathname, useRouter, locales } from '@/i18n/config'; 
 import { useTranslations, useLocale } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 
-// ✅ PLANURI IDENTICE CU SUBSCRIPTION PAGE
 const PRICING_PLANS = [
   { id: 'START',      locations: 1, maxEmployees: 5,   price: 450,  label: 'START' },
   { id: 'GROW',       locations: 2, maxEmployees: 10,  price: 700,  label: 'GROW' },
@@ -19,6 +21,38 @@ const PRICING_PLANS = [
   { id: 'PRO',        locations: 4, maxEmployees: 20,  price: 1300, label: 'PRO' },
   { id: 'PRO_PLUS',   locations: 5, maxEmployees: 25,  price: 1500, label: 'PRO+' },
   { id: 'ENTERPRISE', locations: 6, maxEmployees: 999, price: 1700, label: 'ENTERPRISE' },
+];
+
+// ✅ TOATE FUNCȚIILE PLATFORMEI
+const FEATURES = [
+  { icon: <QrCode size={24}/>, color: 'bg-blue-100 text-blue-600', title: 'QR Coduri Unice', desc: 'Cod QR pentru fiecare locație sau angajat. Clientul scanează și lasă recenzie în 2 click-uri.' },
+  { icon: <Send size={24}/>, color: 'bg-indigo-100 text-indigo-600', title: 'Alerte Telegram', desc: 'Primești notificare instantanee pe Telegram la fiecare recenzie negativă nouă.' },
+  { icon: <BarChart3 size={24}/>, color: 'bg-violet-100 text-violet-600', title: 'Analytics Avansat', desc: 'Heatmap orar, comparativ locații, leaderboard angajați, mood timeline și QRate Score 0-100.' },
+  { icon: <Sparkles size={24}/>, color: 'bg-amber-100 text-amber-600', title: 'AI Predicții', desc: 'Pe baza trendului ultimelor 4 săptămâni, sistemul prezice nota medie pentru luna viitoare.' },
+  { icon: <Flame size={24}/>, color: 'bg-rose-100 text-rose-600', title: 'Crisis Mode', desc: '3+ recenzii negative în 30 min → alertă roșie imediată pe Telegram cu mesaj de criză pregătit.' },
+  { icon: <Trophy size={24}/>, color: 'bg-amber-100 text-amber-700', title: 'Recovery Win', desc: 'Clientul nemulțumit revine după 7+ zile și lasă 4-5 stele → notificare 🏆 automată.' },
+  { icon: <Star size={24}/>, color: 'bg-emerald-100 text-emerald-600', title: 'Google Reviews', desc: 'Clienții fericiți (4-5★) sunt redirecționați automat spre pagina ta de Google Reviews.' },
+  { icon: <Bot size={24}/>, color: 'bg-blue-100 text-blue-700', title: 'AI Răspuns Smart', desc: 'Generează instant răspunsuri personalizate pozitive sau negative. Copiezi sau trimiți pe WhatsApp.' },
+  { icon: <Smartphone size={24}/>, color: 'bg-green-100 text-green-600', title: 'WhatsApp Follow-up', desc: 'Lista clienților nemulțumiți cu telefon. Trimiți mesaj de recuperare direct pe WhatsApp.' },
+  { icon: <Shield size={24}/>, color: 'bg-slate-100 text-slate-600', title: 'QRate Verified Badge', desc: 'Widget embed pentru site-ul tău cu nota medie și numărul de recenzii. Ca TrustPilot, dar local.' },
+  { icon: <Users size={24}/>, color: 'bg-purple-100 text-purple-600', title: 'Multi-Locații', desc: 'Gestionezi toate locațiile dintr-un singur panou. Fiecare cu QR, statistici și link Google propriu.' },
+  { icon: <Target size={24}/>, color: 'bg-orange-100 text-orange-600', title: 'Keywords Negativi', desc: 'Detectare automată a cuvintelor problemă din recenzii. Alertă roșie dacă apar 3+ ori.' },
+];
+
+// Ticker items
+const TICKER_ITEMS = [
+  '⭐ QRate Score 0-100',
+  '🚨 Crisis Mode Telegram',
+  '🏆 Recovery Win Tracking',
+  '📊 Heatmap Orar',
+  '🤖 AI Răspuns Smart',
+  '📍 Multi-Locații',
+  '💬 WhatsApp Follow-up',
+  '🔵 Google Reviews Redirect',
+  '🏅 Employee Leaderboard',
+  '🔮 AI Predicții Luna Viitoare',
+  '✅ QRate Verified Badge',
+  '🎯 Keywords Negativi',
 ];
 
 export default function LandingPage() {
@@ -30,8 +64,6 @@ export default function LandingPage() {
   const [showNotification, setShowNotification] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // Configurator
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
   const [stickerCount, setStickerCount] = useState(500);
   const [isStickersAdded, setIsStickersAdded] = useState(false);
@@ -40,9 +72,7 @@ export default function LandingPage() {
   const stickerTotal = isStickersAdded ? parseFloat((stickerCount * 0.33).toFixed(2)) : 0;
   const grandTotal = currentPlan.price + stickerTotal;
 
-  const validateStickers = () => {
-    if (stickerCount < 500) setStickerCount(500);
-  };
+  const validateStickers = () => { if (stickerCount < 500) setStickerCount(500); };
 
   const switchLanguage = (newLocale: typeof locales[number]) => {
     if (newLocale === locale) return;
@@ -56,22 +86,13 @@ export default function LandingPage() {
       if (isMounted) setIsLoggedIn(!!user);
     };
     checkUser();
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (isMounted) setIsLoggedIn(!!session);
     });
-
     const consent = localStorage.getItem('qrate_cookie_consent');
     let timer: NodeJS.Timeout;
-    if (!consent) {
-      timer = setTimeout(() => { if (isMounted) setShowCookieBanner(true); }, 1500);
-    }
-
-    return () => {
-      isMounted = false;
-      if (timer) clearTimeout(timer);
-      subscription.unsubscribe();
-    };
+    if (!consent) timer = setTimeout(() => { if (isMounted) setShowCookieBanner(true); }, 1500);
+    return () => { isMounted = false; if (timer) clearTimeout(timer); subscription.unsubscribe(); };
   }, []);
 
   const handleAcceptCookies = () => {
@@ -91,10 +112,7 @@ export default function LandingPage() {
       setShowNotification(true);
       notificationTimer = setTimeout(() => setShowNotification(false), 3500);
     }, 5000);
-    return () => {
-      clearInterval(interval);
-      if (notificationTimer) clearTimeout(notificationTimer);
-    };
+    return () => { clearInterval(interval); if (notificationTimer) clearTimeout(notificationTimer); };
   }, []);
 
   return (
@@ -111,21 +129,19 @@ export default function LandingPage() {
               QRate<span className="text-blue-600 hidden sm:inline">.MD</span>
             </span>
           </div>
-
           <div className="hidden lg:flex items-center gap-10">
             <div className="flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
               <a href="#servicii" className="hover:text-blue-600 transition-all duration-300">{t('nav.services')}</a>
+              <a href="#functii" className="hover:text-blue-600 transition-all duration-300">{locale === 'ru' ? 'Функции' : 'Funcții'}</a>
               <a href="#vizual-demo" className="hover:text-blue-600 transition-all duration-300">{t('nav.demo')}</a>
               <a href="#preturi" className="hover:text-blue-600 transition-all duration-300">{t('nav.pricing')}</a>
             </div>
           </div>
-
           <div className="flex items-center gap-2 md:gap-4 shrink-0">
             <div className="flex items-center bg-slate-100/80 p-1 rounded-lg md:rounded-2xl border border-slate-200 shadow-inner">
               <button type="button" onClick={() => switchLanguage('ro')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ro' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
               <button type="button" onClick={() => switchLanguage('ru')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all duration-300 ${locale === 'ru' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
             </div>
-
             {isLoggedIn ? (
               <div className="flex items-center gap-1 md:gap-2 bg-slate-50 p-1 md:p-1.5 rounded-lg md:rounded-2xl border border-slate-200/60 shadow-sm">
                 <Link href="/dashboard" className="flex items-center gap-1.5 md:gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 px-2 md:px-4 py-1.5 md:py-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-700 transition-all text-[9px] md:text-[10px] font-black uppercase tracking-wider">
@@ -138,9 +154,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <>
-                <Link href="/auth/login" className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-blue-600 px-1 md:px-2 transition-colors whitespace-nowrap">
-                  {t('nav.login')}
-                </Link>
+                <Link href="/auth/login" className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-blue-600 px-1 md:px-2 transition-colors whitespace-nowrap">{t('nav.login')}</Link>
                 <Link href="/auth/register" className="relative group overflow-hidden bg-slate-950 text-white px-3 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all hover:shadow-xl active:scale-95 whitespace-nowrap">
                   <span className="relative z-10">{t('nav.signup')}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
@@ -152,9 +166,9 @@ export default function LandingPage() {
       </header>
 
       <main className="pt-20">
-        
+
         {/* HERO */}
-        <section className="pt-36 pb-24 px-6 text-center">
+        <section className="pt-36 pb-16 px-6 text-center">
           <div className="max-w-6xl mx-auto space-y-10">
             <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em] animate-bounce">
               <Zap size={14} /> {t('hero.badge')}
@@ -163,7 +177,6 @@ export default function LandingPage() {
               {t('hero.title_part1')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-blue-600 to-indigo-800 italic">{t('hero.title_part2')}</span>
             </h1>
-
             <div className="max-w-5xl mx-auto">
               <div className="bg-white border border-slate-200 shadow-2xl rounded-[3.5rem] p-8 md:p-14 text-left">
                 <div className="text-center mb-10">
@@ -173,26 +186,20 @@ export default function LandingPage() {
                   <h2 className="text-3xl md:text-4xl font-black tracking-tighter text-slate-900 mt-4">{t('hero_banner.heading')}</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
-                    <div className="shrink-0 w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Activity size={28} /></div>
-                    <div><h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature1_title')}</h4><p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature1_desc')}</p></div>
-                  </div>
-                  <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
-                    <div className="shrink-0 w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Star size={28} /></div>
-                    <div><h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature2_title')}</h4><p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature2_desc')}</p></div>
-                  </div>
-                  <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
-                    <div className="shrink-0 w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Trophy size={28} /></div>
-                    <div><h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature3_title')}</h4><p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature3_desc')}</p></div>
-                  </div>
-                  <div className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
-                    <div className="shrink-0 w-14 h-14 bg-violet-100 text-violet-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform"><Sparkles size={28} /></div>
-                    <div><h4 className="font-black text-xl tracking-tight">{t('hero_banner.feature4_title')}</h4><p className="text-slate-500 text-[15px] mt-2 leading-snug">{t('hero_banner.feature4_desc')}</p></div>
-                  </div>
+                  {[
+                    { icon: <Activity size={28}/>, color: 'bg-emerald-100 text-emerald-600', title: t('hero_banner.feature1_title'), desc: t('hero_banner.feature1_desc') },
+                    { icon: <Star size={28}/>, color: 'bg-amber-100 text-amber-600', title: t('hero_banner.feature2_title'), desc: t('hero_banner.feature2_desc') },
+                    { icon: <Trophy size={28}/>, color: 'bg-indigo-100 text-indigo-600', title: t('hero_banner.feature3_title'), desc: t('hero_banner.feature3_desc') },
+                    { icon: <Sparkles size={28}/>, color: 'bg-violet-100 text-violet-600', title: t('hero_banner.feature4_title'), desc: t('hero_banner.feature4_desc') },
+                  ].map((f, i) => (
+                    <div key={i} className="group flex gap-5 p-6 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all">
+                      <div className={`shrink-0 w-14 h-14 ${f.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform`}>{f.icon}</div>
+                      <div><h4 className="font-black text-xl tracking-tight">{f.title}</h4><p className="text-slate-500 text-[15px] mt-2 leading-snug">{f.desc}</p></div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-
             <p className="text-xl text-slate-400 max-w-2xl mx-auto font-medium leading-relaxed italic mt-6">{t('hero.description')}</p>
             <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link href={isLoggedIn ? "/dashboard" : "/auth/register"} className="w-full sm:w-auto bg-blue-600 text-white px-14 py-8 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_25px_50px_-12px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 transition-all text-center">
@@ -202,6 +209,18 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ✅ TICKER ANIMAT */}
+        <div className="bg-slate-950 py-4 overflow-hidden border-y border-slate-800">
+          <div className="flex animate-[ticker_30s_linear_infinite] whitespace-nowrap">
+            {[...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+              <span key={i} className="inline-flex items-center gap-3 mx-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
+                {item}
+                <span className="text-blue-600 text-lg">•</span>
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* SERVICII */}
         <section id="servicii" className="py-24 px-6 bg-white relative overflow-hidden">
           <div className="max-w-7xl mx-auto">
@@ -210,21 +229,75 @@ export default function LandingPage() {
               <p className="text-4xl md:text-5xl font-black uppercase tracking-tighter">{t('services_section.title')}</p>
             </div>
             <div className="grid md:grid-cols-3 gap-10">
-              <article className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
-                <div className="bg-blue-600 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all"><QrCode size={32}/></div>
-                <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{t('services.qr_employee.title')}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{t('services.qr_employee.desc')}</p>
-              </article>
-              <article className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
-                <div className="bg-indigo-600 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all"><Send size={32}/></div>
-                <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{t('services.telegram.title')}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{t('services.telegram.desc')}</p>
-              </article>
-              <article className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
-                <div className="bg-slate-950 text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all"><BarChart3 size={32}/></div>
-                <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{t('services.management.title')}</h3>
-                <p className="text-slate-500 font-medium leading-relaxed">{t('services.management.desc')}</p>
-              </article>
+              {[
+                { icon: <QrCode size={32}/>, color: 'bg-blue-600', title: t('services.qr_employee.title'), desc: t('services.qr_employee.desc') },
+                { icon: <Send size={32}/>, color: 'bg-indigo-600', title: t('services.telegram.title'), desc: t('services.telegram.desc') },
+                { icon: <BarChart3 size={32}/>, color: 'bg-slate-950', title: t('services.management.title'), desc: t('services.management.desc') },
+              ].map((s, i) => (
+                <article key={i} className="bg-[#F8FAFC] p-12 rounded-[3.5rem] border border-slate-100 hover:bg-white hover:shadow-2xl transition-all duration-500 group">
+                  <div className={`${s.color} text-white w-16 h-16 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all`}>{s.icon}</div>
+                  <h3 className="text-2xl font-black uppercase tracking-tight mb-4 italic text-slate-950">{s.title}</h3>
+                  <p className="text-slate-500 font-medium leading-relaxed">{s.desc}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ✅ SECȚIUNEA FUNCȚII — CE PRIMEȘTI */}
+        <section id="functii" className="py-32 px-6 bg-[#F8FAFC] scroll-mt-24">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-20">
+              <div className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-6">
+                <Award size={14} /> {locale === 'ru' ? 'Все функции платформы' : 'Tot ce primești în QRate'}
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-slate-950">
+                {locale === 'ru' ? '12 Funcții' : '12 Funcții'} <span className="text-blue-600 italic">{locale === 'ru' ? 'Puternice' : 'Puternice'}</span>
+              </h2>
+              <p className="text-slate-400 font-medium mt-4 max-w-xl mx-auto">
+                {locale === 'ru' 
+                  ? 'Tot ce are nevoie un antreprenor din Moldova pentru a gestiona reputația afacerii sale.'
+                  : 'Tot ce are nevoie un antreprenor din Moldova pentru a gestiona reputația afacerii sale.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {FEATURES.map((f, i) => (
+                <div key={i} className="bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 group">
+                  <div className={`w-12 h-12 ${f.color} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                    {f.icon}
+                  </div>
+                  <h3 className="font-black text-sm uppercase tracking-tight text-slate-900 mb-2">{f.title}</h3>
+                  <p className="text-slate-500 text-xs font-medium leading-relaxed">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA după funcții */}
+            <div className="mt-16 text-center">
+              <div className="bg-gradient-to-br from-slate-950 to-blue-950 rounded-[3rem] p-10 md:p-16 relative overflow-hidden">
+                <div className="absolute inset-0 opacity-10">
+                  <div className="absolute top-4 left-8 text-white text-6xl">★</div>
+                  <div className="absolute bottom-4 right-8 text-white text-4xl">★</div>
+                  <div className="absolute top-1/2 left-1/4 text-white text-3xl">★</div>
+                </div>
+                <div className="relative z-10">
+                  <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em] mb-4">
+                    {locale === 'ru' ? '7 zile gratuit' : '7 zile gratuit'}
+                  </p>
+                  <h3 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-4">
+                    {locale === 'ru' ? 'Încearcă Gratuit' : 'Încearcă Gratuit'}
+                  </h3>
+                  <p className="text-slate-400 font-medium mb-8 max-w-md mx-auto">
+                    {locale === 'ru'
+                      ? 'Acces complet la toate funcțiile timp de 7 zile. Fără card bancar.'
+                      : 'Acces complet la toate funcțiile timp de 7 zile. Fără card bancar.'}
+                  </p>
+                  <Link href={isLoggedIn ? "/dashboard" : "/auth/register"} className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.3em] transition-all hover:scale-105 shadow-2xl shadow-blue-900/50">
+                    {locale === 'ru' ? 'Începe Acum' : 'Începe Acum'} <ChevronRight size={16} />
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -284,7 +357,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ✅ PREȚURI — IDENTICE CU SUBSCRIPTION PAGE */}
+        {/* PREȚURI */}
         <section id="preturi" className="py-32 px-6 scroll-mt-24 bg-slate-50/50">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
@@ -293,17 +366,12 @@ export default function LandingPage() {
                 {t('pricing.title_part1')} <span className="text-blue-600">{t('pricing.title_part2')}</span>
               </p>
             </div>
-
-            {/* Grid 6 planuri */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {PRICING_PLANS.map((plan, index) => {
                 const isSelected = selectedPlanIndex === index;
                 return (
-                  <article
-                    key={plan.id}
-                    onClick={() => setSelectedPlanIndex(index)}
-                    className={`p-8 rounded-[2.5rem] bg-white border-4 cursor-pointer transition-all flex flex-col justify-between ${isSelected ? 'border-blue-600 shadow-2xl scale-[1.02] z-10' : 'border-slate-100 opacity-70 hover:opacity-100 hover:border-blue-200'}`}
-                  >
+                  <article key={plan.id} onClick={() => setSelectedPlanIndex(index)}
+                    className={`p-8 rounded-[2.5rem] bg-white border-4 cursor-pointer transition-all flex flex-col justify-between ${isSelected ? 'border-blue-600 shadow-2xl scale-[1.02] z-10' : 'border-slate-100 opacity-70 hover:opacity-100 hover:border-blue-200'}`}>
                     <div>
                       <div className="flex justify-between items-start mb-4">
                         <div className="p-3 bg-slate-100 rounded-2xl text-slate-700"><Building size={22} /></div>
@@ -318,14 +386,14 @@ export default function LandingPage() {
                         <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> {plan.locations} locație{plan.locations > 1 ? 'i' : ''}</li>
                         <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> Max {plan.maxEmployees === 999 ? 'nelimitat' : plan.maxEmployees} angajați</li>
                         <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> QR Code + Notificări Telegram</li>
-                        <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> Dashboard + Statistici</li>
+                        <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> Dashboard + Analytics AI</li>
+                        <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> Google Reviews Redirect</li>
+                        <li className="flex items-center gap-2"><Check size={14} className="text-blue-600 shrink-0" /> WhatsApp Follow-up</li>
                       </ul>
                     </div>
-                    <Link
-                      href={isLoggedIn ? "/dashboard" as any : "/auth/register"}
+                    <Link href={isLoggedIn ? "/dashboard" as any : "/auth/register"}
                       className={`mt-6 block w-full py-4 rounded-2xl font-black uppercase text-xs tracking-[0.3em] text-center transition-all ${isSelected ? 'bg-blue-600 text-white hover:bg-slate-950' : 'bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white'}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                      onClick={(e) => e.stopPropagation()}>
                       {isLoggedIn ? 'Activează' : t('pricing.btn_register')}
                     </Link>
                   </article>
@@ -384,7 +452,6 @@ export default function LandingPage() {
               <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{t('footer.docs_title')}</h4>
               <nav>
                 <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest">
-                  {/* ✅ PATH-URI CORECTE FĂRĂ /legal/ */}
                   <li><a href={`/${locale}/terms`} className="hover:text-blue-600 transition-colors">{t('footer.terms')}</a></li>
                   <li><a href={`/${locale}/privacy`} className="hover:text-blue-600 transition-colors">{t('footer.privacy')}</a></li>
                   <li><a href={`/${locale}/refund`} className="hover:text-blue-600 transition-colors">{t('footer.refund_policy')}</a></li>

@@ -7,7 +7,17 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        ticker: {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-33.33%)' },
+        }
+      },
+      animation: {
+        ticker: 'ticker 30s linear infinite',
+      }
+    }
   },
   plugins: [],
 }
