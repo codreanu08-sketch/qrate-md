@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import {
   BarChart3, AlertTriangle, Star, MapPin, Clock,
@@ -24,8 +25,9 @@ interface Review {
 const NEGATIVE_KEYWORDS_RO = ['lent', 'rece', 'așteptat', 'târziu', 'murdar', 'nepoliticos', 'groaznic', 'oribil', 'dezamăgit', 'neplăcut', 'frig', 'greșit', 'prost', 'îngrozitor', 'scump'];
 const NEGATIVE_KEYWORDS_RU = ['медленно', 'холодный', 'ждал', 'грязно', 'грубый', 'ужасно', 'плохо', 'разочарован', 'неприятно', 'дорого', 'неправильно', 'отвратительно'];
 
-export default function AnalyticsPage({ params }: { params: { locale: string } }) {
-  const locale = params?.locale || 'ro';
+export default function AnalyticsPage() {
+  const params = useParams();
+  const locale = (params?.locale as string) || 'ro';
   const [reviews, setReviews] = useState<Review[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
