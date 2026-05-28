@@ -30,7 +30,7 @@ export async function GET(
 
     const total = reviews?.length || 0;
     const avg = total > 0
-      ? (reviews!.reduce((s, r) => s + r.rating, 0) / total).toFixed(1)
+      ? (reviews!.reduce((s: number, r: { rating: number }) => s + r.rating, 0) / total).toFixed(1)
       : '0.0';
 
     return NextResponse.json({
