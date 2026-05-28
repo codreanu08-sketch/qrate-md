@@ -1,3 +1,7 @@
+// components/DashboardLiveWrapper.tsx
+// Client component care detectează dacă suntem pe o pagină dashboard
+// și afișează LiveActivityFeed doar acolo
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -35,7 +39,7 @@ export default function DashboardLiveWrapper({ locale }: Props) {
     getCompany();
 
     // Re-verific dacă sesiunea se schimbă
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session) => {
       if (!session) { setCompanyId(null); return; }
       getCompany();
     });
