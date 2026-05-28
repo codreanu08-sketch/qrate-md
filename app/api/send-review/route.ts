@@ -69,10 +69,6 @@ export async function POST(request: Request) {
       status: 'pending'
     });
 
-    if (CHAT_ID) {
-      await sendTelegramMessage(CHAT_ID, message);
-    }
-
     // ✅ 2. CRISIS MODE — 3+ recenzii negative în 30 minute
     if (rating <= 2 && review.company_id && CHAT_ID) {
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
