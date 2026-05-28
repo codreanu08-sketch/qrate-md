@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { Settings, Shield, Smartphone, Save, Loader2, CheckCircle, Link2, Send } from 'lucide-react';
+import { Settings, Shield, Smartphone, Save, Loader2, CheckCircle, Link2, Send, Copy, Check, ExternalLink } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { sendCustomResetEmail } from '@/app/actions/auth-actions';
 import ru from '@/messages/ru.json';
@@ -15,7 +15,9 @@ export default function SettingsPage() {
   const t = useMemo(() => messages?.Settings || {}, [messages]);
 
   const [telegramId, setTelegramId] = useState('');
-  const [googleReviewUrl, setGoogleReviewUrl] = useState(''); // ✅ NOU - fallback companie
+  const [googleReviewUrl, setGoogleReviewUrl] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null); // ✅
+  const [copiedBadge, setCopiedBadge] = useState(false); // ✅
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
@@ -30,6 +32,22 @@ export default function SettingsPage() {
 
   const BOT_USERNAME = "Qrate_bot";
 
+  // ✅ Cod embed badge
+  const embedCode = companyId ? `<!-- QRate Verified Badge -->
+<iframe 
+  src="https://www.qrate.md/badge/${companyId}"
+  style="border:none;width:260px;height:70px;overflow:hidden;"
+  scrolling="no"
+  title="QRate Verified Badge"
+></iframe>` : '';
+
+  const handleCopyBadge = () => {
+    if (!embedCode) return;
+    navigator.clipboard.writeText(embedCode);
+    setCopiedBadge(true);
+    setTimeout(() => setCopiedBadge(false), 2500);
+  };
+
   useEffect(() => {
     async function loadSettings() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -37,8 +55,9 @@ export default function SettingsPage() {
         setUserEmail(session.user.email || '');
         const { data } = await supabase.from('companies').select('*').eq('owner_id', session.user.id).maybeSingle();
         if (data) {
+          setCompanyId(data.id); // ✅ populat
           setTelegramId(data.telegram_chat_id || '');
-          setGoogleReviewUrl(data.google_review_url || ''); // ✅ NOU
+          setGoogleReviewUrl(data.google_review_url || '');
           const savedBilling = data.billing_details || {};
           setIsLegalEntity(savedBilling.is_legal_entity || false);
           setBillingData({
@@ -62,30 +81,22 @@ export default function SettingsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Session expired");
-
       const { data: currentCompany } = await supabase.from('companies').select('slug, name').eq('owner_id', session.user.id).maybeSingle();
-
       let slug = currentCompany?.slug;
       if (!slug) {
         const { data: { user } } = await supabase.auth.getUser();
         const companyName = billingData.company_name || user?.email?.split('@')[0] || 'qrate-company';
         slug = companyName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").substring(0, 40) + "-" + Math.random().toString(36).substring(2, 8);
       }
-
       const companyName = billingData.company_name || currentCompany?.name || "Compania Mea";
-
       const { error } = await supabase.from('companies').upsert({
         [userIdKey]: session.user.id,
         name: companyName,
         telegram_chat_id: telegramId.trim(),
-        google_review_url: googleReviewUrl.trim() || null, // ✅ NOU
-        billing_details: {
-          is_legal_entity: isLegalEntity,
-          ...billingData
-        },
+        google_review_url: googleReviewUrl.trim() || null,
+        billing_details: { is_legal_entity: isLegalEntity, ...billingData },
         slug: slug
       }, { onConflict: userIdKey });
-
       if (error) throw error;
       setShowSavedSuccess(true);
       setTimeout(() => setShowSavedSuccess(false), 3000);
@@ -160,7 +171,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ✅ NOU — GOOGLE REVIEWS FALLBACK */}
+        {/* GOOGLE REVIEWS */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 md:p-10">
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 md:p-4 bg-blue-50 rounded-2xl">
@@ -194,6 +205,60 @@ export default function SettingsPage() {
             </p>
           </div>
         </div>
+
+        {/* ✅ QRATE VERIFIED BADGE */}
+        {companyId && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 md:p-10">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="p-3 md:p-4 bg-blue-50 rounded-2xl">
+                <svg viewBox="0 0 24 24" className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">QRate Verified Badge</h2>
+                <p className="text-sm text-slate-500 font-medium">
+                  {locale === 'ru' ? 'Добавьте виджет на ваш сайт — как TrustPilot, но для Молдовы' : 'Adaugă widget-ul pe site-ul tău — ca TrustPilot, dar pentru Moldova'}
+                </p>
+              </div>
+            </div>
+
+            {/* Preview */}
+            <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center">
+              <iframe
+                src={`https://www.qrate.md/badge/${companyId}`}
+                style={{ border: 'none', width: '260px', height: '70px', overflow: 'hidden' }}
+                scrolling="no"
+                title="QRate Badge Preview"
+              />
+            </div>
+
+            {/* Cod embed */}
+            <div className="space-y-2">
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">
+                {locale === 'ru' ? 'Код для вставки на сайт' : 'Cod embed pentru site-ul tău'}
+              </label>
+              <div className="relative">
+                <pre className="bg-slate-900 text-emerald-400 p-4 rounded-2xl text-[11px] font-mono overflow-x-auto leading-relaxed whitespace-pre-wrap">
+                  {embedCode}
+                </pre>
+                <button onClick={handleCopyBadge}
+                  className={`absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${copiedBadge ? 'bg-emerald-500 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>
+                  {copiedBadge ? <><Check size={12} /> {locale === 'ru' ? 'Скопировано!' : 'Copiat!'}</> : <><Copy size={12} /> {locale === 'ru' ? 'Копировать' : 'Copiază'}</>}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 ml-1 italic">
+                {locale === 'ru' ? 'Вставьте этот код в HTML вашего сайта — виджет обновляется автоматически.' : 'Inserează codul în HTML-ul site-ului tău — widget-ul se actualizează automat.'}
+              </p>
+            </div>
+
+            <a href={`https://www.qrate.md/badge/${companyId}`} target="_blank" rel="noreferrer"
+              className="mt-4 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-xs font-black uppercase tracking-wider transition-colors">
+              <ExternalLink size={14} />
+              {locale === 'ru' ? 'Предпросмотр badge' : 'Preview badge'}
+            </a>
+          </div>
+        )}
 
         {/* SECURITATE */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 md:p-10">
