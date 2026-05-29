@@ -2,11 +2,17 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { Settings, Shield, Smartphone, Save, Loader2, CheckCircle, Link2, Send, Copy, Check, ExternalLink } from 'lucide-react';
+import { Settings, Shield, Smartphone, Save, Loader2, CheckCircle, Link2, Send, Copy, Check, ExternalLink, MapPin, Plus, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { sendCustomResetEmail } from '@/app/actions/auth-actions';
 import ru from '@/messages/ru.json';
 import ro from '@/messages/ro.json';
+
+interface Location {
+  id: string;
+  name: string;
+  telegram_chat_ids: string; // comma-separated, stored same as company
+}
 
 export default function SettingsPage() {
   const params = useParams();
@@ -16,13 +22,16 @@ export default function SettingsPage() {
 
   const [telegramId, setTelegramId] = useState('');
   const [googleReviewUrl, setGoogleReviewUrl] = useState('');
-  const [companyId, setCompanyId] = useState<string | null>(null); // ✅
-  const [copiedBadge, setCopiedBadge] = useState(false); // ✅
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [copiedBadge, setCopiedBadge] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingLocationId, setSavingLocationId] = useState<string | null>(null);
   const [showSavedSuccess, setShowSavedSuccess] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const userIdKey = 'owner_id';
+
+  const [locations, setLocations] = useState<Location[]>([]);
 
   const [isLegalEntity, setIsLegalEntity] = useState(false);
   const [billingData, setBillingData] = useState({
@@ -32,7 +41,6 @@ export default function SettingsPage() {
 
   const BOT_USERNAME = "Qrate_bot";
 
-  // ✅ Cod embed badge
   const embedCode = companyId ? `<!-- QRate Verified Badge -->
 <iframe 
   src="https://www.qrate.md/badge/${companyId}"
@@ -48,17 +56,46 @@ export default function SettingsPage() {
     setTimeout(() => setCopiedBadge(false), 2500);
   };
 
+  // Update a location's telegram IDs locally
+  const updateLocationTelegram = (locationId: string, value: string) => {
+    setLocations(prev =>
+      prev.map(loc => loc.id === locationId ? { ...loc, telegram_chat_ids: value } : loc)
+    );
+  };
+
+  // Save a single location's telegram IDs
+  const saveLocationTelegram = async (location: Location) => {
+    setSavingLocationId(location.id);
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .update({ telegram_chat_ids: location.telegram_chat_ids.trim() })
+        .eq('id', location.id);
+      if (error) throw error;
+    } catch (err: any) {
+      alert('Eroare la salvare locație: ' + err.message);
+    } finally {
+      setSavingLocationId(null);
+    }
+  };
+
   useEffect(() => {
     async function loadSettings() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUserEmail(session.user.email || '');
-        const { data } = await supabase.from('companies').select('*').eq('owner_id', session.user.id).maybeSingle();
-        if (data) {
-          setCompanyId(data.id); // ✅ populat
-          setTelegramId(data.telegram_chat_id || '');
-          setGoogleReviewUrl(data.google_review_url || '');
-          const savedBilling = data.billing_details || {};
+
+        const { data: company } = await supabase
+          .from('companies')
+          .select('*')
+          .eq('owner_id', session.user.id)
+          .maybeSingle();
+
+        if (company) {
+          setCompanyId(company.id);
+          setTelegramId(company.telegram_chat_id || '');
+          setGoogleReviewUrl(company.google_review_url || '');
+          const savedBilling = company.billing_details || {};
           setIsLegalEntity(savedBilling.is_legal_entity || false);
           setBillingData({
             company_name: savedBilling.company_name || '',
@@ -69,6 +106,15 @@ export default function SettingsPage() {
             company_bank_name: savedBilling.company_bank_name || '',
             billing_email: savedBilling.billing_email || ''
           });
+
+          // Load locations for this company
+          const { data: locs } = await supabase
+            .from('locations')
+            .select('id, name, telegram_chat_ids')
+            .eq('company_id', company.id)
+            .order('name');
+
+          if (locs) setLocations(locs);
         }
       }
       setLoading(false);
@@ -117,7 +163,11 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="animate-spin text-blue-600" size={32} />
+    </div>
+  );
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto text-slate-900">
@@ -126,7 +176,9 @@ export default function SettingsPage() {
           <Settings className="text-blue-600" size={32} />
           {t?.title || "Setări Cont"}
         </h1>
-        <p className="text-slate-500 font-medium text-base md:text-lg mt-1">{t?.subtitle || "Gestionează notificările și datele fiscale"}</p>
+        <p className="text-slate-500 font-medium text-base md:text-lg mt-1">
+          {t?.subtitle || "Gestionează notificările și datele fiscale"}
+        </p>
       </header>
 
       <div className="space-y-6 md:space-y-8">
@@ -136,39 +188,122 @@ export default function SettingsPage() {
           <div className="flex items-center gap-4 mb-6 md:mb-8">
             <div className="p-3 md:p-4 bg-blue-50 rounded-2xl text-blue-600"><Smartphone size={24} /></div>
             <div>
-              <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">{t?.telegram?.title || "Notificări Telegram"}</h2>
-              <p className="text-sm text-slate-500 font-medium">{t?.telegram?.desc || "Primește alerte instantanee la fiecare recenzie nouă"}</p>
+              <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">
+                {t?.telegram?.title || "Notificări Telegram"}
+              </h2>
+              <p className="text-sm text-slate-500 font-medium">
+                {t?.telegram?.desc || "Primește alerte instantanee la fiecare recenzie nouă"}
+              </p>
             </div>
           </div>
+
+          {/* Setup steps */}
           <div className="grid md:grid-cols-2 gap-6 md:gap-8 mb-6 md:mb-8 bg-slate-50/60 p-4 md:p-6 rounded-3xl border border-slate-100">
             <div className="space-y-2">
-              <span className="inline-block px-3 py-1 bg-blue-600 text-white font-black text-[10px] uppercase rounded-full tracking-wider">Pasul 1</span>
-              <p className="text-sm font-bold text-slate-700">Pornește botul pentru a primi mesaje.</p>
-              <a href={`https://t.me/${BOT_USERNAME}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 mt-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md w-full md:w-auto justify-center">
+              <span className="inline-block px-3 py-1 bg-blue-600 text-white font-black text-[10px] uppercase rounded-full tracking-wider">
+                {locale === 'ru' ? 'Шаг 1' : 'Pasul 1'}
+              </span>
+              <p className="text-sm font-bold text-slate-700">
+                {locale === 'ru' ? 'Запустите бота для получения сообщений.' : 'Pornește botul pentru a primi mesaje.'}
+              </p>
+              <a href={`https://t.me/${BOT_USERNAME}`} target="_blank" rel="noreferrer"
+                className="inline-flex items-center gap-2 mt-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-md w-full md:w-auto justify-center">
                 <Send size={14} /> Start Bot
               </a>
             </div>
             <div className="space-y-2 border-t md:border-t-0 md:border-l border-slate-200/80 pt-4 md:pt-0 md:pl-8">
-              <span className="inline-block px-3 py-1 bg-slate-800 text-white font-black text-[10px] uppercase rounded-full tracking-wider">Pasul 2</span>
-              <p className="text-sm font-bold text-slate-700">Află Chat ID-ul tău.</p>
+              <span className="inline-block px-3 py-1 bg-slate-800 text-white font-black text-[10px] uppercase rounded-full tracking-wider">
+                {locale === 'ru' ? 'Шаг 2' : 'Pasul 2'}
+              </span>
+              <p className="text-sm font-bold text-slate-700">
+                {locale === 'ru' ? 'Узнайте свой Chat ID.' : 'Află Chat ID-ul tău.'}
+              </p>
               <p className="text-xs text-slate-400 font-medium">
-                Trimite un mesaj la <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-blue-600 underline font-bold">@userinfobot</a>
+                {locale === 'ru' ? 'Отправьте сообщение' : 'Trimite un mesaj la'}{' '}
+                <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer"
+                  className="text-blue-600 underline font-bold">@userinfobot</a>
               </p>
             </div>
           </div>
-          <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
-            <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-2">
-                {locale === 'ru' ? 'Telegram ID-ы (через запятую)' : 'Telegram Chat ID-uri (separate prin virgulă)'}
-              </label>
-              <input type="text" value={telegramId} onChange={(e) => setTelegramId(e.target.value)}
-                placeholder="Ex: 890236835, 123456789"
-                className="w-full p-4 md:p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner" />
+
+          {/* Company-level IDs */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-1 h-5 bg-blue-600 rounded-full" />
+              <p className="text-xs font-black uppercase tracking-widest text-slate-600">
+                {locale === 'ru' ? 'ID компании — получают все уведомления' : 'ID-uri companie — primesc toate notificările'}
+              </p>
             </div>
-            <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-4 md:p-5 rounded-2xl border border-blue-100">
-              ✨ {locale === 'ru' ? 'Уведомления будут приходить всем указанным ID.' : 'Toate ID-urile introduse vor primi notificări instantanee.'}
+            <div className="grid md:grid-cols-2 gap-4 items-center">
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-2">
+                  {locale === 'ru' ? 'Telegram ID-ы компании (через запятую)' : 'Telegram Chat ID-uri companie (separate prin virgulă)'}
+                </label>
+                <input
+                  type="text"
+                  value={telegramId}
+                  onChange={(e) => setTelegramId(e.target.value)}
+                  placeholder="Ex: 890236835, 123456789"
+                  className="w-full p-4 md:p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none font-bold text-lg transition-all placeholder:text-slate-300 shadow-inner"
+                />
+              </div>
+              <div className="text-xs font-bold text-blue-900 bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                ✨ {locale === 'ru'
+                  ? 'Эти ID получают уведомления со всех локаций — всегда.'
+                  : 'Aceste ID-uri primesc notificări de la toate locațiile — mereu.'}
+              </div>
             </div>
           </div>
+
+          {/* Per-location IDs */}
+          {locations.length > 0 && (
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-1 h-5 bg-indigo-500 rounded-full" />
+                <p className="text-xs font-black uppercase tracking-widest text-slate-600">
+                  {locale === 'ru' ? 'ID по локациям — получают уведомления только своей локации' : 'ID-uri per locație — primesc notificările locației lor'}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {locations.map((loc) => (
+                  <div key={loc.id} className="bg-slate-50 rounded-2xl border border-slate-100 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MapPin size={14} className="text-indigo-500 shrink-0" />
+                      <span className="text-xs font-black uppercase tracking-wide text-slate-700 truncate">
+                        {loc.name}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={loc.telegram_chat_ids || ''}
+                        onChange={(e) => updateLocationTelegram(loc.id, e.target.value)}
+                        placeholder="Ex: 890236835, 123456789"
+                        className="flex-1 px-4 py-3 bg-white border-2 border-transparent rounded-xl focus:border-indigo-400 outline-none font-bold text-sm transition-all placeholder:text-slate-300 shadow-inner"
+                      />
+                      <button
+                        onClick={() => saveLocationTelegram(loc)}
+                        disabled={savingLocationId === loc.id}
+                        className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-60"
+                      >
+                        {savingLocationId === loc.id
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : <><Save size={14} /> {locale === 'ru' ? 'Сохранить' : 'Salvează'}</>
+                        }
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-slate-400 mt-3 ml-1 italic">
+                {locale === 'ru'
+                  ? 'При новой рецензии уведомления получат и ID компании, и ID локации одновременно.'
+                  : 'La o recenzie nouă, atât ID-urile companiei cât și cele ale locației primesc notificarea simultan.'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* GOOGLE REVIEWS */}
@@ -193,11 +328,16 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-2">
             <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-2 flex items-center gap-1.5">
-              <Link2 size={12} /> {locale === 'ru' ? 'Ссылка Google Reviews (для всей компании)' : 'Link Google Reviews (pentru toată compania)'}
+              <Link2 size={12} />
+              {locale === 'ru' ? 'Ссылка Google Reviews (для всей компании)' : 'Link Google Reviews (pentru toată compania)'}
             </label>
-            <input type="url" value={googleReviewUrl} onChange={(e) => setGoogleReviewUrl(e.target.value)}
+            <input
+              type="url"
+              value={googleReviewUrl}
+              onChange={(e) => setGoogleReviewUrl(e.target.value)}
               placeholder="https://g.page/r/..."
-              className="w-full p-4 md:p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none font-bold text-base transition-all placeholder:text-slate-300 shadow-inner" />
+              className="w-full p-4 md:p-5 bg-slate-50 border-2 border-transparent rounded-2xl focus:border-blue-500 outline-none font-bold text-base transition-all placeholder:text-slate-300 shadow-inner"
+            />
             <p className="text-[10px] text-slate-400 ml-2 italic">
               {locale === 'ru'
                 ? 'Клиенты с 4-5 звёздами увидят кнопку для отзыва на Google. Ссылка локации имеет приоритет.'
@@ -206,7 +346,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ✅ QRATE VERIFIED BADGE */}
+        {/* QRATE VERIFIED BADGE */}
         {companyId && (
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xl p-6 md:p-10">
             <div className="flex items-center gap-4 mb-6">
@@ -222,8 +362,6 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-
-            {/* Preview */}
             <div className="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-center">
               <iframe
                 src={`https://www.qrate.md/badge/${companyId}`}
@@ -232,8 +370,6 @@ export default function SettingsPage() {
                 title="QRate Badge Preview"
               />
             </div>
-
-            {/* Cod embed */}
             <div className="space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] ml-1">
                 {locale === 'ru' ? 'Код для вставки на сайт' : 'Cod embed pentru site-ul tău'}
@@ -242,16 +378,20 @@ export default function SettingsPage() {
                 <pre className="bg-slate-900 text-emerald-400 p-4 rounded-2xl text-[11px] font-mono overflow-x-auto leading-relaxed whitespace-pre-wrap">
                   {embedCode}
                 </pre>
-                <button onClick={handleCopyBadge}
+                <button
+                  onClick={handleCopyBadge}
                   className={`absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${copiedBadge ? 'bg-emerald-500 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}`}>
-                  {copiedBadge ? <><Check size={12} /> {locale === 'ru' ? 'Скопировано!' : 'Copiat!'}</> : <><Copy size={12} /> {locale === 'ru' ? 'Копировать' : 'Copiază'}</>}
+                  {copiedBadge
+                    ? <><Check size={12} /> {locale === 'ru' ? 'Скопировано!' : 'Copiat!'}</>
+                    : <><Copy size={12} /> {locale === 'ru' ? 'Копировать' : 'Copiază'}</>}
                 </button>
               </div>
               <p className="text-[10px] text-slate-400 ml-1 italic">
-                {locale === 'ru' ? 'Вставьте этот код в HTML вашего сайта — виджет обновляется автоматически.' : 'Inserează codul în HTML-ul site-ului tău — widget-ul se actualizează automat.'}
+                {locale === 'ru'
+                  ? 'Вставьте этот код в HTML вашего сайта — виджет обновляется автоматически.'
+                  : 'Inserează codul în HTML-ul site-ului tău — widget-ul se actualizează automat.'}
               </p>
             </div>
-
             <a href={`https://www.qrate.md/badge/${companyId}`} target="_blank" rel="noreferrer"
               className="mt-4 inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 text-xs font-black uppercase tracking-wider transition-colors">
               <ExternalLink size={14} />
@@ -265,10 +405,14 @@ export default function SettingsPage() {
           <div className="flex items-center gap-4 mb-6">
             <div className="p-3 md:p-4 bg-slate-50 rounded-2xl text-slate-600"><Shield size={24} /></div>
             <div>
-              <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">{t?.security?.title || "Securitate"}</h2>
+              <h2 className="text-lg md:text-xl font-black uppercase tracking-tight">
+                {t?.security?.title || "Securitate"}
+              </h2>
             </div>
           </div>
-          <button onClick={handleResetPassword} className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-wider transition-colors">
+          <button
+            onClick={handleResetPassword}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-black px-6 py-3 rounded-2xl text-xs uppercase tracking-wider transition-colors">
             {t?.security?.reset_btn || "Resetează parola"}
           </button>
         </div>
@@ -279,13 +423,19 @@ export default function SettingsPage() {
             {showSavedSuccess && (
               <div className="flex items-center gap-2 text-emerald-600">
                 <CheckCircle size={18} />
-                <span className="text-xs font-black uppercase tracking-widest">{t?.alerts?.saved_success || "Modificări Salvate!"}</span>
+                <span className="text-xs font-black uppercase tracking-widest">
+                  {t?.alerts?.saved_success || "Modificări Salvate!"}
+                </span>
               </div>
             )}
           </div>
-          <button onClick={handleSave} disabled={saving}
+          <button
+            onClick={handleSave}
+            disabled={saving}
             className="w-full md:w-auto bg-slate-900 text-white px-10 py-4 md:py-5 rounded-3xl font-black uppercase text-xs tracking-[0.2em] hover:bg-blue-600 transition-all flex items-center justify-center gap-2 active:scale-95">
-            {saving ? <Loader2 className="animate-spin" size={18} /> : <><Save size={18} /> {t?.save_btn || "Salvează Modificările"}</>}
+            {saving
+              ? <Loader2 className="animate-spin" size={18} />
+              : <><Save size={18} /> {t?.save_btn || "Salvează Modificările"}</>}
           </button>
         </div>
       </div>

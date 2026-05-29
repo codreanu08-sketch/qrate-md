@@ -29,14 +29,25 @@ async function sendTelegramMessage(chatId: string, message: string) {
   }
 }
 
+/** Merge company + location IDs, deduplicate, return as comma-separated string */
+function mergeIds(companyIds: string | null, locationIds: string | null): string {
+  const parse = (raw: string | null) =>
+    (raw || '').split(',').map(id => id.trim()).filter(Boolean);
+
+  const merged = Array.from(new Set([...parse(companyIds), ...parse(locationIds)]));
+  return merged.join(',');
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const review = body.reviewData || body;
 
-    let CHAT_ID = null;
+    let companyTelegramId: string | null = null;
+    let locationTelegramIds: string | null = null;
     let companyName = 'Compania';
 
+    // 1. Fetch company telegram ID + name
     if (review.company_id) {
       const { data: company } = await supabase
         .from('companies')
@@ -44,16 +55,32 @@ export async function POST(request: Request) {
         .eq('id', review.company_id)
         .maybeSingle();
 
-      if (company?.telegram_chat_id) {
-        CHAT_ID = company.telegram_chat_id;
+      if (company) {
+        companyTelegramId = company.telegram_chat_id || null;
         companyName = company.name || 'Compania';
       }
     }
 
+    // 2. Fetch location telegram IDs (if review has location_id)
+    if (review.location_id) {
+      const { data: location } = await supabase
+        .from('locations')
+        .select('telegram_chat_ids')
+        .eq('id', review.location_id)
+        .maybeSingle();
+
+      if (location?.telegram_chat_ids) {
+        locationTelegramIds = location.telegram_chat_ids;
+      }
+    }
+
+    // 3. Merged ID string — used for everything below
+    const CHAT_ID = mergeIds(companyTelegramId, locationTelegramIds);
+
     const rating = Number(review.rating) || 5;
     const stars = '⭐️'.repeat(rating);
 
-    // ✅ 1. Mesaj normal recenzie negativă (≤3 stele)
+    // 4. Mesaj principal — prin queue (comportament existent păstrat)
     let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n==========================\n`;
     message += `🏢 <b>Companie:</b> ${companyName}\n`;
     message += `⭐ <b>Rating:</b> ${stars} (${rating}/5)\n`;
@@ -63,13 +90,13 @@ export async function POST(request: Request) {
     message += `==========================`;
 
     await supabase.from('telegram_messages_queue').insert({
-      chat_id: CHAT_ID,
+      chat_id: CHAT_ID || null,
       message_text: message,
       photo_url: review.photo_url || null,
       status: 'pending'
     });
 
-    // ✅ 2. CRISIS MODE — 3+ recenzii negative în 30 minute
+    // 5. CRISIS MODE — 3+ recenzii negative în 30 minute
     if (rating <= 2 && review.company_id && CHAT_ID) {
       const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
@@ -94,8 +121,8 @@ export async function POST(request: Request) {
       }
     }
 
-    // ✅ 3. RECOVERY WIN — același telefon: ≤2★ în trecut → ≥4★ acum
-    if (rating >= 4 && review.phone && review.company_id) {
+    // 6. RECOVERY WIN — același telefon: ≤2★ în trecut → ≥4★ acum
+    if (rating >= 4 && review.phone && review.company_id && CHAT_ID) {
       const { data: oldNegative } = await supabase
         .from('reviews')
         .select('id, rating, created_at')
@@ -112,7 +139,6 @@ export async function POST(request: Request) {
         );
 
         if (daysDiff >= 7) {
-          // Marchează în DB
           if (review.id) {
             await supabase
               .from('reviews')
@@ -123,20 +149,17 @@ export async function POST(request: Request) {
               .eq('id', review.id);
           }
 
-          // Notificare Telegram
-          if (CHAT_ID) {
-            const recoveryMessage =
-              `🏆 <b>RECOVERY WIN - ${companyName}</b> 🏆\n\n` +
-              `✨ Un client nemulțumit s-a întors cu o recenzie pozitivă!\n\n` +
-              `👤 <b>Client:</b> ${review.full_name || 'Client Anonim'}\n` +
-              (review.phone ? `📞 <b>Telefon:</b> ${review.phone}\n` : '') +
-              `📉 <b>Rating vechi:</b> ${'⭐'.repeat(oldReview.rating)} (${oldReview.rating}/5)\n` +
-              `📈 <b>Rating nou:</b> ${'⭐'.repeat(rating)} (${rating}/5)\n` +
-              `📅 <b>Interval:</b> ${daysDiff} zile\n\n` +
-              `💪 Felicitări! Ați transformat un client nemulțumit într-un client fidel!`;
+          const recoveryMessage =
+            `🏆 <b>RECOVERY WIN - ${companyName}</b> 🏆\n\n` +
+            `✨ Un client nemulțumit s-a întors cu o recenzie pozitivă!\n\n` +
+            `👤 <b>Client:</b> ${review.full_name || 'Client Anonim'}\n` +
+            (review.phone ? `📞 <b>Telefon:</b> ${review.phone}\n` : '') +
+            `📉 <b>Rating vechi:</b> ${'⭐'.repeat(oldReview.rating)} (${oldReview.rating}/5)\n` +
+            `📈 <b>Rating nou:</b> ${'⭐'.repeat(rating)} (${rating}/5)\n` +
+            `📅 <b>Interval:</b> ${daysDiff} zile\n\n` +
+            `💪 Felicitări! Ați transformat un client nemulțumit într-un client fidel!`;
 
-            await sendTelegramMessage(CHAT_ID, recoveryMessage);
-          }
+          await sendTelegramMessage(CHAT_ID, recoveryMessage);
         }
       }
     }
