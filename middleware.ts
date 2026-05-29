@@ -7,6 +7,12 @@ const intlMiddleware = createMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+
+  // ✅ Exclude /badge — nu aplică intl sau auth pe badge route
+  if (pathname.startsWith('/badge/')) {
+    return NextResponse.next();
+  }
+
   const isDashboardRoute = pathname.includes('/dashboard');
 
   let response = NextResponse.next({ request });
@@ -38,5 +44,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/', '/(ro|ru)/:path*', '/((?!api|_next|_vercel|.*\\..*).*)']
+  // ✅ Adăugat badge la excluderi
+  matcher: ['/', '/(ro|ru)/:path*', '/((?!api|badge|_next|_vercel|.*\\..*).*)']
 };
