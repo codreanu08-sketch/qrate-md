@@ -5,32 +5,22 @@ import { Zap, Mail } from 'lucide-react';
 import { RefundRo } from './refund-ro';
 import { RefundRu } from './refund-ru';
 
-// Interfața actualizată conform standardelor Next.js 16 pentru parametri asincroni
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
-// Generarea metadatelor indexabile
 export async function generateMetadata(props: PageProps) {
   const params = await props.params;
   const locale = params.locale;
   const isRu = locale === 'ru';
-  
-  const title = isRu 
-    ? 'Политика возврата и аннулирования платежей | QRate.md' 
-    : 'Politica de Retur și Rambursare | Dreptul de Retragere | QRate.MD';
-    
-  const description = isRu
-    ? 'Официальные правила возврата средств для цифровых услуг QRate.md в соответствии с Законом № 105/2003 о защите прав потребителей в Молдове.'
-    : 'Reguli oficiale de rambursare și retur pentru serviciile digitale QRate.md, în conformitate cu Legea nr. 105/2003 privind protecția consumatorilor în RM.';
-
   return {
-    title,
-    description,
-    robots: {
-      index: true,
-      follow: true,
-    },
+    title: isRu
+      ? 'Политика возврата и аннулирования платежей | QRate.md'
+      : 'Politica de Retur și Rambursare | QRate.md',
+    description: isRu
+      ? 'Официальные правила возврата QRate.md. QR RATING S.R.L., IDNO 1026023041245.'
+      : 'Reguli oficiale de rambursare QRate.md. QR RATING S.R.L., IDNO 1026023041245.',
+    robots: { index: true, follow: true },
     alternates: {
       canonical: `https://qrate.md/${locale}/refund`,
       languages: {
@@ -41,25 +31,19 @@ export async function generateMetadata(props: PageProps) {
   };
 }
 
-// Componenta principală a paginii
 export default async function RefundPage(props: PageProps) {
   const params = await props.params;
   const locale = params.locale;
-
-  // Securitate împotriva limbilor nesuportate
-  if (locale !== 'ro' && locale !== 'ru') {
-    notFound();
-  }
-
+  if (locale !== 'ro' && locale !== 'ru') notFound();
   const isRu = locale === 'ru';
 
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900">
-      
-      {/* HEADER LEGAL */}
+
+      {/* NAV */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-          <Link href={`/${locale}/dashboard`} className="flex items-center gap-2 group">
+          <Link href={`/${locale}`} className="flex items-center gap-2 group">
             <div className="bg-blue-600 p-2 rounded-xl">
               <Zap className="text-white fill-white" size={16} />
             </div>
@@ -67,31 +51,44 @@ export default async function RefundPage(props: PageProps) {
               QRate<span className="text-blue-600">.MD</span>
             </span>
           </Link>
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
-            {isRu ? 'v2026.1 (Соответствие Maib и Закону 105/2003)' : 'v2026.1 (Conformitate Maib & Legea 105/2003)'}
-          </span>
+          <div className="flex items-center gap-4">
+            <Link href={`/${locale}/terms`} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors hidden sm:block">
+              {isRu ? 'Условия' : 'Termeni'}
+            </Link>
+            <Link href={`/${locale}/privacy`} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors hidden sm:block">
+              {isRu ? 'Конфиденциальность' : 'Confidențialitate'}
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* CONTINUT INDEXABIL */}
+      {/* CONTENT */}
       <main className="max-w-4xl mx-auto px-6 pt-32 pb-24">
-        
-        {/* Randerare dinamică în funcție de limbă */}
         {isRu ? <RefundRu /> : <RefundRo />}
 
-        {/* FOOTER DETALII */}
+        {/* FOOTER */}
         <div className="mt-20 pt-10 border-t border-slate-100 flex flex-col md:flex-row justify-between gap-8">
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              {isRu ? 'Департамент Финансов' : 'Departament Financiar'}
+              {isRu ? 'Контакт' : 'Contact'}
             </p>
-            <div className="flex gap-4 text-slate-900 items-center">
-              <Mail size={16}/> <span className="text-xs font-bold uppercase tracking-widest text-blue-600">hello@qrate.md</span>
+            <div className="flex items-center gap-3 text-slate-700">
+              <Mail size={14} />
+              <span className="text-xs font-bold uppercase tracking-widest text-blue-600">hello@qrate.md</span>
             </div>
+            <p className="text-xs text-slate-400">
+              QR RATING S.R.L. · IDNO 1026023041245<br />
+              {isRu ? 'мун. Орхей, ул. Сэлчиилор 75' : 'mun. Orhei, str. Sălciilor 75'}
+            </p>
           </div>
-          <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.5em] self-center">
-            QRate Moldova • QR SOLUTIONS GROUP
-          </p>
+          <div className="flex flex-col gap-2 self-center">
+            <Link href={`/${locale}/terms`} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors">
+              {isRu ? '→ Условия использования' : '→ Termeni și Condiții'}
+            </Link>
+            <Link href={`/${locale}/privacy`} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 transition-colors">
+              {isRu ? '→ Политика конфиденциальности' : '→ Politica de Confidențialitate'}
+            </Link>
+          </div>
         </div>
       </main>
     </div>
