@@ -65,16 +65,16 @@ export default async function BadgePage({ params }: Props) {
         `}</style>
       </head>
       <body>
-        <a href="https://www.qrate.md" target="_blank" rel="noreferrer" class="badge">
-          <div class="logo">QRate<span>.md</span></div>
-          <div class="divider"></div>
-          <div class="info">
-            <div class="stars-row">
-              <span class="stars">{'★'.repeat(Math.max(0, Math.min(5, stars)))}{'☆'.repeat(Math.max(0, 5 - stars))}</span>
-              <span class="rating">{data.avg_rating}</span>
+        <a href="https://www.qrate.md" target="_blank" rel="noreferrer" className="badge">
+          <div className="logo">QRate<span>.md</span></div>
+          <div className="divider"></div>
+          <div className="info">
+            <div className="stars-row">
+              <span className="stars">{'★'.repeat(Math.max(0, Math.min(5, stars)))}{'☆'.repeat(Math.max(0, 5 - stars))}</span>
+              <span className="rating">{data.avg_rating}</span>
             </div>
-            <span class="count">{data.total_reviews} recenzii verificate</span>
-            <span class="verified">✓ Verificat QRate</span>
+            <span className="count">{data.total_reviews} recenzii verificate</span>
+            <span className="verified">✓ Verificat QRate</span>
           </div>
         </a>
       </body>
