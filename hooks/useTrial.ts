@@ -1,15 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export function useTrial() {
   const [trialDays, setTrialDays] = useState<number | null>(null);
   const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
     async function fetchTrial() {
+      // Nu reseta loading la fiecare navigare — evită flickering
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
@@ -40,6 +43,8 @@ export function useTrial() {
 
             const remaining = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
             setTrialDays(remaining);
+          } else {
+            setTrialDays(null);
           }
         }
       } catch (error) {
@@ -50,7 +55,7 @@ export function useTrial() {
     }
 
     fetchTrial();
-  }, []);
+  }, [pathname]); // ← re-fetch la fiecare schimbare de pagină
 
   return { trialDays, isPro, loading };
 }

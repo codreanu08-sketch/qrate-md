@@ -28,7 +28,7 @@ export default function DashboardLayout({
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          router.push(`/${locale}/auth/login`); // am corectat ruta
+          router.push(`/${locale}/auth/login`);
           return;
         }
 
@@ -38,7 +38,6 @@ export default function DashboardLayout({
           .eq('id', user.id)
           .maybeSingle();
 
-        // Dacă nu există profil, îl creăm
         if (!profile) {
           const now = new Date();
           const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -92,7 +91,6 @@ export default function DashboardLayout({
     );
   }
 
-  // Dacă trial-ul a expirat și nu e pe pagina de subscription
   if (!hasAccess && !isSubscriptionPage) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
@@ -112,15 +110,13 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen bg-slate-50">
       <Sidebar />
       
-      {/* Main Content - cu padding corect */}
-      <div className="flex-1 md:ml-[260px]">
-        <main className="min-h-screen">
-          {children}
-        </main>
-      </div>
+      {/* Main content starts after sidebar — no gap, full width */}
+      <main className="md:pl-[272px] pt-[60px] md:pt-0 min-h-screen">
+        {children}
+      </main>
     </div>
   );
 }
