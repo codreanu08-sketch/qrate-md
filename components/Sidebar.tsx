@@ -5,60 +5,54 @@ import { usePathname, useParams, useRouter } from 'next/navigation';
 import { 
   Home, MapPin, Users, MessageSquare, LogOut, CreditCard, 
   Sparkles, Zap, Settings, BarChart3, Menu, X, ChevronRight,
-  Star, TrendingUp, Clock
+  Star, Clock
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import ru from '@/messages/ru.json'; 
 import ro from '@/messages/ro.json'; 
+import { useTrial } from '@/hooks/useTrial';
 
 export default function Sidebar() {
   const pathname = usePathname();
   const params = useParams();
   const router = useRouter();
+  
   const locale = (params?.locale as 'ro' | 'ru') || 'ro';
   const messages = useMemo(() => (locale === 'ru' ? ru : ro), [locale]);
   const tDashboard = useMemo(() => (messages as any)?.Dashboard || {}, [messages]);
 
-  const [loading, setLoading] = useState(true);
-  const [trialDays, setTrialDays] = useState<number | null>(null);
-  const [isPro, setIsPro] = useState(false);
+  const { trialDays, isPro, loading } = useTrial();
+
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyName, setCompanyName] = useState('');
 
-  const initSidebar = useCallback(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+  // Fetch company name
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
 
-      const [profileRes, companyRes] = await Promise.all([
-        supabase.from('profiles').select('subscription_tier, trial_ends_at, created_at').eq('id', session.user.id).maybeSingle(),
-        supabase.from('companies').select('name').eq('owner_id', session.user.id).maybeSingle()
-      ]);
+        const { data } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('owner_id', session.user.id)
+          .maybeSingle();
 
-      if (profileRes.data) {
-        const pro = profileRes.data.subscription_tier === 'pro';
-        setIsPro(pro);
-
-        if (!pro) {
-          // ✅ Fix: calculează corect din trial_ends_at sau created_at + 7 zile
-          const endDate = profileRes.data.trial_ends_at
-            ? new Date(profileRes.data.trial_ends_at)
-            : new Date(new Date(profileRes.data.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
-
-          const remaining = Math.ceil((endDate.getTime() - Date.now()) / (1000 * 3600 * 24));
-          setTrialDays(remaining > 0 ? remaining : 0);
-        }
+        if (data?.name) setCompanyName(data.name);
+      } catch (e) {
+        console.error('Error fetching company:', e);
       }
+    };
 
-      if (companyRes.data?.name) setCompanyName(companyRes.data.name);
-
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    fetchCompany();
   }, []);
 
-  useEffect(() => { setMounted(true); initSidebar(); }, [initSidebar]);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const menuItems = useMemo(() => [
     {
@@ -126,7 +120,7 @@ export default function Sidebar() {
       <aside className="hidden md:flex w-[260px] shrink-0 h-screen fixed left-0 top-0 z-50 p-3 select-none">
         <div className="flex flex-col w-full h-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/50">
 
-          {/* LOGO */}
+          {/* LOGO + COMPANY */}
           <div className="px-5 pt-5 pb-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/30">
@@ -142,10 +136,11 @@ export default function Sidebar() {
               </div>
             </div>
 
-            {/* Compania */}
             {companyName && (
               <div className="mt-3 px-3 py-2 bg-white/5 rounded-xl border border-white/5">
-                <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">{locale === 'ru' ? 'Компания' : 'Companie'}</p>
+                <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">
+                  {locale === 'ru' ? 'Компания' : 'Companie'}
+                </p>
                 <p className="text-white text-xs font-black truncate mt-0.5">{companyName}</p>
               </div>
             )}
@@ -154,7 +149,7 @@ export default function Sidebar() {
           {/* SEPARATOR */}
           <div className="mx-5 h-px bg-white/5 mb-3" />
 
-          {/* MENIU */}
+          {/* MENU */}
           <nav className="flex-1 px-3 space-y-0.5 overflow-hidden">
             <p className="px-3 text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2">
               {locale === 'ru' ? 'Навигация' : 'Navigare'}
@@ -185,7 +180,7 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* TRIAL CARD sau PRO BADGE */}
+          {/* TRIAL CARD / PRO BADGE */}
           <div className="px-3 mb-3">
             {!loading && isPro && (
               <div className="px-3 py-2.5 bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl flex items-center gap-2">
@@ -215,7 +210,6 @@ export default function Sidebar() {
                   </span>
                 </div>
 
-                {/* Progress bar */}
                 <div className="h-1 bg-white/5 rounded-full overflow-hidden mb-2.5">
                   <div
                     className={`h-full rounded-full bg-gradient-to-r ${trialColor} transition-all`}
@@ -247,7 +241,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* SPACER desktop */}
+      {/* SPACER for desktop */}
       <div className="hidden md:block w-[260px] shrink-0" />
 
       {/* ===== MOBILE TOP BAR ===== */}
@@ -309,10 +303,8 @@ export default function Sidebar() {
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
           <div className="relative w-full bg-slate-950 rounded-t-[2rem] shadow-2xl p-5 pb-10 animate-in slide-in-from-bottom duration-300 border-t border-white/5">
 
-            {/* Handle */}
             <div className="w-8 h-1 bg-white/10 rounded-full mx-auto mb-5" />
 
-            {/* Header */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
@@ -327,7 +319,6 @@ export default function Sidebar() {
               </button>
             </div>
 
-            {/* Grid items */}
             <div className="grid grid-cols-2 gap-2.5 mb-4">
               {menuItems.map((item) => {
                 const Icon = item.icon;
@@ -357,13 +348,14 @@ export default function Sidebar() {
               })}
             </div>
 
-            {/* Trial */}
             {!loading && !isPro && trialDays !== null && (
               <div className={`p-4 rounded-2xl mb-3 flex items-center justify-between ${
                 trialDays <= 3 ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-blue-500/10 border border-blue-500/20'
               }`}>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">{locale === 'ru' ? 'Пробный период' : 'Trial activ'}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">
+                    {locale === 'ru' ? 'Пробный период' : 'Trial activ'}
+                  </p>
                   <p className={`font-black text-sm ${trialDays <= 3 ? 'text-rose-400' : 'text-blue-400'}`}>
                     {trialDays} {locale === 'ru' ? (trialDays === 1 ? 'день' : 'дней') : (trialDays === 1 ? 'zi' : 'zile')} {locale === 'ru' ? 'осталось' : 'rămase'}
                   </p>
