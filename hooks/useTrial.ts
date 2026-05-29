@@ -12,7 +12,6 @@ export function useTrial() {
 
   useEffect(() => {
     async function fetchTrial() {
-      // Nu reseta loading la fiecare navigare — evită flickering
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) {
@@ -41,7 +40,7 @@ export function useTrial() {
               endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             }
 
-            const remaining = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
+            const remaining = Math.max(0, Math.floor((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
             setTrialDays(remaining);
           } else {
             setTrialDays(null);
@@ -55,7 +54,7 @@ export function useTrial() {
     }
 
     fetchTrial();
-  }, [pathname]); // ← re-fetch la fiecare schimbare de pagină
+  }, [pathname]);
 
   return { trialDays, isPro, loading };
 }

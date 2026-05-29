@@ -63,11 +63,11 @@ export default function DashboardLayout({
 
           if (profile.trial_ends_at) {
             const endDate = new Date(profile.trial_ends_at);
-            trialDays = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
+            trialDays = Math.max(0, Math.floor((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
             isTrialActive = trialDays > 0;
           } else if (profile.created_at) {
             const endDate = new Date(new Date(profile.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
-            trialDays = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
+            trialDays = Math.max(0, Math.floor((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
             isTrialActive = trialDays > 0;
           }
 
