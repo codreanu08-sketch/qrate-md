@@ -28,31 +28,25 @@ export default function Sidebar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyName, setCompanyName] = useState('');
 
-  // Fetch company name
   useEffect(() => {
     const fetchCompany = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
-
         const { data } = await supabase
           .from('companies')
           .select('name')
           .eq('owner_id', session.user.id)
           .maybeSingle();
-
         if (data?.name) setCompanyName(data.name);
       } catch (e) {
         console.error('Error fetching company:', e);
       }
     };
-
     fetchCompany();
   }, []);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  useEffect(() => { setMounted(true); }, []);
 
   const menuItems = useMemo(() => [
     {
@@ -118,7 +112,8 @@ export default function Sidebar() {
     <>
       {/* ===== DESKTOP SIDEBAR ===== */}
       <aside className="hidden md:flex w-[260px] shrink-0 h-screen fixed left-0 top-0 z-50 p-3 select-none">
-        <div className="flex flex-col w-full h-full bg-slate-950 rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/50">
+        {/* Mai deschis: slate-900 în loc de slate-950, border vizibil */}
+        <div className="flex flex-col w-full h-full bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-slate-900/50 border border-white/10">
 
           {/* LOGO + COMPANY */}
           <div className="px-5 pt-5 pb-4">
@@ -128,17 +123,17 @@ export default function Sidebar() {
               </div>
               <div>
                 <p className="text-white font-black text-base italic uppercase tracking-tight leading-none">
-                  QRate<span className="text-blue-500">.md</span>
+                  QRate<span className="text-blue-400">.md</span>
                 </p>
-                <p className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] mt-0.5">
                   {locale === 'ru' ? 'Платформа отзывов' : 'Platformă feedback'}
                 </p>
               </div>
             </div>
 
             {companyName && (
-              <div className="mt-3 px-3 py-2 bg-white/5 rounded-xl border border-white/5">
-                <p className="text-[9px] text-slate-500 font-black uppercase tracking-wider">
+              <div className="mt-3 px-3 py-2 bg-white/10 rounded-xl border border-white/10">
+                <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">
                   {locale === 'ru' ? 'Компания' : 'Companie'}
                 </p>
                 <p className="text-white text-xs font-black truncate mt-0.5">{companyName}</p>
@@ -147,11 +142,11 @@ export default function Sidebar() {
           </div>
 
           {/* SEPARATOR */}
-          <div className="mx-5 h-px bg-white/5 mb-3" />
+          <div className="mx-5 h-px bg-white/10 mb-3" />
 
           {/* MENU */}
-          <nav className="flex-1 px-3 space-y-0.5 overflow-hidden">
-            <p className="px-3 text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] mb-2">
+          <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
+            <p className="px-3 text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">
               {locale === 'ru' ? 'Навигация' : 'Navigare'}
             </p>
             {menuItems.map((item) => {
@@ -162,11 +157,15 @@ export default function Sidebar() {
                   className={`flex items-center justify-between px-3 py-2.5 rounded-2xl font-black transition-all duration-150 group relative ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-white'
+                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
                   }`}>
                   <div className="flex items-center gap-3">
                     <Icon size={17} strokeWidth={isActive ? 2.5 : 2}
-                      className={`shrink-0 transition-all ${isActive ? 'text-white' : item.isPro ? 'text-indigo-400' : 'text-slate-500 group-hover:text-white'}`} />
+                      className={`shrink-0 transition-all ${
+                        isActive ? 'text-white'
+                        : item.isPro ? 'text-indigo-400'
+                        : 'text-slate-400 group-hover:text-white'
+                      }`} />
                     <span className="text-[12px] uppercase tracking-wide">{item.name}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
@@ -181,36 +180,42 @@ export default function Sidebar() {
           </nav>
 
           {/* TRIAL CARD / PRO BADGE */}
-          <div className="px-3 mb-3">
+          <div className="px-3 mb-3 mt-2 shrink-0">
             {!loading && isPro && (
-              <div className="px-3 py-2.5 bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl flex items-center gap-2">
+              <div className="px-3 py-2.5 bg-gradient-to-r from-emerald-500/15 to-transparent border border-emerald-500/25 rounded-2xl flex items-center gap-2">
                 <Star size={13} className="text-emerald-400 fill-emerald-400/30 shrink-0" />
                 <div>
                   <p className="text-emerald-400 text-[10px] font-black uppercase tracking-wider">Pro Active</p>
-                  <p className="text-slate-500 text-[9px]">{locale === 'ru' ? 'Все функции разблокированы' : 'Toate funcțiile active'}</p>
+                  <p className="text-slate-400 text-[9px]">{locale === 'ru' ? 'Все функции разблокированы' : 'Toate funcțiile active'}</p>
                 </div>
               </div>
             )}
 
             {!loading && !isPro && trialDays !== null && (
               <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${
-                trialDays <= 1 ? 'from-rose-500/10 to-transparent border border-rose-500/20'
-                : trialDays <= 3 ? 'from-amber-500/10 to-transparent border border-amber-500/20'
-                : 'from-blue-500/10 to-transparent border border-blue-500/20'
+                trialDays <= 1 ? 'from-rose-500/15 to-transparent border border-rose-500/25'
+                : trialDays <= 3 ? 'from-amber-500/15 to-transparent border border-amber-500/25'
+                : 'from-blue-500/15 to-transparent border border-blue-500/25'
               }`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5">
                     <Clock size={11} className={trialDays <= 1 ? 'text-rose-400' : trialDays <= 3 ? 'text-amber-400' : 'text-blue-400'} />
-                    <p className={`text-[9px] font-black uppercase tracking-wider ${trialDays <= 1 ? 'text-rose-400' : trialDays <= 3 ? 'text-amber-400' : 'text-blue-400'}`}>
+                    <p className={`text-[9px] font-black uppercase tracking-wider ${
+                      trialDays <= 1 ? 'text-rose-400' : trialDays <= 3 ? 'text-amber-400' : 'text-blue-400'
+                    }`}>
                       {locale === 'ru' ? 'Пробный период' : 'Trial gratuit'}
                     </p>
                   </div>
-                  <span className={`text-[10px] font-black ${trialDays <= 1 ? 'text-rose-300' : trialDays <= 3 ? 'text-amber-300' : 'text-blue-300'}`}>
-                    {trialDays} {locale === 'ru' ? (trialDays === 1 ? 'день' : trialDays <= 4 ? 'дня' : 'дней') : (trialDays === 1 ? 'zi' : 'zile')}
+                  <span className={`text-[10px] font-black ${
+                    trialDays <= 1 ? 'text-rose-300' : trialDays <= 3 ? 'text-amber-300' : 'text-blue-300'
+                  }`}>
+                    {trialDays} {locale === 'ru'
+                      ? (trialDays === 1 ? 'день' : trialDays <= 4 ? 'дня' : 'дней')
+                      : (trialDays === 1 ? 'zi' : 'zile')}
                   </span>
                 </div>
 
-                <div className="h-1 bg-white/5 rounded-full overflow-hidden mb-2.5">
+                <div className="h-1 bg-white/10 rounded-full overflow-hidden mb-2.5">
                   <div
                     className={`h-full rounded-full bg-gradient-to-r ${trialColor} transition-all`}
                     style={{ width: `${trialPercent}%` }}
@@ -231,9 +236,10 @@ export default function Sidebar() {
           </div>
 
           {/* LOGOUT */}
-          <div className="px-3 pb-3">
+          <div className="px-3 pb-3 shrink-0">
+            <div className="h-px bg-white/10 mb-3" />
             <button onClick={handleSignOut}
-              className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 hover:bg-rose-500/10 hover:text-rose-400 text-slate-500 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all group border border-transparent hover:border-rose-500/20">
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/8 hover:bg-rose-500/15 hover:text-rose-400 text-slate-400 rounded-2xl font-black text-[11px] uppercase tracking-wider transition-all group border border-white/10 hover:border-rose-500/25">
               <LogOut size={14} className="group-hover:text-rose-400 transition-colors" />
               {locale === 'ru' ? 'Выйти' : 'Ieșire'}
             </button>
@@ -241,17 +247,14 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* SPACER for desktop */}
-      <div className="hidden md:block w-[260px] shrink-0" />
-
       {/* ===== MOBILE TOP BAR ===== */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-slate-950/95 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/5">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-xl px-4 py-3 flex items-center justify-between border-b border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/30">
             <Zap className="text-white fill-white" size={14} />
           </div>
           <span className="font-black text-base italic uppercase text-white">
-            QRate<span className="text-blue-500">.md</span>
+            QRate<span className="text-blue-400">.md</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -268,7 +271,7 @@ export default function Sidebar() {
       </div>
 
       {/* ===== MOBILE BOTTOM NAV ===== */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950/98 backdrop-blur-xl border-t border-white/5 shadow-2xl">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/98 backdrop-blur-xl border-t border-white/10 shadow-2xl">
         <div className="flex items-center justify-around px-1 py-2 pb-safe">
           {menuItems.filter(i => i.mobileShow).map((item) => {
             const Icon = item.icon;
@@ -277,8 +280,8 @@ export default function Sidebar() {
               <Link key={item.href} href={item.href}
                 className={`flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl transition-all relative min-w-[56px] ${isActive ? 'bg-blue-600' : ''}`}>
                 <Icon size={19} strokeWidth={isActive ? 2.5 : 2}
-                  className={`${isActive ? 'text-white' : item.isPro ? 'text-indigo-400' : 'text-slate-500'}`} />
-                <span className={`text-[8px] font-black uppercase tracking-tight mt-1 ${isActive ? 'text-white' : 'text-slate-500'}`}>
+                  className={`${isActive ? 'text-white' : item.isPro ? 'text-indigo-400' : 'text-slate-400'}`} />
+                <span className={`text-[8px] font-black uppercase tracking-tight mt-1 ${isActive ? 'text-white' : 'text-slate-400'}`}>
                   {item.name.split(' ')[0]}
                 </span>
                 {item.isPro && !isActive && (
@@ -289,8 +292,8 @@ export default function Sidebar() {
           })}
           <button onClick={() => setMobileMenuOpen(true)}
             className="flex flex-col items-center justify-center py-1.5 px-3 rounded-2xl min-w-[56px]">
-            <Menu size={19} strokeWidth={2} className="text-slate-500" />
-            <span className="text-[8px] font-black uppercase tracking-tight mt-1 text-slate-500">
+            <Menu size={19} strokeWidth={2} className="text-slate-400" />
+            <span className="text-[8px] font-black uppercase tracking-tight mt-1 text-slate-400">
               {locale === 'ru' ? 'Ещё' : 'Mai mult'}
             </span>
           </button>
@@ -301,9 +304,9 @@ export default function Sidebar() {
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-0 z-[100] flex items-end">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <div className="relative w-full bg-slate-950 rounded-t-[2rem] shadow-2xl p-5 pb-10 animate-in slide-in-from-bottom duration-300 border-t border-white/5">
+          <div className="relative w-full bg-slate-900 rounded-t-[2rem] shadow-2xl p-5 pb-10 animate-in slide-in-from-bottom duration-300 border-t border-white/10">
 
-            <div className="w-8 h-1 bg-white/10 rounded-full mx-auto mb-5" />
+            <div className="w-8 h-1 bg-white/15 rounded-full mx-auto mb-5" />
 
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2.5">
@@ -311,7 +314,7 @@ export default function Sidebar() {
                   <Zap className="text-white fill-white" size={14} />
                 </div>
                 <span className="font-black text-base italic uppercase text-white">
-                  QRate<span className="text-blue-500">.md</span>
+                  QRate<span className="text-blue-400">.md</span>
                 </span>
               </div>
               <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-xl bg-white/10">
@@ -329,14 +332,14 @@ export default function Sidebar() {
                     className={`flex items-center gap-3 p-3.5 rounded-2xl transition-all ${
                       isActive
                         ? 'bg-blue-600 border border-blue-500'
-                        : 'bg-white/5 border border-white/5 hover:bg-white/10'
+                        : 'bg-white/8 border border-white/10 hover:bg-white/15'
                     }`}>
                     <div className={`p-1.5 rounded-xl shrink-0 ${isActive ? 'bg-white/20' : item.isPro ? 'bg-indigo-500/20' : 'bg-white/10'}`}>
                       <Icon size={16} strokeWidth={2}
-                        className={`${isActive ? 'text-white' : item.isPro ? 'text-indigo-400' : 'text-slate-400'}`} />
+                        className={`${isActive ? 'text-white' : item.isPro ? 'text-indigo-400' : 'text-slate-300'}`} />
                     </div>
                     <div className="min-w-0">
-                      <span className={`text-[11px] font-black uppercase tracking-wide block truncate ${isActive ? 'text-white' : 'text-slate-300'}`}>
+                      <span className={`text-[11px] font-black uppercase tracking-wide block truncate ${isActive ? 'text-white' : 'text-slate-200'}`}>
                         {item.name}
                       </span>
                       {item.isPro && !isActive && (
@@ -350,14 +353,18 @@ export default function Sidebar() {
 
             {!loading && !isPro && trialDays !== null && (
               <div className={`p-4 rounded-2xl mb-3 flex items-center justify-between ${
-                trialDays <= 3 ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-blue-500/10 border border-blue-500/20'
+                trialDays <= 3
+                  ? 'bg-rose-500/15 border border-rose-500/25'
+                  : 'bg-blue-500/15 border border-blue-500/25'
               }`}>
                 <div>
                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-0.5">
                     {locale === 'ru' ? 'Пробный период' : 'Trial activ'}
                   </p>
                   <p className={`font-black text-sm ${trialDays <= 3 ? 'text-rose-400' : 'text-blue-400'}`}>
-                    {trialDays} {locale === 'ru' ? (trialDays === 1 ? 'день' : 'дней') : (trialDays === 1 ? 'zi' : 'zile')} {locale === 'ru' ? 'осталось' : 'rămase'}
+                    {trialDays} {locale === 'ru'
+                      ? (trialDays === 1 ? 'день' : 'дней')
+                      : (trialDays === 1 ? 'zi' : 'zile')} {locale === 'ru' ? 'осталось' : 'rămase'}
                   </p>
                 </div>
                 <Link href={`/${locale}/dashboard/subscription`} onClick={() => setMobileMenuOpen(false)}
@@ -368,7 +375,7 @@ export default function Sidebar() {
             )}
 
             <button onClick={() => { handleSignOut(); setMobileMenuOpen(false); }}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-rose-500/10 hover:text-rose-400 text-slate-400 rounded-2xl font-black text-xs uppercase tracking-wider transition-all border border-white/5 hover:border-rose-500/20">
+              className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/8 hover:bg-rose-500/15 hover:text-rose-400 text-slate-300 rounded-2xl font-black text-xs uppercase tracking-wider transition-all border border-white/10 hover:border-rose-500/25">
               <LogOut size={15} />
               {locale === 'ru' ? 'Выйти из аккаунта' : 'Ieșire din cont'}
             </button>
