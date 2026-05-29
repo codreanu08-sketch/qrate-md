@@ -180,7 +180,7 @@ export default function AdminDashboardPage() {
   const exportCSV = ()=>{
     if (!filteredReviews.length) return;
     const rows = filteredReviews.map(r=>[new Date(r.created_at).toLocaleDateString('ro-RO'),r.employees?.name||'',r.locations?.name||'',r.rating,`"${(r.comment||'').replace(/"/g,'""')}"`,r.full_name||'Anonim'].join(','));
-    const blob = new Blob([[['Data','Angajat','Locatie','Nota','Comentariu','Client'].join(',',...rows)].join('\n')],{type:'text/csv'});
+    const blob = new Blob([[['Data','Angajat','Locatie','Nota','Comentariu','Client'].join(','), ...rows].join('\n')],{type:'text/csv'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`QRate_${new Date().toISOString().split('T')[0]}.csv`; a.click();
   };
 
