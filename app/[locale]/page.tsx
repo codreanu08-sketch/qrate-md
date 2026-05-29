@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Zap, Check, Mail, Trash2, Plus, Truck, QrCode, 
-  Send, BarChart3, Globe, Cookie, LogOut, 
-  LayoutDashboard, ShieldAlert, BellRing,
-  Activity, Star, Trophy, Sparkles, Building,
-  ChevronRight, Flame, Target, Award,
-  Bot, Smartphone, Shield, Users
+  Zap, Check, Mail, QrCode, Send, BarChart3, Globe, Cookie,
+  LogOut, LayoutDashboard, ShieldAlert, BellRing, Activity,
+  Star, Trophy, Sparkles, Building, ChevronRight, Flame,
+  Target, Award, Bot, Smartphone, Shield, Users, Phone
 } from 'lucide-react';
 import { Link, usePathname, useRouter, locales } from '@/i18n/config'; 
 import { useTranslations, useLocale } from 'next-intl';
@@ -52,21 +50,6 @@ const FEATURES_RU = [
   { icon: <Target size={24}/>, color: 'bg-orange-100 text-orange-600', title: 'Негативные ключевые слова', desc: 'Автоматическое обнаружение проблемных слов в отзывах. Оповещение при 3+ появлениях.' },
 ];
 
-const TICKER_ITEMS = [
-  '⭐ QRate Score 0-100',
-  '🚨 Crisis Mode Telegram',
-  '🏆 Recovery Win Tracking',
-  '📊 Heatmap Orar',
-  '🤖 AI Răspuns Smart',
-  '📍 Multi-Locații',
-  '💬 WhatsApp Follow-up',
-  '🔵 Google Reviews Redirect',
-  '🏅 Employee Leaderboard',
-  '🔮 AI Predicții',
-  '✅ QRate Verified Badge',
-  '🎯 Keywords Negativi',
-];
-
 export default function LandingPage() {
   const t = useTranslations('LandingPage');
   const locale = useLocale();
@@ -77,6 +60,7 @@ export default function LandingPage() {
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
 
   const currentPlan = PRICING_PLANS[selectedPlanIndex];
   const FEATURES = locale === 'ru' ? FEATURES_RU : FEATURES_RO;
@@ -85,6 +69,13 @@ export default function LandingPage() {
     if (newLocale === locale) return;
     router.replace(pathname, { locale: newLocale });
   };
+
+  // Scroll detection pentru header
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,17 +93,6 @@ export default function LandingPage() {
     return () => { isMounted = false; if (timer) clearTimeout(timer); subscription.unsubscribe(); };
   }, []);
 
-  const handleAcceptCookies = () => {
-    localStorage.setItem('qrate_cookie_consent', 'accepted');
-    setShowCookieBanner(false);
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsLoggedIn(false);
-    router.refresh();
-  };
-
   useEffect(() => {
     const interval = setInterval(() => {
       setShowNotification(true);
@@ -122,50 +102,78 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const scrollToContact = () => {
+    document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-[#FDFDFD] text-slate-900 font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
       
-      {/* HEADER */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex justify-center p-2 md:p-4">
-        <nav className="max-w-7xl w-full bg-white/90 backdrop-blur-2xl border border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[1.5rem] md:rounded-[2rem] px-4 md:px-8 h-16 md:h-20 flex items-center justify-between">
+      {/* ✅ MOBILE TOP BAR — telefon vizibil pe mobil */}
+      <div className="md:hidden bg-slate-950 text-white px-4 py-2 flex items-center justify-between">
+        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">QRate.MD</span>
+        <a href="tel:+37368688484" className="flex items-center gap-1.5 bg-blue-600 px-3 py-1.5 rounded-xl text-[10px] font-black text-white">
+          <Phone size={11}/> 068 688 484
+        </a>
+      </div>
+
+      {/* ✅ HEADER ACCENTUAT */}
+      <header className={`fixed top-0 left-0 right-0 z-50 flex justify-center transition-all duration-300 ${scrolled ? 'top-0 p-2 md:p-3' : 'top-7 md:top-0 p-2 md:p-4'}`}>
+        <nav className={`max-w-7xl w-full backdrop-blur-2xl border rounded-[1.5rem] md:rounded-[2rem] px-4 md:px-8 h-16 md:h-20 flex items-center justify-between transition-all duration-300 ${scrolled ? 'bg-slate-950/95 border-slate-800 shadow-2xl' : 'bg-white/90 border-white/50 shadow-[0_20px_50px_rgba(0,0,0,0.05)]'}`}>
+          
+          {/* Logo */}
           <div className="flex items-center gap-1.5 md:gap-2 group cursor-pointer shrink-0">
             <div className="bg-blue-600 p-1.5 md:p-2 rounded-lg md:rounded-xl shadow-lg shadow-blue-200 group-hover:rotate-12 transition-transform duration-300">
               <Zap className="text-white fill-white w-4 h-4 md:w-5 md:h-5" />
             </div>
-            <span className="text-lg md:text-xl font-black uppercase tracking-tighter italic text-slate-950">
-              QRate<span className="text-blue-600 hidden sm:inline">.MD</span>
+            <span className={`text-lg md:text-xl font-black uppercase tracking-tighter italic ${scrolled ? 'text-white' : 'text-slate-950'}`}>
+              QRate<span className="text-blue-500 hidden sm:inline">.MD</span>
             </span>
           </div>
-          <div className="hidden lg:flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
-            <a href="#functii" className="hover:text-blue-600 transition-all">{locale === 'ru' ? 'Функции' : 'Funcții'}</a>
-            <a href="#vizual-demo" className="hover:text-blue-600 transition-all">{locale === 'ru' ? 'Демо' : 'Demo'}</a>
-            <a href="#preturi" className="hover:text-blue-600 transition-all">{locale === 'ru' ? 'Цены' : 'Prețuri'}</a>
+
+          {/* Nav links desktop */}
+          <div className={`hidden lg:flex items-center gap-8 text-[10px] font-black uppercase tracking-[0.25em] ${scrolled ? 'text-slate-400' : 'text-slate-500'}`}>
+            <a href="#functii" className="hover:text-blue-500 transition-all">{locale === 'ru' ? 'Функции' : 'Funcții'}</a>
+            <a href="#vizual-demo" className="hover:text-blue-500 transition-all">{locale === 'ru' ? 'Демо' : 'Demo'}</a>
+            <a href="#preturi" className="hover:text-blue-500 transition-all">{locale === 'ru' ? 'Цены' : 'Prețuri'}</a>
+            {/* ✅ Buton Contact in nav */}
+            <button onClick={scrollToContact} className={`flex items-center gap-1.5 px-4 py-2 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest ${scrolled ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600'}`}>
+              <Phone size={12}/> {locale === 'ru' ? 'Контакт' : 'Contact'}
+            </button>
           </div>
-          <div className="flex items-center gap-2 md:gap-4 shrink-0">
-            <div className="flex items-center bg-slate-100/80 p-1 rounded-lg md:rounded-2xl border border-slate-200 shadow-inner">
-              <button onClick={() => switchLanguage('ro')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all ${locale === 'ro' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
-              <button onClick={() => switchLanguage('ru')} className={`px-2 md:px-4 py-1.5 md:py-2 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all ${locale === 'ru' ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2 md:gap-3 shrink-0">
+            {/* Telefon desktop — vizibil în header */}
+            <a href="tel:+37368688484" className={`hidden xl:flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black transition-all ${scrolled ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-100'}`}>
+              <Phone size={12}/> 068 688 484
+            </a>
+
+            {/* Language switcher */}
+            <div className={`flex items-center p-1 rounded-lg md:rounded-2xl border shadow-inner ${scrolled ? 'bg-white/10 border-white/10' : 'bg-slate-100/80 border-slate-200'}`}>
+              <button onClick={() => switchLanguage('ro')} className={`px-2 md:px-3 py-1.5 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all ${locale === 'ro' ? 'bg-blue-600 text-white shadow-sm' : scrolled ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>RO</button>
+              <button onClick={() => switchLanguage('ru')} className={`px-2 md:px-3 py-1.5 rounded-md md:rounded-xl text-[9px] md:text-[10px] font-black transition-all ${locale === 'ru' ? 'bg-blue-600 text-white shadow-sm' : scrolled ? 'text-slate-400 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}>RU</button>
             </div>
+
             {isLoggedIn ? (
-              <div className="flex items-center gap-1 md:gap-2 bg-slate-50 p-1 md:p-1.5 rounded-lg md:rounded-2xl border border-slate-200/60 shadow-sm">
-                <Link href="/dashboard" className="flex items-center gap-1.5 md:gap-2 bg-white hover:bg-blue-50 hover:text-blue-600 px-2 md:px-4 py-1.5 md:py-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-700 transition-all text-[9px] md:text-[10px] font-black uppercase tracking-wider">
-                  <LayoutDashboard size={14} className="text-blue-600" />
+              <div className="flex items-center gap-1 md:gap-2">
+                <Link href="/dashboard" className={`flex items-center gap-1.5 px-3 md:px-4 py-2 md:py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase transition-all ${scrolled ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-slate-900 text-white hover:bg-blue-600'}`}>
+                  <LayoutDashboard size={13}/>
                   <span className="hidden sm:inline">{locale === 'ru' ? 'Панель' : 'Dashboard'}</span>
                 </Link>
-                <button onClick={handleLogout} className="bg-white hover:bg-red-50 hover:text-red-600 p-1.5 md:p-2.5 rounded-md md:rounded-xl border border-slate-200 text-slate-400 transition-all active:scale-95">
-                  <LogOut size={14} />
+                <button onClick={async () => { await supabase.auth.signOut(); setIsLoggedIn(false); router.refresh(); }} className={`p-2 rounded-xl transition-all ${scrolled ? 'bg-white/10 text-slate-400 hover:text-white' : 'bg-slate-100 text-slate-400 hover:text-red-500'}`}>
+                  <LogOut size={14}/>
                 </button>
               </div>
             ) : (
-              <>
-                <Link href="/auth/login" className="text-[9px] md:text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-blue-600 px-1 md:px-2 transition-colors whitespace-nowrap">
+              <div className="flex items-center gap-2">
+                <Link href="/auth/login" className={`hidden sm:block text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-colors ${scrolled ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-blue-600'}`}>
                   {locale === 'ru' ? 'Войти' : 'Login'}
                 </Link>
-                <Link href="/auth/register" className="relative group overflow-hidden bg-slate-950 text-white px-3 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all hover:shadow-xl active:scale-95 whitespace-nowrap">
-                  <span className="relative z-10">{locale === 'ru' ? 'Начать' : 'Începe Gratuit'}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <Link href="/auth/register" className="relative group overflow-hidden bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 md:px-6 md:py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-wider transition-all hover:shadow-lg hover:shadow-blue-500/30 active:scale-95 whitespace-nowrap">
+                  {locale === 'ru' ? 'Начать' : 'Încearcă Gratuit'}
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </nav>
@@ -174,9 +182,9 @@ export default function LandingPage() {
       <main className="pt-20">
 
         {/* HERO */}
-        <section className="pt-36 pb-16 px-6 text-center">
-          <div className="max-w-6xl mx-auto space-y-10">
-            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em] animate-bounce">
+        <section className="pt-28 md:pt-36 pb-16 px-6 text-center">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.25em]">
               <Zap size={14} />
               {locale === 'ru' ? 'Платформа №1 отзывов в Молдове' : 'Platforma #1 de recenzii din Moldova'}
             </div>
@@ -192,61 +200,19 @@ export default function LandingPage() {
                 : 'Transformă feedback-ul clienților în creștere reală. QR, Telegram, AI — totul într-un singur panou.'}
             </p>
 
-            {/* 4 features */}
-            <div className="max-w-5xl mx-auto">
-              <div className="bg-white border border-slate-200 shadow-2xl rounded-[3.5rem] p-8 md:p-12 text-left">
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
-                    <Sparkles size={14} /> POWERED BY QRATE AI
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900 mt-4">
-                    {locale === 'ru' ? 'Всё, что нужно предпринимателю.' : 'Tot ce are nevoie un antreprenor. Într-un singur panou.'}
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {[
-                    { icon: <Activity size={26}/>, color: 'bg-emerald-100 text-emerald-600',
-                      title: locale === 'ru' ? 'Мониторинг 24/7' : 'Monitorizare 24/7',
-                      desc: locale === 'ru' ? 'Мгновенные уведомления в Telegram при каждом новом отзыве.' : 'Notificări instant pe Telegram la fiecare recenzie nouă.' },
-                    { icon: <Star size={26}/>, color: 'bg-amber-100 text-amber-600',
-                      title: locale === 'ru' ? 'AI-анализ отзывов' : 'Analiză AI a recenziilor',
-                      desc: locale === 'ru' ? 'Определение тональности, ключевые слова, рекомендации.' : 'Sentimente, keywords, predicții — totul automat.' },
-                    { icon: <Trophy size={26}/>, color: 'bg-indigo-100 text-indigo-600',
-                      title: locale === 'ru' ? 'Рейтинг команды' : 'Top angajați și locații',
-                      desc: locale === 'ru' ? 'Автоматический рейтинг по среднему баллу.' : 'Clasament automat bazat pe nota medie.' },
-                    { icon: <Sparkles size={26}/>, color: 'bg-violet-100 text-violet-600',
-                      title: locale === 'ru' ? 'AI Copilot ответов' : 'AI Copilot pentru răspunsuri',
-                      desc: locale === 'ru' ? 'Генерация ответов + WhatsApp кнопки одним кликом.' : 'Răspunsuri generate instant + buton WhatsApp direct.' },
-                  ].map((f, i) => (
-                    <div key={i} className="group flex gap-4 p-5 rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-lg transition-all">
-                      <div className={`shrink-0 w-12 h-12 ${f.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform`}>{f.icon}</div>
-                      <div><h4 className="font-black text-lg tracking-tight">{f.title}</h4><p className="text-slate-500 text-sm mt-1 leading-snug">{f.desc}</p></div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link href={isLoggedIn ? "/dashboard" : "/auth/register"} className="w-full sm:w-auto bg-blue-600 text-white px-14 py-7 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_25px_50px_-12px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 transition-all text-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href={isLoggedIn ? "/dashboard" : "/auth/register"} className="w-full sm:w-auto bg-blue-600 text-white px-12 py-6 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] shadow-[0_25px_50px_-12px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 transition-all text-center">
                 {isLoggedIn
                   ? (locale === 'ru' ? 'В панель управления' : 'Mergi la Dashboard')
-                  : (locale === 'ru' ? 'Начать бесплатно' : 'Începe Gratuit — 7 zile')}
+                  : (locale === 'ru' ? 'Начать бесплатно — 7 дней' : 'Începe Gratuit — 7 zile')}
               </Link>
+              <button onClick={scrollToContact} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-white border-2 border-slate-200 hover:border-blue-300 text-slate-700 px-8 py-6 rounded-[2rem] font-black uppercase text-xs tracking-[0.3em] transition-all hover:shadow-lg">
+                <Phone size={14} className="text-blue-600"/>
+                {locale === 'ru' ? 'Связаться' : 'Contactează-ne'}
+              </button>
             </div>
           </div>
         </section>
-
-        {/* TICKER */}
-        <div className="bg-slate-950 py-4 overflow-hidden border-y border-slate-800">
-          <div className="flex animate-[ticker_30s_linear_infinite] whitespace-nowrap">
-            {[...TICKER_ITEMS, ...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
-              <span key={i} className="inline-flex items-center gap-3 mx-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">
-                {item}<span className="text-blue-600 text-lg">•</span>
-              </span>
-            ))}
-          </div>
-        </div>
 
         {/* FUNCȚII */}
         <section id="functii" className="py-24 px-6 bg-[#F8FAFC] scroll-mt-24">
@@ -274,7 +240,6 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* CTA */}
             <div className="mt-16">
               <div className="bg-gradient-to-br from-slate-950 to-blue-950 rounded-[3rem] p-10 md:p-14 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-10">
@@ -314,21 +279,9 @@ export default function LandingPage() {
                   </h2>
                   <div className="space-y-4">
                     {[
-                      {
-                        icon: <Zap size={20}/>,
-                        title: locale === 'ru' ? 'Быстрое сканирование' : 'Scanare Rapidă',
-                        desc: locale === 'ru' ? 'Клиент сканирует QR и оставляет отзыв за 10 секунд' : 'Clientul scanează QR-ul și lasă recenzia în 10 secunde'
-                      },
-                      {
-                        icon: <ShieldAlert size={20}/>,
-                        title: locale === 'ru' ? 'Мгновенные оповещения' : 'Alerte Instant',
-                        desc: locale === 'ru' ? 'Уведомление в Telegram при каждом негативном отзыве' : 'Notificare pe Telegram imediat ce apare o recenzie negativă'
-                      },
-                      {
-                        icon: <Check size={20}/>,
-                        title: locale === 'ru' ? 'AI-ответы' : 'Răspunsuri AI',
-                        desc: locale === 'ru' ? 'Профессиональные ответы автоматически за один клик' : 'Generezi răspunsuri profesionale automat cu un singur click'
-                      }
+                      { icon: <Zap size={20}/>, title: locale === 'ru' ? 'Быстрое сканирование' : 'Scanare Rapidă', desc: locale === 'ru' ? 'Клиент сканирует QR и оставляет отзыв за 10 секунд' : 'Clientul scanează QR-ul și lasă recenzia în 10 secunde' },
+                      { icon: <ShieldAlert size={20}/>, title: locale === 'ru' ? 'Мгновенные оповещения' : 'Alerte Instant', desc: locale === 'ru' ? 'Уведомление в Telegram при каждом негативном отзыве' : 'Notificare pe Telegram imediat ce apare o recenzie negativă' },
+                      { icon: <Check size={20}/>, title: locale === 'ru' ? 'AI-ответы' : 'Răspunsuri AI', desc: locale === 'ru' ? 'Профессиональные ответы автоматически за один клик' : 'Generezi răspunsuri profesionale automat cu un singur click' }
                     ].map((step, i) => (
                       <div key={i} className="flex gap-4 items-center bg-white/5 p-4 sm:p-5 rounded-2xl border border-white/5 hover:bg-white/10 transition-colors">
                         <div className="p-3 bg-white/10 text-blue-400 rounded-xl shrink-0">{step.icon}</div>
@@ -340,7 +293,6 @@ export default function LandingPage() {
                     ))}
                   </div>
                 </div>
-                {/* Phone mockup */}
                 <div className="relative flex justify-center w-full">
                   <div className="relative w-[270px] h-[540px] sm:w-[320px] sm:h-[640px] bg-slate-900 rounded-[2.5rem] sm:rounded-[4rem] border-[10px] border-slate-800 shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden">
                     <div className="bg-white h-full w-full p-6 flex flex-col items-center text-center justify-between relative">
@@ -355,9 +307,7 @@ export default function LandingPage() {
                       </div>
                       <div className="w-14 h-14 bg-slate-950 rounded-2xl flex items-center justify-center text-white font-black italic text-2xl mt-14 shadow-xl">Q</div>
                       <div className="text-left w-full mt-2">
-                        <h4 className="font-black text-slate-950 text-xl uppercase tracking-tighter leading-tight">
-                          {locale === 'ru' ? 'Оставить отзыв' : 'Lasă o recenzie'}
-                        </h4>
+                        <h4 className="font-black text-slate-950 text-xl uppercase tracking-tighter leading-tight">{locale === 'ru' ? 'Оставить отзыв' : 'Lasă o recenzie'}</h4>
                       </div>
                       <div className="flex gap-2 my-3">
                         {[1,2,3,4,5].map(star => (
@@ -423,14 +373,76 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* ✅ SECȚIUNE CONTACT */}
+        <section id="contact" className="py-20 px-6 bg-slate-950 scroll-mt-24">
+          <div className="max-w-4xl mx-auto text-center">
+            <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em] mb-3">
+              {locale === 'ru' ? 'Связаться с нами' : 'Contactează-ne'}
+            </p>
+            <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-4">
+              {locale === 'ru' ? 'Suntem disponibili' : 'Suntem disponibili'}
+            </h2>
+            <p className="text-slate-400 text-sm mb-10 max-w-xl mx-auto">
+              {locale === 'ru'
+                ? 'Ai întrebări despre QRate? Suntem la un mesaj distanță.'
+                : 'Ai întrebări despre QRate? Suntem la un mesaj distanță.'}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+              {/* Telefon — apăsabil */}
+              <a href="tel:+37368688484"
+                className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-blue-600 border border-white/10 hover:border-blue-500 p-6 rounded-3xl transition-all duration-300 cursor-pointer">
+                <div className="w-12 h-12 bg-blue-600 group-hover:bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 transition-all">
+                  <Phone size={20} className="text-white group-hover:text-blue-600 transition-colors"/>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 group-hover:text-blue-200 uppercase tracking-widest mb-0.5 transition-colors">
+                    {locale === 'ru' ? 'Телефон' : 'Telefon'}
+                  </p>
+                  <p className="text-white font-black text-base tracking-wide">068 688 484</p>
+                  <p className="text-slate-500 group-hover:text-blue-200 text-[10px] font-bold mt-0.5 transition-colors">Gheorghe</p>
+                </div>
+              </a>
+
+              {/* Email */}
+              <a href="mailto:suport@qrate.md"
+                className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-indigo-600 border border-white/10 hover:border-indigo-500 p-6 rounded-3xl transition-all duration-300">
+                <div className="w-12 h-12 bg-indigo-600 group-hover:bg-white rounded-2xl flex items-center justify-center shadow-lg transition-all">
+                  <Mail size={20} className="text-white group-hover:text-indigo-600 transition-colors"/>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 group-hover:text-indigo-200 uppercase tracking-widest mb-0.5 transition-colors">Email</p>
+                  <p className="text-white font-black text-sm">suport@qrate.md</p>
+                  <p className="text-slate-500 group-hover:text-indigo-200 text-[10px] font-bold mt-0.5 transition-colors">
+                    {locale === 'ru' ? 'Поддержка' : 'Suport'}
+                  </p>
+                </div>
+              </a>
+
+              {/* Site */}
+              <div className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-emerald-600 border border-white/10 hover:border-emerald-500 p-6 rounded-3xl transition-all duration-300">
+                <div className="w-12 h-12 bg-emerald-600 group-hover:bg-white rounded-2xl flex items-center justify-center shadow-lg transition-all">
+                  <Globe size={20} className="text-white group-hover:text-emerald-600 transition-colors"/>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 group-hover:text-emerald-200 uppercase tracking-widest mb-0.5 transition-colors">Web</p>
+                  <p className="text-white font-black text-sm">www.qrate.md</p>
+                  <p className="text-slate-500 group-hover:text-emerald-200 text-[10px] font-bold mt-0.5 transition-colors">
+                    {locale === 'ru' ? 'Republica Moldova' : 'Republica Moldova'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white border-t border-slate-100 pt-20 pb-12">
+      <footer className="bg-white border-t border-slate-100 pt-16 pb-10">
         <div className="max-w-7xl mx-auto px-6 md:px-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            {/* Brand */}
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+            <div className="space-y-5">
               <div className="flex items-center gap-2">
                 <div className="bg-slate-950 p-2 rounded-xl"><Zap className="text-white fill-white" size={18} /></div>
                 <span className="text-xl font-black uppercase tracking-tighter italic">QRate<span className="text-blue-600">.MD</span></span>
@@ -442,52 +454,42 @@ export default function LandingPage() {
                 <p>Republica Moldova</p>
               </div>
             </div>
-
-            {/* Documente */}
-            <div className="space-y-6">
-              <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">
-                {locale === 'ru' ? 'Документы' : 'Documente'}
-              </h4>
+            <div className="space-y-5">
+              <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{locale === 'ru' ? 'Документы' : 'Documente'}</h4>
               <ul className="space-y-3 text-xs font-black text-slate-400 uppercase tracking-widest">
-                <li><a href={`/${locale}/terms`} className="hover:text-blue-600 transition-colors">
-                  {locale === 'ru' ? 'Условия использования' : 'Termeni și condiții'}
-                </a></li>
-                <li><a href={`/${locale}/privacy`} className="hover:text-blue-600 transition-colors">
-                  {locale === 'ru' ? 'Конфиденциальность' : 'Confidențialitate'}
-                </a></li>
-                <li><a href={`/${locale}/refund`} className="hover:text-blue-600 transition-colors">
-                  {locale === 'ru' ? 'Политика возврата' : 'Politica de rambursare'}
-                </a></li>
+                <li><a href={`/${locale}/terms`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Условия использования' : 'Termeni și condiții'}</a></li>
+                <li><a href={`/${locale}/privacy`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Конфиденциальность' : 'Confidențialitate'}</a></li>
+                <li><a href={`/${locale}/refund`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Политика возврата' : 'Politica de rambursare'}</a></li>
               </ul>
             </div>
-
-            {/* Suport */}
-            <div className="space-y-6">
-              <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">
-                {locale === 'ru' ? 'Поддержка' : 'Suport'}
-              </h4>
-              <ul className="space-y-4 text-xs font-black text-slate-400 uppercase tracking-widest italic">
-                <li className="flex items-center gap-3"><Mail size={14} className="text-blue-600 shrink-0"/> hello@qrate.md</li>
-                <li className="flex items-center gap-3"><Globe size={14} className="text-blue-600 shrink-0"/> www.qrate.md</li>
+            <div className="space-y-5">
+              <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{locale === 'ru' ? 'Поддержка' : 'Suport'}</h4>
+              <ul className="space-y-3 text-xs font-black text-slate-400 uppercase tracking-widest">
+                <li className="flex items-center gap-2.5">
+                  <Phone size={13} className="text-blue-600 shrink-0"/>
+                  <a href="tel:+37368688484" className="hover:text-blue-600 transition-colors">068 688 484</a>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Mail size={13} className="text-blue-600 shrink-0"/>
+                  <a href="mailto:suport@qrate.md" className="hover:text-blue-600 transition-colors">suport@qrate.md</a>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <Globe size={13} className="text-blue-600 shrink-0"/> www.qrate.md
+                </li>
               </ul>
             </div>
-
-            {/* Plăți */}
-            <div className="space-y-6">
-              <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">
-                {locale === 'ru' ? 'Безопасные платежи' : 'Plăți Securizate'}
-              </h4>
-              <div className="space-y-4">
-                <div className="text-sm font-black text-slate-700 tracking-tight">maib</div>
+            <div className="space-y-5">
+              <h4 className="font-black uppercase text-[11px] tracking-[0.3em] text-slate-950">{locale === 'ru' ? 'Безопасные платежи' : 'Plăți Securizate'}</h4>
+              <div className="space-y-3">
+                <div className="text-sm font-black text-slate-700">maib</div>
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Moldova Agroindbank S.A.</div>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black text-slate-600">VISA</span>
                   <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black text-slate-600">MASTERCARD</span>
                 </div>
               </div>
             </div>
           </div>
-
           <div className="text-center pt-8 border-t border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.6em]">
               © 2026 QR RATING S.R.L. · QRate Moldova · {locale === 'ru' ? 'Все права защищены' : 'Toate drepturile rezervate'}
@@ -496,22 +498,17 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {/* COOKIE BANNER */}
       {showCookieBanner && (
         <aside className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md bg-slate-900 text-white p-6 rounded-3xl shadow-2xl border border-slate-800 z-50">
           <div className="flex items-start gap-4">
             <div className="bg-blue-600/20 p-2.5 rounded-xl text-blue-400 mt-1 shrink-0"><Cookie size={20} /></div>
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">
-                {locale === 'ru' ? 'Использование Cookie' : 'Politica Cookie'}
-              </h3>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-200">{locale === 'ru' ? 'Использование Cookie' : 'Politica Cookie'}</h3>
               <p className="text-slate-400 text-xs mt-2 leading-relaxed">
-                {locale === 'ru'
-                  ? 'QRate.md использует обязательные технические cookie для защиты сессии и корректной работы.'
-                  : 'QRate.md folosește cookie-uri tehnice obligatorii pentru protejarea sesiunii tale.'}
+                {locale === 'ru' ? 'QRate.md использует обязательные технические cookie для защиты сессии.' : 'QRate.md folosește cookie-uri tehnice obligatorii pentru protejarea sesiunii tale.'}
               </p>
               <div className="mt-4 flex justify-end">
-                <button onClick={handleAcceptCookies} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all">
+                <button onClick={() => { localStorage.setItem('qrate_cookie_consent','accepted'); setShowCookieBanner(false); }} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider">
                   {locale === 'ru' ? 'Принять' : 'Accept'}
                 </button>
               </div>
