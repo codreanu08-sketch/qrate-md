@@ -195,13 +195,22 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <div className={`flex items-center gap-5 text-[10px] font-black uppercase tracking-[0.2em] ${scrolled ? 'text-slate-400' : 'text-slate-500'}`}>
-            <button onClick={() => scrollTo('functii')} className="hover:text-blue-500 transition-all">{locale === 'ru' ? 'Функции' : 'Funcții'}</button>
-            <button onClick={() => scrollTo('industrii')} className="hover:text-blue-500 transition-all">{locale === 'ru' ? 'Industrii' : 'Industrii'}</button>
-            <button onClick={() => scrollTo('demo')} className="hover:text-blue-500 transition-all">Demo</button>
-            <button onClick={() => scrollTo('preturi')} className="hover:text-blue-500 transition-all">{locale === 'ru' ? 'Цены' : 'Prețuri'}</button>
-            <button onClick={() => scrollTo('contact')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all ${scrolled ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-700 hover:bg-blue-50 hover:text-blue-600'}`}>
-              <Phone size={11}/> Contact
+          <div className="flex items-center gap-1">
+            {[
+              { id: 'functii', label: locale === 'ru' ? 'Функции' : 'Funcții' },
+              { id: 'industrii', label: locale === 'ru' ? 'Industrii' : 'Industrii' },
+              { id: 'demo', label: 'Demo' },
+              { id: 'preturi', label: locale === 'ru' ? 'Цены' : 'Prețuri' },
+            ].map(item => (
+              <button key={item.id} onClick={() => scrollTo(item.id)}
+                className={`relative px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 group ${scrolled ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
+                {item.label}
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-blue-500 rounded-full group-hover:w-4 transition-all duration-200"/>
+              </button>
+            ))}
+            <button onClick={() => scrollTo('contact')}
+              className={`flex items-center gap-1.5 ml-2 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 ${scrolled ? 'bg-blue-600 text-white hover:bg-blue-500 shadow-lg shadow-blue-500/30' : 'bg-slate-900 text-white hover:bg-blue-600 shadow-lg shadow-slate-900/20'}`}>
+              <Phone size={12}/> Contact
             </button>
           </div>
 
