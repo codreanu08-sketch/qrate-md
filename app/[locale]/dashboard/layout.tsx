@@ -21,7 +21,8 @@ export default function DashboardLayout({
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+  // ✅ Default TRUE — nu bloca dacă query-ul întârzie sau eșuează
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -32,49 +33,43 @@ export default function DashboardLayout({
           return;
         }
 
-        // ✅ FIX: selectăm toate câmpurile relevante
-        let { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('subscription_tier, trial_ends_at, created_at, is_admin, is_subscribed, subscription_status')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (!profile) {
-          const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-          const { data: newProfile } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              email: user.email,
-              trial_ends_at: trialEnd.toISOString(),
-              subscription_tier: 'free'
-            })
-            .select()
-            .single();
-          profile = newProfile;
+        // Dacă query eșuează sau nu există profil → acordă acces (fail-open)
+        if (error || !profile) {
+          console.warn('Profile fetch failed, granting access by default', error);
+          setHasAccess(true);
+          return;
         }
 
-        if (profile) {
-          // ✅ FIX: admin + toate condițiile posibile
-          const isPro =
-            profile.is_admin === true ||
-            profile.subscription_tier === 'pro' ||
-            profile.is_subscribed === true ||
-            profile.subscription_status === 'ACTIVE';
+        // ✅ Orice condiție satisfăcută = acces
+        const isPro =
+          profile.is_admin === true ||
+          profile.subscription_tier === 'pro' ||
+          profile.is_subscribed === true ||
+          profile.subscription_status === 'ACTIVE';
 
-          let isTrialActive = false;
-          if (!isPro) {
-            const endDate = profile.trial_ends_at
-              ? new Date(profile.trial_ends_at)
-              : new Date(new Date(profile.created_at).getTime() + 7 * 86400000);
-            isTrialActive = endDate.getTime() > Date.now();
-          }
-
-          setHasAccess(isPro || isTrialActive);
+        if (isPro) {
+          setHasAccess(true);
+          return;
         }
+
+        // Verifică trial doar dacă nu e pro
+        const endDate = profile.trial_ends_at
+          ? new Date(profile.trial_ends_at)
+          : profile.created_at
+            ? new Date(new Date(profile.created_at).getTime() + 7 * 86400000)
+            : new Date(Date.now() + 86400000); // fallback: 1 zi
+
+        setHasAccess(endDate.getTime() > Date.now());
+
       } catch (error) {
-        console.error('Error checking access:', error);
-        setHasAccess(true); // fail-safe
+        console.error('Layout access check error:', error);
+        setHasAccess(true); // ✅ Fail-open: dacă eroare → acordă acces
       } finally {
         setLoading(false);
       }
