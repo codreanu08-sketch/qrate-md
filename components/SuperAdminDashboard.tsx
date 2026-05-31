@@ -70,6 +70,15 @@ export default function SuperAdminDashboard() {
   const [invoiceNo, setInvoiceNo] = useState('');
   const [noteText, setNoteText] = useState('');
   const [trialDays, setTrialDays] = useState('7');
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('sa_theme') !== 'light';
+    return true;
+  });
+  const toggleTheme = () => setDark((prev: boolean) => {
+    const next = !prev;
+    localStorage.setItem('sa_theme', next ? 'dark' : 'light');
+    return next;
+  });
 
   // ── New features state ───────────────────────────────────────────
   const [broadcastModal, setBroadcastModal] = useState(false);
@@ -117,16 +126,55 @@ export default function SuperAdminDashboard() {
     finally { setBusy(''); }
   };
 
-  const activate = (id:string) => run(async()=>{ const r=await supabase.from('companies').update({is_active:true} as any).eq('id',id); if(r.error) throw r.error; },'act-'+id);
-  const suspend  = (id:string) => setConfirmModal({msg:`Suspendezi compania?`, fn:()=>run(async()=>{ const r=await supabase.from('companies').update({is_active:false} as any).eq('id',id); if(r.error) throw r.error; },'sus-'+id)});
-  const stopTrial = (id:string) => setConfirmModal({msg:'Oprești trial-ul?', fn:()=>run(async()=>{ const r=await supabase.from('companies').update({trial_ends_at:new Date(0).toISOString()} as any).eq('id',id); if(r.error) throw r.error; },'stop-'+id)});
+  // ── Helper: găsește owner_id al companiei ──────────────────────
+  const getOwner = async (companyId: string): Promise<string|null> => {
+    const { data } = await supabase.from('companies').select('owner_id').eq('id', companyId).single();
+    return data?.owner_id || null;
+  };
+
+  // ── Activează — companies + profiles ──────────────────────────
+  const activate = (id:string) => run(async()=>{
+    const r = await supabase.from('companies').update({is_active:true} as any).eq('id',id);
+    if(r.error) throw r.error;
+    const ownerId = await getOwner(id);
+    if(ownerId) await supabase.from('profiles').update({subscription_tier:'trial'} as any).eq('id',ownerId);
+  },'act-'+id);
+
+  // ── Suspendă — companies + profiles ───────────────────────────
+  const suspend = (id:string) => setConfirmModal({msg:`Suspendezi compania?`, fn:()=>run(async()=>{
+    const r = await supabase.from('companies').update({is_active:false} as any).eq('id',id);
+    if(r.error) throw r.error;
+    const ownerId = await getOwner(id);
+    if(ownerId) await supabase.from('profiles').update({subscription_tier:'suspended'} as any).eq('id',ownerId);
+  },'sus-'+id)});
+
+  // ── Stop Trial — companies + profiles ─────────────────────────
+  const stopTrial = (id:string) => setConfirmModal({msg:'Oprești trial-ul?', fn:()=>run(async()=>{
+    const past = new Date(0).toISOString();
+    const r = await supabase.from('companies').update({trial_ends_at:past} as any).eq('id',id);
+    if(r.error) throw r.error;
+    const ownerId = await getOwner(id);
+    if(ownerId) await supabase.from('profiles').update({trial_ends_at:past} as any).eq('id',ownerId);
+  },'stop-'+id)});
+
+  // ── Extinde Trial — companies + profiles ─────────────────────
   const extTrial = (id:string, days:number) => run(async()=>{
-    const res = await supabase.from('companies').update({
-      trial_ends_at: new Date(Date.now()+days*86400000).toISOString(),
+    const newEnd = new Date(Date.now()+days*86400000).toISOString();
+    const r1 = await supabase.from('companies').update({
+      trial_ends_at: newEnd,
       is_active: true,
       is_subscribed: false
     } as any).eq('id',id);
-    if(res.error) throw res.error;
+    if(r1.error) throw r1.error;
+    // ✅ Actualizează și profiles — asta vede clientul în dashboard
+    const ownerId = await getOwner(id);
+    if(ownerId) {
+      const r2 = await supabase.from('profiles').update({
+        trial_ends_at: newEnd,
+        subscription_tier: 'trial'
+      } as any).eq('id',ownerId);
+      if(r2.error) console.warn('Profile update failed:', r2.error.message);
+    }
   },'ext-'+id);
   const delCo = (id:string, name:string) => setConfirmModal({msg:`Ștergi definitiv "${name}"? Ireversibil!`, fn:()=>run(async()=>{
     const res = await supabase.from('companies').delete().eq('id',id);
@@ -142,9 +190,30 @@ export default function SuperAdminDashboard() {
     if(!payModal) return;
     const exp = new Date(Date.now()+30*86400000).toISOString();
     const inv = invoiceNo||`QR-${new Date().getFullYear()}-${String(payments.length+1).padStart(4,'0')}`;
-    const r1 = await supabase.from('companies').update({is_subscribed:true,subscription_expires_at:exp,is_active:true,plan_name:planName} as any).eq('id',payModal.id);
+    // ✅ Actualizează companies
+    const r1 = await supabase.from('companies').update({
+      is_subscribed: true,
+      subscription_expires_at: exp,
+      is_active: true,
+      plan_name: planName
+    } as any).eq('id',payModal.id);
     if(r1.error) throw r1.error;
-    const r2 = await supabase.from('payments').insert({company_id:payModal.id,amount:parseFloat(payAmount),invoice_number:inv,plan_name:planName,paid_at:new Date().toISOString()} as any);
+    // ✅ Actualizează profiles — clientul vede PRO în dashboard imediat
+    const ownerId = await getOwner(payModal.id);
+    if(ownerId) {
+      await supabase.from('profiles').update({
+        subscription_tier: 'pro',
+        trial_ends_at: exp  // extinde și trial_ends_at ca fallback
+      } as any).eq('id',ownerId);
+    }
+    // ✅ Înregistrează plata
+    const r2 = await supabase.from('payments').insert({
+      company_id: payModal.id,
+      amount: parseFloat(payAmount),
+      invoice_number: inv,
+      plan_name: planName,
+      paid_at: new Date().toISOString()
+    } as any);
     if(r2.error) throw r2.error;
     setPayModal(null); setInvoiceNo('');
   },'pay');
@@ -292,20 +361,20 @@ export default function SuperAdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0d14] text-white font-sans">
+    <div className={`min-h-screen font-sans transition-colors duration-200 ${dark ? "bg-[#0a0d14] text-white" : "bg-slate-50 text-slate-900"}`}>
 
       {/* TOP BAR */}
-      <div className="sticky top-0 z-50 border-b border-white/5 bg-[#0d1017]/95 backdrop-blur-xl">
+      <div className={`sticky top-0 z-50 border-b backdrop-blur-xl transition-colors duration-200 ${dark ? "border-white/5 bg-[#0d1017]/95" : "border-slate-200 bg-white/95"}`}>
         <div className="max-w-[1400px] mx-auto px-5 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/30"><Zap size={15} className="text-white fill-white"/></div>
             <div>
-              <p className="font-black text-sm text-white uppercase tracking-tight leading-none">SuperAdmin · QRate.MD</p>
-              <p className="text-[10px] text-slate-600 font-bold uppercase mt-0.5">Panou intern · Acces restricționat</p>
+              <p className={`font-black text-sm uppercase tracking-tight leading-none ${dark?"text-white":"text-slate-900"}`}>SuperAdmin · QRate.MD</p>
+              <p className={`text-[10px] font-bold uppercase mt-0.5 ${dark?"text-slate-600":"text-slate-500"}`}>Panou intern · Acces restricționat</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-4 text-[10px] font-black text-slate-500 uppercase">
+            <div className={`hidden md:flex items-center gap-4 text-[10px] font-black uppercase ${dark?"text-slate-500":{`${dark?"text-slate-400":"text-slate-500"}`}}`}>
               <span className="flex items-center gap-1"><Building2 size={10} className="text-blue-400"/> {kpi.total}</span>
               <span className="flex items-center gap-1"><Check size={10} className="text-emerald-400"/> {kpi.active} activi</span>
               <span className="flex items-center gap-1"><DollarSign size={10} className="text-emerald-400"/> {kpi.mrr.toLocaleString()} MDL/lună</span>
@@ -319,12 +388,12 @@ export default function SuperAdminDashboard() {
             {alerts.length>0&&<button onClick={()=>setTab('alerts')} className="relative flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 text-amber-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">
               <Bell size={11}/>{alerts.length}<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse"/>
             </button>}
-            <button onClick={load} className={`p-2 bg-white/5 hover:bg-white/10 rounded-xl ${busy==='loading'?'animate-spin':''}`}><RefreshCw size={13} className="text-slate-400"/></button>
+            <button onClick={load} className={`p-2 bg-white/5 hover:bg-white/10 rounded-xl ${busy==='loading'?'animate-spin':''}`}><RefreshCw size={13} className={`${dark?"text-slate-400":"text-slate-500"}`}/></button>
           </div>
         </div>
         <div className="max-w-[1400px] mx-auto px-5 flex gap-0 overflow-x-auto">
           {TABS.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)} className={`relative flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all border-b-2 ${tab===t.id?'text-blue-400 border-blue-500':'text-slate-600 border-transparent hover:text-slate-300'}`}>
+            <button key={t.id} onClick={()=>setTab(t.id)} className={`relative flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-black uppercase tracking-wider whitespace-nowrap transition-all border-b-2 ${tab===t.id?'text-blue-500 border-blue-500':dark?'text-slate-600 border-transparent hover:text-slate-300':'text-slate-500 border-transparent hover:text-slate-700'}`}>
               {t.icon}{t.label}
               {t.alert&&<span className="absolute top-1.5 right-1 w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"/>}
             </button>
@@ -332,7 +401,7 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-5 py-5 space-y-4">
+      <div className="max-w-[1400px] mx-auto px-5 py-5 space-y-4 transition-colors duration-200">
 
         {/* ═══ OVERVIEW ═══ */}
         {tab==='overview'&&(<>
@@ -350,7 +419,7 @@ export default function SuperAdminDashboard() {
               {l:'Trial→Paid Conv.',v:`${kpi.conversionRate}%`,icon:<Check size={17}/>,c:'text-emerald-400',bg:'bg-emerald-500/10 border-emerald-500/20'},
               {l:'Churn Rate',v:`${kpi.churnRate}%`,icon:<TrendingDown size={17}/>,c:kpi.churnRate>10?'text-rose-400':'text-slate-400',bg:kpi.churnRate>10?'bg-rose-500/10 border-rose-500/20':'bg-slate-500/10 border-slate-500/20'},
             ].map((k,i)=>(
-              <div key={i} className={`border rounded-2xl p-4 ${k.bg} hover:brightness-110 transition-all`}>
+              <div key={i} className={`border rounded-2xl p-4 ${k.bg} hover:brightness-${dark?"110":"95"} transition-all ${!dark?"shadow-sm":""}`}>
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[10px] font-black text-slate-500 uppercase leading-tight">{k.l}</p>
                   <span className={k.c}>{k.icon}</span>
@@ -360,8 +429,8 @@ export default function SuperAdminDashboard() {
             ))}
           </div>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="font-black text-sm uppercase text-slate-300 mb-4 flex items-center gap-2"><BarChart3 size={13} className="text-blue-400"/> Venituri 6 luni</h3>
+            <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-5`}>
+              <h3 className={`font-black text-sm uppercase mb-4 flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><BarChart3 size={13} className="text-blue-400"/> Venituri 6 luni</h3>
               {revenueMonths.length===0 ? <div className="h-20 flex items-center justify-center text-slate-600 text-sm">Nicio plată</div> : (
                 <div className="flex items-end justify-between gap-2 h-20">
                   {revenueMonths.map((m,i)=>{
@@ -375,8 +444,8 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="font-black text-sm uppercase text-slate-300 mb-4 flex items-center gap-2"><Heart size={13} className="text-rose-400"/> Health Score Top 5</h3>
+            <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-5`}>
+              <h3 className={`font-black text-sm uppercase mb-4 flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><Heart size={13} className="text-rose-400"/> Health Score Top 5</h3>
               <div className="space-y-2.5">
                 {companies.slice(0,5).map((c,i)=>{
                   const h=calcHealth(c,reviews,locations);
@@ -392,9 +461,9 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-sm uppercase text-slate-300 flex items-center gap-2"><Activity size={13} className="text-blue-400"/> Companii Recente</h3>
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl overflow-hidden border`}>
+            <div className={`p-4 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-sm uppercase flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><Activity size={13} className="text-blue-400"/> Companii Recente</h3>
               <button onClick={()=>setTab('companies')} className="text-[10px] font-black text-blue-400 flex items-center gap-1">Toate <ChevronRight size={11}/></button>
             </div>
             {companies.slice(0,6).map(c=>{
@@ -421,33 +490,33 @@ export default function SuperAdminDashboard() {
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[180px] max-w-xs">
               <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600"/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Caută companie / IDNO / email..." className="w-full bg-white/5 border border-white/10 rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold text-white placeholder:text-slate-700 outline-none focus:border-blue-500"/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Caută companie / IDNO / email..." className={`w-full rounded-xl pl-8 pr-3 py-2.5 text-sm font-bold outline-none focus:border-blue-500 ${dark?"bg-white/5 border-white/10 text-white placeholder:text-slate-700 border":"bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 border shadow-sm"}`}/>
             </div>
-            <span className="text-[10px] font-black text-slate-600 uppercase">{filtered.length}/{companies.length}</span>
+            <span className={`text-[10px] font-black uppercase ${dark?"text-slate-600":"text-slate-500"}`}>{filtered.length}/{companies.length}</span>
             <button onClick={exportCompaniesCSV} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 px-3 py-2 rounded-xl text-[10px] font-black uppercase transition-all ml-auto">
               <Download size={11}/> Export CSV
             </button>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl overflow-hidden border`}>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-white/10">
+                  <tr className={`border-b ${dark?"border-white/10":"border-slate-100"}`}>
                     {['Companie','Status','Health','Statistici','Notă Admin','Acțiuni'].map(h=>(
-                      <th key={h} className="p-3 text-left text-[10px] font-black text-slate-600 uppercase whitespace-nowrap">{h}</th>
+                      <th key={h} className={`p-3 text-left text-[10px] font-black uppercase whitespace-nowrap ${dark?"text-slate-600":"text-slate-500"}`}>{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className={`divide-y ${dark?"divide-white/5":"divide-slate-50"}`}>
                   {filtered.map(c=>{
                     const s=getStatus(c); const h=calcHealth(c,reviews,locations);
                     const cRevs=reviews.filter(r=>r.company_id===c.id);
                     const avg=cRevs.length>0?(cRevs.reduce((a:number,r:any)=>a+(r.rating||0),0)/cRevs.length).toFixed(1):'—';
                     const isbusy=busy.endsWith(c.id);
                     return (
-                      <tr key={c.id} className="hover:bg-white/3 transition-all">
+                      <tr key={c.id} className={`transition-all ${dark?"hover:bg-white/3":"hover:bg-blue-50/50"}`}>
                         <td className="p-3">
-                          <p className="font-black text-white">{c.name}</p>
+                          <p className={`font-black ${dark?"text-white":"text-slate-900"}`}>{c.name}</p>
                           <p className="text-[10px] text-slate-600 font-mono">{c.idno||'—'}</p>
                           <p className="text-[10px] text-slate-700">{new Date(c.created_at).toLocaleDateString('ro-RO')}</p>
                           {c.plan_name&&<span className="text-[9px] bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-md">{c.plan_name}</span>}
@@ -506,17 +575,17 @@ export default function SuperAdminDashboard() {
         {tab==='employees'&&(<>
           <div className="grid grid-cols-3 gap-3 mb-1">
             {[{l:'Total',v:employees.length,c:'text-blue-400'},{l:'Cu QR',v:employees.filter(e=>e.qr_code_url).length,c:'text-emerald-400'},{l:'Fără locație',v:employees.filter(e=>!e.location_id).length,c:'text-amber-400'}].map((s,i)=>(
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+              <div key={i} className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-4 text-center border`}>
                 <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{s.l}</p>
                 <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
               </div>
             ))}
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl overflow-hidden border`}>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead><tr className="border-b border-white/10">{['Angajat','Companie','Locație','Funcție','Recenzii','Nota Medie'].map(h=><th key={h} className="p-3 text-left text-[10px] font-black text-slate-600 uppercase">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-white/5">
+                <thead><tr className={`border-b ${dark?"border-white/10":"border-slate-100"}`}>{['Angajat','Companie','Locație','Funcție','Recenzii','Nota Medie'].map(h=><th key={h} className={`p-3 text-left text-[10px] font-black uppercase ${dark?"text-slate-600":"text-slate-500"}`}>{h}</th>)}</tr></thead>
+                <tbody className={`divide-y ${dark?"divide-white/5":"divide-slate-50"}`}>
                   {employees.map(e=>{
                     const eR=reviews.filter(r=>r.employee_id===e.id);
                     const avg=eR.length>0?(eR.reduce((s:number,r:any)=>s+(r.rating||0),0)/eR.length).toFixed(1):'—';
@@ -581,18 +650,18 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-sm uppercase text-slate-300 flex items-center gap-2"><AlertTriangle size={13} className="text-amber-400"/> Companii fără plată</h3>
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl overflow-hidden border`}>
+            <div className={`p-4 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-sm uppercase flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><AlertTriangle size={13} className="text-amber-400"/> Companii fără plată</h3>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className={`divide-y ${dark?"divide-white/5":"divide-slate-50"}`}>
               {companies.filter(c=>['amber','red','slate'].includes(getStatus(c).badge)).length===0
                 ?<div className="p-6 text-center text-slate-600 font-bold">✅ Toate au status activ</div>
                 :companies.filter(c=>['amber','red','slate'].includes(getStatus(c).badge)).map(c=>{
                   const s=getStatus(c);
                   return <div key={c.id} className="flex items-center justify-between px-4 py-3 hover:bg-white/4">
                     <div>
-                      <p className="font-black text-white text-sm">{c.name}</p>
+                      <p className={`font-black text-sm ${dark?"text-white":"text-slate-900"}`}>{c.name}</p>
                       <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border ${B[s.badge]}`}>{s.label}</span>
                     </div>
                     <button onClick={()=>setPayModal(c)} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-xl text-[10px] font-black uppercase">
@@ -602,17 +671,17 @@ export default function SuperAdminDashboard() {
                 })}
             </div>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-sm uppercase text-slate-300 flex items-center gap-2"><FileText size={13} className="text-blue-400"/>Istoric Plăți ({payments.length})</h3>
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl overflow-hidden border`}>
+            <div className={`p-4 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-sm uppercase flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><FileText size={13} className="text-blue-400"/>Istoric Plăți ({payments.length})</h3>
               <button onClick={exportPaymentsCSV} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 px-3 py-2 rounded-xl text-[10px] font-black uppercase">
                 <Download size={11}/> Export
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
-                <thead><tr className="border-b border-white/10">{['Factură','Companie','Plan','Sumă','Data'].map(h=><th key={h} className="p-3 text-left text-[10px] font-black text-slate-600 uppercase">{h}</th>)}</tr></thead>
-                <tbody className="divide-y divide-white/5">
+                <thead><tr className={`border-b ${dark?"border-white/10":"border-slate-100"}`}>{['Factură','Companie','Plan','Sumă','Data'].map(h=><th key={h} className={`p-3 text-left text-[10px] font-black uppercase ${dark?"text-slate-600":"text-slate-500"}`}>{h}</th>)}</tr></thead>
+                <tbody className={`divide-y ${dark?"divide-white/5":"divide-slate-50"}`}>
                   {payments.map((p,i)=>(
                     <tr key={i} className="hover:bg-white/3">
                       <td className="p-3 font-mono font-black text-blue-400">{p.invoice_number}</td>
@@ -638,13 +707,13 @@ export default function SuperAdminDashboard() {
         {tab==='reviews'&&(<>
           <div className="grid grid-cols-3 gap-3">
             {[{l:'Total',v:reviews.length,c:'text-blue-400'},{l:'Nota medie',v:`${kpi.avgR} ★`,c:'text-amber-400'},{l:'Astăzi',v:kpi.todayRevs,c:'text-emerald-400'}].map((s,i)=>(
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+              <div key={i} className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-4 text-center border`}>
                 <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{s.l}</p>
                 <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
               </div>
             ))}
           </div>
-          <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl overflow-hidden border`}>
             <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto">
               {reviews.slice(0,100).map(r=>(
                 <div key={r.id} className={`flex gap-4 p-4 hover:bg-white/3 border-l-2 ${r.rating<=2?'border-rose-500':r.rating>=4?'border-emerald-500':'border-amber-500'}`}>
@@ -688,15 +757,15 @@ export default function SuperAdminDashboard() {
         {tab==='analytics'&&(<>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[{l:'Vizite azi',v:kpi.todayViews,c:'text-blue-400',icon:<Activity size={15}/>},{l:'Vizite totale',v:kpi.totalViews,c:'text-indigo-400',icon:<Globe size={15}/>},{l:'Companii active',v:kpi.active,c:'text-emerald-400',icon:<Building2 size={15}/>},{l:'Recenzii azi',v:kpi.todayRevs,c:'text-amber-400',icon:<Star size={15}/>}].map((s,i)=>(
-              <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-4">
+              <div key={i} className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-4 border`}>
                 <div className="flex items-center gap-2 mb-2 text-slate-500">{s.icon}<span className="text-[10px] font-black uppercase">{s.l}</span></div>
                 <p className={`text-2xl font-black ${s.c}`}>{s.v}</p>
               </div>
             ))}
           </div>
           {pvByDay.some(d=>d.count>0)?(
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-              <h3 className="font-black text-sm uppercase text-slate-300 mb-4 flex items-center gap-2"><Activity size={13} className="text-blue-400"/>Vizite ultimele 7 zile</h3>
+            <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-5`}>
+              <h3 className={`font-black text-sm uppercase mb-4 flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><Activity size={13} className="text-blue-400"/>Vizite ultimele 7 zile</h3>
               <div className="flex items-end justify-between gap-2 h-20">
                 {pvByDay.map((d,i)=>{
                   const max=Math.max(...pvByDay.map(x=>x.count),1);
@@ -722,8 +791,8 @@ export default function SuperAdminDashboard() {
               <p className="text-slate-400 text-xs">Rulează SQL-ul din fișierul <code className="bg-white/10 px-1 rounded">superadmin_fix_sql.sql</code> pentru toate setările necesare.</p>
             </div>
           )}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-            <h3 className="font-black text-sm uppercase text-slate-300 mb-4 flex items-center gap-2"><BarChart3 size={13} className="text-blue-400"/>Recenzii per companie</h3>
+          <div className={`${dark?"bg-white/5 border-white/10":"bg-white border-slate-200 shadow-sm"} rounded-2xl p-5`}>
+            <h3 className={`font-black text-sm uppercase mb-4 flex items-center gap-2 ${dark?"text-slate-300":"text-slate-700"}`}><BarChart3 size={13} className="text-blue-400"/>Recenzii per companie</h3>
             <div className="space-y-2">
               {companies.map(c=>({name:c.name,count:reviews.filter(r=>r.company_id===c.id).length})).sort((a,b)=>b.count-a.count).slice(0,10).map((c,i)=>{
                 const max=Math.max(...companies.map(x=>reviews.filter(r=>r.company_id===x.id).length),1);
@@ -743,31 +812,31 @@ export default function SuperAdminDashboard() {
       {/* ═══ MODAL PLATĂ ═══ */}
       {payModal&&(
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1017] border border-white/10 rounded-3xl max-w-md w-full shadow-2xl">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-base uppercase text-white flex items-center gap-2"><DollarSign size={15} className="text-emerald-400"/>Înregistrare Plată</h3>
-              <button onClick={()=>setPayModal(null)} className="p-2 bg-white/10 rounded-xl"><X size={13} className="text-slate-400"/></button>
+          <div className={`rounded-3xl max-w-md w-full shadow-2xl border ${dark?"bg-[#0d1017] border-white/10":"bg-white border-slate-200"}`}>
+            <div className={`p-5 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-base uppercase flex items-center gap-2 ${dark?"text-white":"text-slate-900"}`}><DollarSign size={15} className="text-emerald-400"/>Înregistrare Plată</h3>
+              <button onClick={()=>setPayModal(null)} className={`p-2 rounded-xl ${dark?"bg-white/10":"bg-slate-100"}`}><X size={13} className={`${dark?"text-slate-400":"text-slate-500"}`}/></button>
             </div>
             <div className="p-5 space-y-4">
               <div className="bg-white/5 rounded-2xl p-3 border border-white/10">
                 <p className="text-[10px] text-slate-500 font-black uppercase">Companie</p>
-                <p className="font-black text-white">{payModal.name}</p>
+                <p className={`font-black ${dark?"text-white":"text-slate-900"}`}>{payModal.name}</p>
               </div>
               <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1.5">Sumă (MDL)</label>
-                <input type="number" value={payAmount} onChange={e=>setPayAmount(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-black text-xl outline-none focus:border-blue-500"/>
+                <input type="number" value={payAmount} onChange={e=>setPayAmount(e.target.value)} className={`w-full rounded-xl px-4 py-3 font-black text-xl outline-none focus:border-blue-500 border ${dark?"bg-white/5 border-white/10 text-white":"bg-slate-50 border-slate-200 text-slate-900"}`}/>
               </div>
               <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1.5">Plan</label>
-                <select value={planName} onChange={e=>setPlanName(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-blue-500">
+                <select value={planName} onChange={e=>setPlanName(e.target.value)} className={`w-full rounded-xl px-4 py-3 font-bold outline-none focus:border-blue-500 border ${dark?"bg-white/5 border-white/10 text-white":"bg-slate-50 border-slate-200 text-slate-900"}`}>
                   {['START','GROW','SCALE','PRO','PRO+','ENTERPRISE'].map(p=><option key={p} value={p} className="bg-slate-900">{p}</option>)}
                 </select>
               </div>
               <div><label className="text-[10px] font-black text-slate-500 uppercase block mb-1.5">Nr. Factură</label>
-                <input type="text" placeholder={`QR-${new Date().getFullYear()}-${String(payments.length+1).padStart(4,'0')}`} value={invoiceNo} onChange={e=>setInvoiceNo(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono outline-none focus:border-blue-500 placeholder:text-slate-700"/>
+                <input type="text" placeholder={`QR-${new Date().getFullYear()}-${String(payments.length+1).padStart(4,'0')}`} value={invoiceNo} onChange={e=>setInvoiceNo(e.target.value)} className={`w-full rounded-xl px-4 py-3 font-mono outline-none focus:border-blue-500 border ${dark?"bg-white/5 border-white/10 text-white placeholder:text-slate-700":"bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400"}`}/>
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-xs text-emerald-400 font-bold">✅ Se adaugă 30 zile abonament activ</div>
             </div>
-            <div className="p-5 border-t border-white/10 flex gap-3">
-              <button onClick={()=>setPayModal(null)} className="flex-1 bg-white/5 text-slate-400 py-3 rounded-2xl font-black text-xs uppercase">Anulează</button>
+            <div className={`p-5 border-t flex gap-3 ${dark?"border-white/10":"border-slate-100"}`}>
+              <button onClick={()=>setPayModal(null)} className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase ${dark?"bg-white/5 text-slate-400":"bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>Anulează</button>
               <button onClick={savePay} disabled={busy==='pay'} className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white py-3 rounded-2xl font-black text-xs uppercase">
                 {busy==='pay'?'Se procesează...':'Confirmă & Activează'}
               </button>
@@ -779,10 +848,10 @@ export default function SuperAdminDashboard() {
       {/* ═══ MODAL FIȘĂ ═══ */}
       {detailModal&&(
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1017] border border-white/10 rounded-3xl max-w-md w-full shadow-2xl">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-base uppercase text-white flex items-center gap-2"><FileText size={14} className="text-blue-400"/>Fișă Companie</h3>
-              <button onClick={()=>setDetailModal(null)} className="p-2 bg-white/10 rounded-xl"><X size={13} className="text-slate-400"/></button>
+          <div className={`rounded-3xl max-w-md w-full shadow-2xl border ${dark?"bg-[#0d1017] border-white/10":"bg-white border-slate-200"}`}>
+            <div className={`p-5 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-base uppercase flex items-center gap-2 ${dark?"text-white":"text-slate-900"}`}><FileText size={14} className="text-blue-400"/>Fișă Companie</h3>
+              <button onClick={()=>setDetailModal(null)} className={`p-2 rounded-xl ${dark?"bg-white/10":"bg-slate-100"}`}><X size={13} className={`${dark?"text-slate-400":"text-slate-500"}`}/></button>
             </div>
             <div className="p-5 space-y-2">
               {[
@@ -799,14 +868,14 @@ export default function SuperAdminDashboard() {
                 {l:'Health Score',v:calcHealth(detailModal,reviews,locations)+'/100'},
                 {l:'Notă Admin',v:detailModal.admin_note||'—'},
               ].map((row,i)=>(
-                <div key={i} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
-                  <span className="text-[10px] font-black text-slate-600 uppercase">{row.l}</span>
+                <div key={i} className={`flex justify-between items-center py-2 border-b last:border-0 ${dark?"border-white/5":"border-slate-50"}`}>
+                  <span className={`text-[10px] font-black uppercase ${dark?"text-slate-600":"text-slate-500"}`}>{row.l}</span>
                   <span className={`text-sm font-black text-white ${row.mono?'font-mono text-blue-400 text-xs':''}`}>{String(row.v)}</span>
                 </div>
               ))}
             </div>
-            <div className="p-5 border-t border-white/10">
-              <button onClick={()=>setDetailModal(null)} className="w-full bg-white/10 hover:bg-white/15 text-white py-3 rounded-2xl font-black text-xs uppercase">Închide</button>
+            <div className={`p-5 border-t ${dark?"border-white/10":"border-slate-100"}`}>
+              <button onClick={()=>setDetailModal(null)} className={`w-full py-3 rounded-2xl font-black text-xs uppercase transition-all ${dark?"bg-white/10 hover:bg-white/15 text-white":"bg-slate-100 hover:bg-slate-200 text-slate-700"}`}>Închide</button>
             </div>
           </div>
         </div>
@@ -815,17 +884,17 @@ export default function SuperAdminDashboard() {
       {/* ═══ MODAL NOTĂ ═══ */}
       {noteModal&&(
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1017] border border-white/10 rounded-3xl max-w-md w-full shadow-2xl">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-base uppercase text-white flex items-center gap-2"><Edit3 size={14} className="text-violet-400"/>Notă Admin — {noteModal.name}</h3>
-              <button onClick={()=>setNoteModal(null)} className="p-2 bg-white/10 rounded-xl"><X size={13} className="text-slate-400"/></button>
+          <div className={`rounded-3xl max-w-md w-full shadow-2xl border ${dark?"bg-[#0d1017] border-white/10":"bg-white border-slate-200"}`}>
+            <div className={`p-5 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-base uppercase flex items-center gap-2 ${dark?"text-white":"text-slate-900"}`}><Edit3 size={14} className="text-violet-400"/>Notă Admin — {noteModal.name}</h3>
+              <button onClick={()=>setNoteModal(null)} className={`p-2 rounded-xl ${dark?"bg-white/10":"bg-slate-100"}`}><X size={13} className={`${dark?"text-slate-400":"text-slate-500"}`}/></button>
             </div>
             <div className="p-5">
               <textarea value={noteText} onChange={e=>setNoteText(e.target.value)} rows={4} placeholder="Notițe interne..."
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium outline-none focus:border-violet-500 resize-none placeholder:text-slate-700"/>
+                className={`w-full rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-violet-500 resize-none border ${dark?"bg-white/5 border-white/10 text-white placeholder:text-slate-700":"bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400"}`}/>
             </div>
-            <div className="p-5 border-t border-white/10 flex gap-3">
-              <button onClick={()=>setNoteModal(null)} className="flex-1 bg-white/5 text-slate-400 py-3 rounded-2xl font-black text-xs uppercase">Anulează</button>
+            <div className={`p-5 border-t flex gap-3 ${dark?"border-white/10":"border-slate-100"}`}>
+              <button onClick={()=>setNoteModal(null)} className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase ${dark?"bg-white/5 text-slate-400":"bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>Anulează</button>
               <button onClick={saveNote} disabled={busy==='note'} className="flex-1 bg-violet-600 hover:bg-violet-500 disabled:opacity-60 text-white py-3 rounded-2xl font-black text-xs uppercase">Salvează</button>
             </div>
           </div>
@@ -835,11 +904,11 @@ export default function SuperAdminDashboard() {
       {/* ═══ MODAL CONFIRMARE ═══ */}
       {confirmModal&&(
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1017] border border-white/10 rounded-3xl max-w-sm w-full shadow-2xl p-6 text-center space-y-4">
+          <div className={`rounded-3xl max-w-sm w-full shadow-2xl p-6 text-center space-y-4 border ${dark?"bg-[#0d1017] border-white/10":"bg-white border-slate-200"}`}>
             <div className="w-12 h-12 bg-amber-500/20 rounded-2xl flex items-center justify-center mx-auto"><AlertTriangle size={22} className="text-amber-400"/></div>
             <p className="font-black text-white text-base">{confirmModal.msg}</p>
             <div className="flex gap-3">
-              <button onClick={()=>setConfirmModal(null)} className="flex-1 bg-white/5 text-slate-400 py-3 rounded-2xl font-black text-xs uppercase">Anulează</button>
+              <button onClick={()=>setConfirmModal(null)} className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase ${dark?"bg-white/5 text-slate-400":"bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>Anulează</button>
               <button onClick={()=>{confirmModal.fn();setConfirmModal(null);}} className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-2xl font-black text-xs uppercase">Confirmă</button>
             </div>
           </div>
@@ -849,10 +918,10 @@ export default function SuperAdminDashboard() {
       {/* ═══ MODAL BROADCAST TELEGRAM ═══ */}
       {broadcastModal&&(
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0d1017] border border-white/10 rounded-3xl max-w-lg w-full shadow-2xl">
-            <div className="p-5 border-b border-white/10 flex items-center justify-between">
-              <h3 className="font-black text-base uppercase text-white flex items-center gap-2"><Send size={14} className="text-blue-400"/>Broadcast Telegram</h3>
-              <button onClick={()=>{setBroadcastModal(false);setBroadcastResult(null);}} className="p-2 bg-white/10 rounded-xl"><X size={13} className="text-slate-400"/></button>
+          <div className={`rounded-3xl max-w-lg w-full shadow-2xl border ${dark?"bg-[#0d1017] border-white/10":"bg-white border-slate-200"}`}>
+            <div className={`p-5 border-b flex items-center justify-between ${dark?"border-white/10":"border-slate-100"}`}>
+              <h3 className={`font-black text-base uppercase flex items-center gap-2 ${dark?"text-white":"text-slate-900"}`}><Send size={14} className="text-blue-400"/>Broadcast Telegram</h3>
+              <button onClick={()=>{setBroadcastModal(false);setBroadcastResult(null);}} className={`p-2 rounded-xl ${dark?"bg-white/10":"bg-slate-100"}`}><X size={13} className={`${dark?"text-slate-400":"text-slate-500"}`}/></button>
             </div>
             <div className="p-5 space-y-4">
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3 text-xs text-blue-400 font-bold">
@@ -883,8 +952,8 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
-            <div className="p-5 border-t border-white/10 flex gap-3">
-              <button onClick={()=>{setBroadcastModal(false);setBroadcastResult(null);}} className="flex-1 bg-white/5 text-slate-400 py-3 rounded-2xl font-black text-xs uppercase">Anulează</button>
+            <div className={`p-5 border-t flex gap-3 ${dark?"border-white/10":"border-slate-100"}`}>
+              <button onClick={()=>{setBroadcastModal(false);setBroadcastResult(null);}} className={`flex-1 py-3 rounded-2xl font-black text-xs uppercase ${dark?"bg-white/5 text-slate-400":"bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>Anulează</button>
               <button onClick={sendBroadcast} disabled={broadcastSending||!broadcastMsg.trim()}
                 className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 transition-all">
                 <Send size={13}/>{broadcastSending?'Se trimite...':'Trimite Broadcast'}
