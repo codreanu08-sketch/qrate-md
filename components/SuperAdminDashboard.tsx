@@ -374,7 +374,7 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`hidden md:flex items-center gap-4 text-[10px] font-black uppercase ${dark?"text-slate-500":{`${dark?"text-slate-400":"text-slate-500"}`}}`}>
+            <div className={`hidden md:flex items-center gap-4 text-[10px] font-black uppercase ${dark?"text-slate-400":"text-slate-500"}`}>
               <span className="flex items-center gap-1"><Building2 size={10} className="text-blue-400"/> {kpi.total}</span>
               <span className="flex items-center gap-1"><Check size={10} className="text-emerald-400"/> {kpi.active} activi</span>
               <span className="flex items-center gap-1"><DollarSign size={10} className="text-emerald-400"/> {kpi.mrr.toLocaleString()} MDL/lună</span>
