@@ -107,9 +107,9 @@ export default function SuperAdminDashboard() {
     finally { setBusy(''); }
   };
 
-  const activate = (id:string) => run(()=>supabase.from('companies').update({is_active:true} as any).eq('id',id).then(r=>{ if(r.error) throw r.error; }),'act-'+id);
-  const suspend  = (id:string) => setConfirmModal({msg:`Suspendezi compania?`, fn:()=>run(()=>supabase.from('companies').update({is_active:false} as any).eq('id',id).then(r=>{ if(r.error) throw r.error; }),'sus-'+id)});
-  const stopTrial = (id:string) => setConfirmModal({msg:'Oprești trial-ul?', fn:()=>run(()=>supabase.from('companies').update({trial_ends_at:new Date(0).toISOString()} as any).eq('id',id).then(r=>{ if(r.error) throw r.error; }),'stop-'+id)});
+  const activate = (id:string) => run(async()=>{ const r=await supabase.from('companies').update({is_active:true} as any).eq('id',id); if(r.error) throw r.error; },'act-'+id);
+  const suspend  = (id:string) => setConfirmModal({msg:`Suspendezi compania?`, fn:()=>run(async()=>{ const r=await supabase.from('companies').update({is_active:false} as any).eq('id',id); if(r.error) throw r.error; },'sus-'+id)});
+  const stopTrial = (id:string) => setConfirmModal({msg:'Oprești trial-ul?', fn:()=>run(async()=>{ const r=await supabase.from('companies').update({trial_ends_at:new Date(0).toISOString()} as any).eq('id',id); if(r.error) throw r.error; },'stop-'+id)});
   const extTrial = (id:string, days:number) => run(async()=>{
     const res = await supabase.from('companies').update({
       trial_ends_at: new Date(Date.now()+days*86400000).toISOString(),
