@@ -71,6 +71,16 @@ export default function SuperAdminDashboard() {
   const [noteText, setNoteText] = useState('');
   const [trialDays, setTrialDays] = useState('7');
 
+  // ── New features state ───────────────────────────────────────────
+  const [broadcastModal, setBroadcastModal] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  const [broadcastOnlyActive, setBroadcastOnlyActive] = useState(true);
+  const [broadcastResult, setBroadcastResult] = useState<any>(null);
+  const [broadcastSending, setBroadcastSending] = useState(false);
+  const [notifyingExpiry, setNotifyingExpiry] = useState(false);
+  const [notifyDays, setNotifyDays] = useState('3');
+  const [notifyResult, setNotifyResult] = useState<any>(null);
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -139,6 +149,42 @@ export default function SuperAdminDashboard() {
     setPayModal(null); setInvoiceNo('');
   },'pay');
 
+  // ── Broadcast Telegram ───────────────────────────────────────────
+  const sendBroadcast = async () => {
+    if (!broadcastMsg.trim()) return;
+    setBroadcastSending(true);
+    setBroadcastResult(null);
+    try {
+      const res = await fetch('/api/admin/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: broadcastMsg, onlyActive: broadcastOnlyActive }),
+      });
+      const data = await res.json();
+      setBroadcastResult(data);
+    } catch (e: any) { setBroadcastResult({ error: e.message }); }
+    finally { setBroadcastSending(false); }
+  };
+
+  const notifyExpiry = async () => {
+    setNotifyingExpiry(true); setNotifyResult(null);
+    try {
+      const res = await fetch('/api/admin/notify-expiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: parseInt(notifyDays) || 3 }),
+      });
+      const data = await res.json();
+      setNotifyResult(data);
+    } catch (e: any) { setNotifyResult({ error: e.message }); }
+    finally { setNotifyingExpiry(false); }
+  };
+
+  const openInvoice = (companyId: string, paymentId?: string) => {
+    const url = `/api/admin/invoice/${companyId}${paymentId ? `?payment=${paymentId}` : ''}`;
+    window.open(url, '_blank');
+  };
+
   // ── Export CSV ───────────────────────────────────────────────────
   const exportCompaniesCSV = () => {
     const rows = [
@@ -169,7 +215,36 @@ export default function SuperAdminDashboard() {
     const todayRevs=reviews.filter(r=>r.created_at?.startsWith(todayStr)).length;
     const avgR=reviews.length>0?(reviews.reduce((s,r)=>s+(r.rating||0),0)/reviews.length).toFixed(1):'0.0';
     const prevMonthMrr=payments.filter(p=>{ const d=new Date(p.paid_at); const prev=new Date(now.getFullYear(),now.getMonth()-1,1); return d.getMonth()===prev.getMonth()&&d.getFullYear()===prev.getFullYear(); }).reduce((s,p)=>s+(p.amount||0),0);
-    return { total:companies.length, active:active.length, trial:trial.length, expiring:expiring.length, mrr, totalRev, todayRevs, totalRevs:reviews.length, avgR, suspended:companies.filter(c=>c.is_active===false).length, todayViews:pageViews.filter(p=>p.created_at?.startsWith(todayStr)).length, totalViews:pageViews.length, prevMonthMrr };
+    // ── Advanced KPIs ──
+    // LTV per company
+    const ltvMap: Record<string, number> = {};
+    payments.forEach(p => { ltvMap[p.company_id] = (ltvMap[p.company_id] || 0) + (p.amount || 0); });
+    const avgLtv = Object.values(ltvMap).length > 0
+      ? Math.round(Object.values(ltvMap).reduce((s: number, v: number) => s + v, 0) / Object.values(ltvMap).length)
+      : 0;
+
+    // Trial → Paid conversion
+    const trialCompanies = companies.filter(c => c.trial_started_at || c.trial_ends_at);
+    const convertedToPaid = trialCompanies.filter(c => {
+      return payments.some(p => p.company_id === c.id);
+    });
+    const conversionRate = trialCompanies.length > 0
+      ? Math.round((convertedToPaid.length / trialCompanies.length) * 100)
+      : 0;
+
+    // Churn — companii care aveau abonament luna trecută dar nu mai au acum
+    const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const hadSubLastMonth = companies.filter(c => {
+      if (!c.subscription_expires_at) return false;
+      const exp = new Date(c.subscription_expires_at);
+      return exp >= prevMonthStart && exp <= prevMonthEnd;
+    });
+    const churnRate = active.length + hadSubLastMonth.length > 0
+      ? Math.round((hadSubLastMonth.length / (active.length + hadSubLastMonth.length)) * 100)
+      : 0;
+
+    return { total:companies.length, active:active.length, trial:trial.length, expiring:expiring.length, mrr, totalRev, todayRevs, totalRevs:reviews.length, avgR, suspended:companies.filter(c=>c.is_active===false).length, todayViews:pageViews.filter(p=>p.created_at?.startsWith(todayStr)).length, totalViews:pageViews.length, prevMonthMrr, avgLtv, conversionRate, churnRate };
   },[companies,payments,reviews,pageViews]);
 
   const alerts = useMemo(()=>{
@@ -238,6 +313,9 @@ export default function SuperAdminDashboard() {
             <button onClick={exportCompaniesCSV} className="hidden md:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all">
               <Download size={11}/> CSV
             </button>
+            <button onClick={()=>setBroadcastModal(true)} className="hidden md:flex items-center gap-1.5 bg-blue-600/20 border border-blue-500/25 text-blue-400 hover:bg-blue-600/30 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all">
+              <Send size={11}/> Broadcast
+            </button>
             {alerts.length>0&&<button onClick={()=>setTab('alerts')} className="relative flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/25 text-amber-400 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">
               <Bell size={11}/>{alerts.length}<span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full animate-pulse"/>
             </button>}
@@ -268,6 +346,9 @@ export default function SuperAdminDashboard() {
               {l:'Venit Total',v:`${kpi.totalRev.toLocaleString()} MDL`,icon:<DollarSign size={17}/>,c:'text-blue-400',bg:'bg-blue-500/10 border-blue-500/20'},
               {l:'Total Recenzii',v:kpi.totalRevs,icon:<Star size={17}/>,c:'text-amber-400',bg:'bg-amber-500/10 border-amber-500/20'},
               {l:'Nota Medie',v:`${kpi.avgR} ★`,icon:<Award size={17}/>,c:'text-amber-400',bg:'bg-amber-500/10 border-amber-500/20'},
+              {l:'LTV Mediu / Client',v:`${kpi.avgLtv.toLocaleString()} MDL`,icon:<TrendingUp size={17}/>,c:'text-violet-400',bg:'bg-violet-500/10 border-violet-500/20'},
+              {l:'Trial→Paid Conv.',v:`${kpi.conversionRate}%`,icon:<Check size={17}/>,c:'text-emerald-400',bg:'bg-emerald-500/10 border-emerald-500/20'},
+              {l:'Churn Rate',v:`${kpi.churnRate}%`,icon:<TrendingDown size={17}/>,c:kpi.churnRate>10?'text-rose-400':'text-slate-400',bg:kpi.churnRate>10?'bg-rose-500/10 border-rose-500/20':'bg-slate-500/10 border-slate-500/20'},
             ].map((k,i)=>(
               <div key={i} className={`border rounded-2xl p-4 ${k.bg} hover:brightness-110 transition-all`}>
                 <div className="flex items-center justify-between mb-2">
@@ -478,6 +559,28 @@ export default function SuperAdminDashboard() {
               <Download size={11}/> Export Plăți CSV
             </button>
           </div>
+          {/* Notify expiry */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5">
+            <h3 className="font-black text-sm uppercase text-amber-400 mb-3 flex items-center gap-2"><Bell size={13}/>Notificări Expiry — Telegram automat</h3>
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase">Companiile care expiră în</span>
+                <input type="number" min="1" max="30" value={notifyDays} onChange={e=>setNotifyDays(e.target.value)}
+                  className="w-10 bg-transparent text-amber-300 font-black text-sm outline-none text-center"/>
+                <span className="text-[10px] font-black text-slate-400 uppercase">zile</span>
+              </div>
+              <button onClick={notifyExpiry} disabled={notifyingExpiry}
+                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-60 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all">
+                <Send size={11}/>{notifyingExpiry ? 'Se trimite...' : 'Trimite Notificări Telegram'}
+              </button>
+              {notifyResult && (
+                <div className={`text-[10px] font-black px-3 py-2 rounded-xl ${notifyResult.error ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                  {notifyResult.error ? '❌ '+notifyResult.error : `✅ Trimise: ${notifyResult.sent} · ${notifyResult.notified?.join(', ')}`}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-white/10 flex items-center justify-between">
               <h3 className="font-black text-sm uppercase text-slate-300 flex items-center gap-2"><AlertTriangle size={13} className="text-amber-400"/> Companii fără plată</h3>
@@ -500,7 +603,12 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-white/10"><h3 className="font-black text-sm uppercase text-slate-300 flex items-center gap-2"><FileText size={13} className="text-blue-400"/>Istoric Plăți ({payments.length})</h3></div>
+            <div className="p-4 border-b border-white/10 flex items-center justify-between">
+              <h3 className="font-black text-sm uppercase text-slate-300 flex items-center gap-2"><FileText size={13} className="text-blue-400"/>Istoric Plăți ({payments.length})</h3>
+              <button onClick={exportPaymentsCSV} className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 text-slate-400 px-3 py-2 rounded-xl text-[10px] font-black uppercase">
+                <Download size={11}/> Export
+              </button>
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead><tr className="border-b border-white/10">{['Factură','Companie','Plan','Sumă','Data'].map(h=><th key={h} className="p-3 text-left text-[10px] font-black text-slate-600 uppercase">{h}</th>)}</tr></thead>
@@ -512,6 +620,11 @@ export default function SuperAdminDashboard() {
                       <td className="p-3"><span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg text-[10px] font-black">{p.plan_name||'—'}</span></td>
                       <td className="p-3 font-black text-emerald-400">{p.amount} MDL</td>
                       <td className="p-3 text-slate-500 font-mono">{p.paid_at?new Date(p.paid_at).toLocaleDateString('ro-RO'):'—'}</td>
+                      <td className="p-3">
+                        <button onClick={()=>openInvoice(p.company_id, p.id)} className="flex items-center gap-1 bg-blue-600/20 hover:bg-blue-600 text-blue-400 hover:text-white px-2 py-1 rounded-lg text-[10px] font-black transition-all">
+                          <FileText size={10}/> PDF
+                        </button>
+                      </td>
                     </tr>
                   ))}
                   {payments.length===0&&<tr><td colSpan={5} className="p-8 text-center text-slate-600 font-bold">Nicio plată</td></tr>}
@@ -728,6 +841,54 @@ export default function SuperAdminDashboard() {
             <div className="flex gap-3">
               <button onClick={()=>setConfirmModal(null)} className="flex-1 bg-white/5 text-slate-400 py-3 rounded-2xl font-black text-xs uppercase">Anulează</button>
               <button onClick={()=>{confirmModal.fn();setConfirmModal(null);}} className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-2xl font-black text-xs uppercase">Confirmă</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MODAL BROADCAST TELEGRAM ═══ */}
+      {broadcastModal&&(
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0d1017] border border-white/10 rounded-3xl max-w-lg w-full shadow-2xl">
+            <div className="p-5 border-b border-white/10 flex items-center justify-between">
+              <h3 className="font-black text-base uppercase text-white flex items-center gap-2"><Send size={14} className="text-blue-400"/>Broadcast Telegram</h3>
+              <button onClick={()=>{setBroadcastModal(false);setBroadcastResult(null);}} className="p-2 bg-white/10 rounded-xl"><X size={13} className="text-slate-400"/></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-3 text-xs text-blue-400 font-bold">
+                📢 Mesajul va fi trimis pe Telegram la toate companiile care au Chat ID setat.
+                Poți folosi <code className="bg-white/10 px-1 rounded">&lt;b&gt;bold&lt;/b&gt;</code> și <code className="bg-white/10 px-1 rounded">&lt;i&gt;italic&lt;/i&gt;</code> (HTML).
+              </div>
+              <div>
+                <label className="text-[10px] font-black text-slate-500 uppercase block mb-1.5">Mesaj</label>
+                <textarea value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} rows={6}
+                  placeholder="Ex: ⚠️ <b>Mentenanță planificată</b>&#10;&#10;QRate.md va fi indisponibil pe 15 mai 22:00–23:00.&#10;Scuze pentru inconvenient!"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm font-medium outline-none focus:border-blue-500 resize-none placeholder:text-slate-700 font-mono"/>
+              </div>
+              <div>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={broadcastOnlyActive} onChange={e=>setBroadcastOnlyActive(e.target.checked)}
+                    className="w-4 h-4 accent-blue-500"/>
+                  <span className="text-sm font-bold text-slate-300">Doar companiile active (is_active = true)</span>
+                </label>
+              </div>
+              {broadcastResult&&(
+                <div className={`rounded-2xl p-4 text-sm font-bold ${broadcastResult.error?'bg-red-500/15 text-red-400 border border-red-500/20':'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}>
+                  {broadcastResult.error ? `❌ Eroare: ${broadcastResult.error}` : (
+                    <div>
+                      <p>✅ Trimise: <strong>{broadcastResult.sent}</strong> · Eșuate: <strong>{broadcastResult.failed}</strong></p>
+                      {broadcastResult.errors?.length>0&&<p className="text-[11px] mt-1 text-red-400">{broadcastResult.errors.slice(0,3).join(', ')}</p>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="p-5 border-t border-white/10 flex gap-3">
+              <button onClick={()=>{setBroadcastModal(false);setBroadcastResult(null);}} className="flex-1 bg-white/5 text-slate-400 py-3 rounded-2xl font-black text-xs uppercase">Anulează</button>
+              <button onClick={sendBroadcast} disabled={broadcastSending||!broadcastMsg.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2 transition-all">
+                <Send size={13}/>{broadcastSending?'Se trimite...':'Trimite Broadcast'}
+              </button>
             </div>
           </div>
         </div>
