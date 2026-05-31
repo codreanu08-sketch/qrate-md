@@ -32,16 +32,15 @@ export default function DashboardLayout({
           return;
         }
 
+        // ✅ FIX: selectăm toate câmpurile relevante
         let { data: profile } = await supabase
           .from('profiles')
-          .select('subscription_tier, trial_ends_at, created_at')
+          .select('subscription_tier, trial_ends_at, created_at, is_admin, is_subscribed, subscription_status')
           .eq('id', user.id)
           .maybeSingle();
 
         if (!profile) {
-          const now = new Date();
-          const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-
+          const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
           const { data: newProfile } = await supabase
             .from('profiles')
             .insert({
@@ -52,29 +51,30 @@ export default function DashboardLayout({
             })
             .select()
             .single();
-
           profile = newProfile;
         }
 
         if (profile) {
-          const isPro = profile.subscription_tier === 'pro';
-          let isTrialActive = false;
-          let trialDays = 0;
+          // ✅ FIX: admin + toate condițiile posibile
+          const isPro =
+            profile.is_admin === true ||
+            profile.subscription_tier === 'pro' ||
+            profile.is_subscribed === true ||
+            profile.subscription_status === 'ACTIVE';
 
-          if (profile.trial_ends_at) {
-            const endDate = new Date(profile.trial_ends_at);
-            trialDays = Math.max(0, Math.floor((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
-            isTrialActive = trialDays > 0;
-          } else if (profile.created_at) {
-            const endDate = new Date(new Date(profile.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
-            trialDays = Math.max(0, Math.floor((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
-            isTrialActive = trialDays > 0;
+          let isTrialActive = false;
+          if (!isPro) {
+            const endDate = profile.trial_ends_at
+              ? new Date(profile.trial_ends_at)
+              : new Date(new Date(profile.created_at).getTime() + 7 * 86400000);
+            isTrialActive = endDate.getTime() > Date.now();
           }
 
           setHasAccess(isPro || isTrialActive);
         }
       } catch (error) {
         console.error('Error checking access:', error);
+        setHasAccess(true); // fail-safe
       } finally {
         setLoading(false);
       }
@@ -112,8 +112,6 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       <Sidebar />
-      
-      {/* Main content starts after sidebar — no gap, full width */}
       <main className="md:pl-[272px] pt-[60px] md:pt-0 min-h-screen">
         {children}
       </main>

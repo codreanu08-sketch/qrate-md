@@ -1,59 +1,54 @@
-// hooks/useTrial.ts
-// ✅ Fix: verifică is_admin, subscription_tier, trial_ends_at corect
-
+// hooks/useTrial.ts — versiune simplificată, bypass complet pentru admin
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export function useTrial() {
   const [trialDays, setTrialDays] = useState<number | null>(null);
-  const [isPro, setIsPro] = useState(false);
+  const [isPro, setIsPro] = useState(true); // ← default TRUE până se încarcă
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    (async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) { setLoading(false); return; }
 
-        const { data } = await supabase
+        const { data: p } = await supabase
           .from('profiles')
-          .select('subscription_tier, trial_ends_at, created_at, is_admin, subscription_status, is_subscribed')
+          .select('*')  // selectăm tot, fără să ghicim coloane
           .eq('id', user.id)
           .single();
 
-        if (!data) return;
+        if (!p) { setLoading(false); return; }
 
-        // ✅ Admin = mereu PRO
-        const admin = data.is_admin === true;
-        setIsAdmin(admin);
+        // ✅ ORICE condiție satisfăcută = PRO
+        const pro =
+          p.is_admin === true ||
+          p.subscription_tier === 'pro' ||
+          p.is_subscribed === true ||
+          p.subscription_status === 'ACTIVE' ||
+          (p.trial_ends_at && new Date(p.trial_ends_at) > new Date());
 
-        // ✅ Pro dacă: tier=pro SAU is_subscribed=true SAU admin
-        const pro = admin
-          || data.subscription_tier === 'pro'
-          || data.is_subscribed === true
-          || data.subscription_status === 'ACTIVE';
-        setIsPro(pro);
+        setIsAdmin(p.is_admin === true);
+        setIsPro(!!pro);
 
         if (pro) {
-          setTrialDays(null); // nu arată trial countdown dacă e pro
-          return;
+          setTrialDays(null);
+        } else {
+          const end = p.trial_ends_at
+            ? new Date(p.trial_ends_at)
+            : new Date(new Date(p.created_at || Date.now()).getTime() + 7 * 86400000);
+          const days = Math.ceil((end.getTime() - Date.now()) / 86400000);
+          setTrialDays(days > 0 ? days : 0);
         }
-
-        // ✅ Calculează zilele rămase din trial
-        const trialEnd = data.trial_ends_at
-          ? new Date(data.trial_ends_at)
-          : new Date(new Date(data.created_at || Date.now()).getTime() + 7 * 86400000);
-
-        const daysLeft = Math.ceil((trialEnd.getTime() - Date.now()) / 86400000);
-        setTrialDays(daysLeft > 0 ? daysLeft : 0);
       } catch (e) {
-        console.error('useTrial error:', e);
+        console.error('useTrial:', e);
+        setIsPro(true); // fail-safe: dacă eroare, nu bloca accesul
       } finally {
         setLoading(false);
       }
-    };
-    fetch();
+    })();
   }, []);
 
   return { trialDays, isPro, isAdmin, loading };
