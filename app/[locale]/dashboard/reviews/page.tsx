@@ -29,30 +29,18 @@ interface Review {
 
 interface BasicInfo { id: string; name: string; }
 
-// ============ SCREENSHOT GENERATOR ============
 function generateScreenshot(rev: Review, companyName: string, locale: string): Promise<string> {
   return new Promise((resolve) => {
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
     canvas.height = 1080;
     const ctx = canvas.getContext('2d')!;
-
-    // Fundal gradient
     const gradient = ctx.createLinearGradient(0, 0, 1080, 1080);
-    if (rev.rating >= 4) {
-      gradient.addColorStop(0, '#ecfdf5');
-      gradient.addColorStop(1, '#d1fae5');
-    } else if (rev.rating === 3) {
-      gradient.addColorStop(0, '#fffbeb');
-      gradient.addColorStop(1, '#fef3c7');
-    } else {
-      gradient.addColorStop(0, '#fff1f2');
-      gradient.addColorStop(1, '#ffe4e6');
-    }
+    if (rev.rating >= 4) { gradient.addColorStop(0, '#ecfdf5'); gradient.addColorStop(1, '#d1fae5'); }
+    else if (rev.rating === 3) { gradient.addColorStop(0, '#fffbeb'); gradient.addColorStop(1, '#fef3c7'); }
+    else { gradient.addColorStop(0, '#fff1f2'); gradient.addColorStop(1, '#ffe4e6'); }
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 1080, 1080);
-
-    // Card alb central
     ctx.fillStyle = '#ffffff';
     ctx.shadowColor = 'rgba(0,0,0,0.08)';
     ctx.shadowBlur = 60;
@@ -60,21 +48,15 @@ function generateScreenshot(rev: Review, companyName: string, locale: string): P
     roundRect(ctx, 80, 80, 920, 920, 48);
     ctx.fill();
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
-
-    // Bara colorată sus
     ctx.fillStyle = rev.rating >= 4 ? '#10b981' : rev.rating === 3 ? '#f59e0b' : '#ef4444';
     roundRectTop(ctx, 80, 80, 920, 16, 48);
     ctx.fill();
-
-    // Quote icon
     ctx.fillStyle = rev.rating >= 4 ? '#d1fae5' : rev.rating === 3 ? '#fef3c7' : '#ffe4e6';
     ctx.font = 'bold 180px serif';
     ctx.fillText('"', 120, 340);
-
-    // Comentariu
     ctx.fillStyle = '#1e293b';
     ctx.font = 'bold 52px system-ui, sans-serif';
-    const comment = rev.comment || (locale === 'ru' ? 'Experiență excelentă!' : 'Experiență excelentă!');
+    const comment = rev.comment || 'Experiență excelentă!';
     const maxWidth = 800;
     const words = comment.split(' ');
     let line = '';
@@ -83,63 +65,39 @@ function generateScreenshot(rev: Review, companyName: string, locale: string): P
     const lines: string[] = [];
     for (const word of words) {
       const testLine = line + word + ' ';
-      if (ctx.measureText(testLine).width > maxWidth && line !== '') {
-        lines.push(line.trim());
-        line = word + ' ';
-      } else {
-        line = testLine;
-      }
+      if (ctx.measureText(testLine).width > maxWidth && line !== '') { lines.push(line.trim()); line = word + ' '; }
+      else { line = testLine; }
     }
     lines.push(line.trim());
     const maxLines = 5;
     const displayLines = lines.slice(0, maxLines);
     if (lines.length > maxLines) displayLines[maxLines - 1] += '...';
-    displayLines.forEach((l, i) => {
-      ctx.fillText(l, 140, y + i * lineHeight);
-    });
-
-    // Stele
+    displayLines.forEach((l, i) => { ctx.fillText(l, 140, y + i * lineHeight); });
     const starY = 630;
     const starColor = rev.rating >= 4 ? '#10b981' : rev.rating === 3 ? '#f59e0b' : '#ef4444';
     ctx.font = 'bold 64px system-ui';
     ctx.fillStyle = starColor;
     ctx.fillText('★'.repeat(rev.rating) + '☆'.repeat(5 - rev.rating), 140, starY);
-
-    // Nota numerică
     ctx.font = 'black 120px system-ui, sans-serif';
     ctx.fillStyle = starColor;
     ctx.textAlign = 'right';
     ctx.fillText(`${rev.rating}/5`, 940, starY + 10);
     ctx.textAlign = 'left';
-
-    // Linie separator
     ctx.strokeStyle = '#f1f5f9';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(140, 680);
     ctx.lineTo(940, 680);
     ctx.stroke();
-
-    // Numele clientului
     ctx.fillStyle = '#1e293b';
     ctx.font = 'black 44px system-ui, sans-serif';
-    ctx.fillText(rev.full_name || (locale === 'ru' ? 'Client Anonim' : 'Client Anonim'), 140, 750);
-
-    // Locație
-    if (rev.locations?.name) {
-      ctx.fillStyle = '#64748b';
-      ctx.font = '500 36px system-ui, sans-serif';
-      ctx.fillText(`📍 ${rev.locations.name}`, 140, 810);
-    }
-
-    // Data
+    ctx.fillText(rev.full_name || 'Client Anonim', 140, 750);
+    if (rev.locations?.name) { ctx.fillStyle = '#64748b'; ctx.font = '500 36px system-ui, sans-serif'; ctx.fillText(`📍 ${rev.locations.name}`, 140, 810); }
     const dateStr = new Date(rev.created_at).toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'ro-RO', { day: 'numeric', month: 'long', year: 'numeric' });
     ctx.fillStyle = '#94a3b8';
     ctx.font = '500 32px system-ui, sans-serif';
     ctx.fillText(dateStr, 140, 860);
-
-    // QRate branding
-    ctx.fillStyle = rev.rating >= 4 ? '#10b981' : rev.rating === 3 ? '#f59e0b' : '#ef4444';
+    ctx.fillStyle = starColor;
     ctx.font = 'black 36px system-ui, sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText('QRate.md', 940, 940);
@@ -147,7 +105,6 @@ function generateScreenshot(rev: Review, companyName: string, locale: string): P
     ctx.font = '500 26px system-ui, sans-serif';
     ctx.fillText(companyName, 940, 975);
     ctx.textAlign = 'left';
-
     resolve(canvas.toDataURL('image/png', 1.0));
   });
 }
@@ -178,7 +135,6 @@ function roundRectTop(ctx: CanvasRenderingContext2D, x: number, y: number, w: nu
   ctx.closePath();
 }
 
-// ============ REVIEW CARD ============
 function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
   rev: Review; locale: string; companyName?: string; onViewPhoto?: (url: string) => void;
 }) {
@@ -214,16 +170,12 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
     const fullPhone = phone.startsWith('373') ? phone : `373${phone}`;
     window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(followUpText)}`, '_blank');
   };
-
   const handleGenerateScreenshot = async () => {
     setGenerating(true);
-    try {
-      const url = await generateScreenshot(rev, companyName || 'QRate.md', locale);
-      setPreviewUrl(url);
-    } catch (e) { console.error(e); }
+    try { const url = await generateScreenshot(rev, companyName || 'QRate.md', locale); setPreviewUrl(url); }
+    catch (e) { console.error(e); }
     finally { setGenerating(false); }
   };
-
   const handleDownloadScreenshot = () => {
     if (!previewUrl) return;
     const link = document.createElement('a');
@@ -235,15 +187,12 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
   const date = new Date(rev.created_at);
   const dateStr = date.toLocaleDateString(locale === 'ru' ? 'ru-RU' : 'ro-RO', { day: '2-digit', month: 'short', year: '2-digit' });
   const timeStr = date.toLocaleTimeString(locale === 'ru' ? 'ru-RU' : 'ro-RO', { hour: '2-digit', minute: '2-digit' });
-  const shortComment = rev.comment && rev.comment.length > 60 ? rev.comment.substring(0, 60) + '...' : rev.comment;
 
   return (
     <>
       <div className={`bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 ${ratingBg}`}>
         <div className={`h-1 w-full ${ratingBar}`} />
         <div className="p-4 md:p-5">
-
-          {/* ROW 1 */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2">
               <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl border ${ratingBg}`}>
@@ -269,7 +218,6 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
             </div>
           </div>
 
-          {/* ROW 2 — Comentariu */}
           <div className="mb-3 min-h-[24px]">
             {rev.comment && rev.comment !== 'Clientul nu a lăsat un comentariu' && rev.comment !== 'Клиент не оставил комментария' ? (
               <p className="text-sm font-medium text-slate-700 leading-relaxed italic">"{rev.comment}"</p>
@@ -278,7 +226,6 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
             )}
           </div>
 
-          {/* ROW 3 — Foto */}
           {rev.photo_url && rev.photo_url.trim() !== '' && rev.photo_url !== 'NULL' && (
             <div className="mb-3">
               <div onClick={() => onViewPhoto?.(rev.photo_url!)} className="relative w-16 h-16 rounded-xl overflow-hidden cursor-pointer border border-slate-200 group/img">
@@ -288,7 +235,6 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
             </div>
           )}
 
-          {/* ROW 4 — Chips */}
           <div className="flex flex-wrap gap-1.5 mb-4">
             {rev.full_name && rev.full_name.trim() !== '' && rev.full_name !== 'EMPTY' && (
               <div className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-xl">
@@ -316,26 +262,22 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
             )}
           </div>
 
-          {/* ROW 5 — Acțiuni */}
           {!replyOpen ? (
             <div className="flex gap-2">
               <button onClick={() => setReplyOpen(true)}
                 className="flex-1 flex items-center justify-center gap-1.5 bg-indigo-50 hover:bg-indigo-600 text-indigo-600 hover:text-white text-[10px] font-black uppercase tracking-wider py-2.5 rounded-xl transition-all">
                 <Bot size={13} /> {locale === 'ru' ? 'AI Ответ' : 'AI Răspuns'}
               </button>
-              {/* ✅ Buton Screenshot — doar pentru recenzii pozitive */}
               {rev.rating >= 4 && (
                 <button onClick={handleGenerateScreenshot} disabled={generating}
-                  className="flex items-center justify-center gap-1.5 bg-violet-50 hover:bg-violet-600 text-violet-600 hover:text-white text-[10px] font-black uppercase tracking-wider px-3 py-2.5 rounded-xl transition-all"
-                  title={locale === 'ru' ? 'Generează imagine pentru social media' : 'Generează imagine pentru social media'}>
+                  className="flex items-center justify-center gap-1.5 bg-violet-50 hover:bg-violet-600 text-violet-600 hover:text-white text-[10px] font-black uppercase tracking-wider px-3 py-2.5 rounded-xl transition-all">
                   {generating ? <Loader2 size={13} className="animate-spin" /> : <Camera size={13} />}
-                  <span className="hidden sm:inline">{locale === 'ru' ? 'Post' : 'Post'}</span>
+                  <span className="hidden sm:inline">Post</span>
                 </button>
               )}
               {rev.phone && rev.phone.trim() !== '' && rev.rating <= 3 && (
                 <button onClick={handleWhatsAppContact}
-                  className="flex items-center justify-center gap-1.5 bg-[#25D366] hover:bg-[#1da851] text-white text-[10px] font-black uppercase tracking-wider px-3 py-2.5 rounded-xl transition-all"
-                  title={locale === 'ru' ? 'Contactează clientul' : 'Contactează clientul'}>
+                  className="flex items-center justify-center gap-1.5 bg-[#25D366] hover:bg-[#1da851] text-white text-[10px] font-black uppercase tracking-wider px-3 py-2.5 rounded-xl transition-all">
                   <Smartphone size={13} />
                   <span className="hidden sm:inline">{locale === 'ru' ? 'Contact' : 'Contact'}</span>
                 </button>
@@ -362,14 +304,11 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
         </div>
       </div>
 
-      {/* ✅ MODAL PREVIEW SCREENSHOT */}
       {previewUrl && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
           <div className="bg-white rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <p className="font-black text-sm uppercase tracking-wider text-slate-800">
-                {locale === 'ru' ? '📸 Preview — Imagine Social Media' : '📸 Preview — Imagine Social Media'}
-              </p>
+              <p className="font-black text-sm uppercase tracking-wider text-slate-800">📸 Preview — Imagine Social Media</p>
               <button onClick={() => setPreviewUrl(null)} className="p-1.5 rounded-xl hover:bg-slate-100 transition-colors"><X size={16} /></button>
             </div>
             <div className="p-4">
@@ -377,16 +316,14 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
               <div className="mt-4 flex gap-3">
                 <button onClick={handleDownloadScreenshot}
                   className="flex-1 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-black text-xs uppercase tracking-wider py-3.5 rounded-2xl transition-all">
-                  <Download size={16} /> {locale === 'ru' ? 'Descarcă PNG' : 'Descarcă PNG'}
+                  <Download size={16} /> Descarcă PNG
                 </button>
                 <button onClick={() => { handleDownloadScreenshot(); setPreviewUrl(null); }}
                   className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs uppercase tracking-wider px-5 py-3.5 rounded-2xl transition-all">
                   <Check size={16} />
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 text-center mt-3 font-medium">
-                {locale === 'ru' ? '1080×1080px — perfect pentru Instagram, Facebook' : '1080×1080px — perfect pentru Instagram, Facebook'}
-              </p>
+              <p className="text-[10px] text-slate-400 text-center mt-3 font-medium">1080×1080px — perfect pentru Instagram, Facebook</p>
             </div>
           </div>
         </div>
@@ -395,7 +332,6 @@ function ReviewCard({ rev, locale, companyName, onViewPhoto }: {
   );
 }
 
-// ============ COMPONENTE HELPER ============
 function FilterGroup({ label, icon, value, onChange, options, allLabel }: any) {
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -423,7 +359,6 @@ function StatCard({ label, value, icon }: any) {
   );
 }
 
-// ============ PAGINA PRINCIPALĂ ============
 export default function AllReviewsDashboard() {
   const params = useParams();
   const router = useRouter();
@@ -464,16 +399,41 @@ export default function AllReviewsDashboard() {
     return { bestEmp, avg: (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1), count: reviews.length };
   }, [reviews, locale]);
 
+  // ✅ FIX PRINCIPAL — verifică toate câmpurile + admin bypass
   const checkAccessAndCompany = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { router.push(`/${locale}/login`); return; }
-    const { data: profile } = await supabase.from('profiles').select('created_at, subscription_tier').eq('id', user.id).single();
-    const { data: company } = await supabase.from('companies').select('id, name').eq('owner_id', user.id).maybeSingle();
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('created_at, subscription_tier, is_admin, is_subscribed, subscription_status, trial_ends_at')
+      .eq('id', user.id)
+      .single();
+
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id, name')
+      .eq('owner_id', user.id)
+      .maybeSingle();
+
     if (company) { setCompanyId(company.id); setCompanyName(company.name || ''); }
+
     if (profile) {
-      const diffInDays = Math.floor((new Date().getTime() - new Date(profile.created_at).getTime()) / (1000 * 3600 * 24));
-      setHasAccess(profile.subscription_tier === 'pro' || diffInDays <= 7);
-    } else { setHasAccess(false); }
+      // ✅ Admin + toate condițiile posibile
+      const isPro =
+        profile.is_admin === true ||
+        profile.subscription_tier === 'pro' ||
+        profile.is_subscribed === true ||
+        profile.subscription_status === 'ACTIVE';
+
+      const trialEnd = profile.trial_ends_at
+        ? new Date(profile.trial_ends_at)
+        : new Date(new Date(profile.created_at).getTime() + 7 * 86400000);
+
+      setHasAccess(isPro || trialEnd.getTime() > Date.now());
+    } else {
+      setHasAccess(true); // fail-open: dacă profilul nu se găsește, acordă acces
+    }
   }, [locale, router]);
 
   const loadInitialData = useCallback(async (cId: string) => {
@@ -534,9 +494,11 @@ export default function AllReviewsDashboard() {
           <div className="min-h-[70vh] flex items-center justify-center text-center p-4">
             <div className="bg-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl border border-gray-100 max-w-md w-full">
               <Lock className="text-red-500 mx-auto mb-6" size={40} />
-              <h2 className="text-3xl font-black mb-3 tracking-tight">Premium Only</h2>
-              <p className="text-gray-500 mb-8 font-medium text-sm">{locale === 'ru' ? 'Обновите план для доступа.' : 'Upgrade pentru a vedea analizele smart.'}</p>
-              <button onClick={() => router.push(`/${locale}/pricing`)} className="w-full bg-slate-950 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-wider">Upgrade Now</button>
+              <h2 className="text-3xl font-black mb-3 tracking-tight">Trial Expirat</h2>
+              <p className="text-gray-500 mb-8 font-medium text-sm">{locale === 'ru' ? 'Activați un plan pentru acces.' : 'Activează un plan pentru a continua.'}</p>
+              <button onClick={() => router.push(`/${locale}/dashboard/subscription`)} className="w-full bg-slate-950 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-wider">
+                {locale === 'ru' ? 'Vezi Planuri' : 'Vezi Planuri'}
+              </button>
             </div>
           </div>
         ) : (
@@ -554,7 +516,6 @@ export default function AllReviewsDashboard() {
               </button>
             </header>
 
-            {/* FILTRE */}
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                 <FilterGroup label={t('labels.location')} icon={<MapPin size={15}/>} value={selectedLocation} onChange={setSelectedLocation} options={locations} allLabel={t('options.all_locs')} />
@@ -585,14 +546,12 @@ export default function AllReviewsDashboard() {
               </div>
             </div>
 
-            {/* STATS */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
               <StatCard label={tCommon('stats.avg_rating')} value={`${smartStats.avg}/5.0`} icon={<Star className="text-yellow-400 fill-yellow-400" size={18} />} />
               <StatCard label={tCommon('stats.hero_day')} value={smartStats.bestEmp} icon={<Trophy className="text-orange-500" size={18} />} />
               <StatCard label={tStats('volume')} value={smartStats.count.toString()} icon={<MessageSquare className="text-blue-600" size={18} />} />
             </div>
 
-            {/* FOLLOW-UPS */}
             {followUpsNeeded.length > 0 && (
               <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 mb-8">
                 <div className="flex items-center gap-3 mb-4">
@@ -627,12 +586,11 @@ export default function AllReviewsDashboard() {
                       </div>
                     );
                   })}
-                  {followUpsNeeded.length > 5 && <p className="text-[10px] text-rose-500 font-bold text-center pt-1">+{followUpsNeeded.length - 5} {locale === 'ru' ? 'mai mulți' : 'mai mulți'}</p>}
+                  {followUpsNeeded.length > 5 && <p className="text-[10px] text-rose-500 font-bold text-center pt-1">+{followUpsNeeded.length - 5} mai mulți</p>}
                 </div>
               </div>
             )}
 
-            {/* LISTA RECENZII */}
             <div className="space-y-3">
               {loading ? (
                 <div className="py-20 flex flex-col items-center justify-center">
@@ -653,7 +611,6 @@ export default function AllReviewsDashboard() {
               )}
             </div>
 
-            {/* PAGINARE */}
             {reviews.length > ITEMS_PER_PAGE && (
               <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950/95 backdrop-blur-md p-1.5 rounded-full shadow-2xl z-40 flex items-center gap-1 border border-white/10">
                 <button disabled={currentPage === 1} onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2.5 text-white/50 hover:text-white disabled:opacity-20 transition-colors"><ChevronLeft size={18} /></button>
@@ -665,7 +622,6 @@ export default function AllReviewsDashboard() {
         )}
       </div>
 
-      {/* MODAL FOTO */}
       {activePhoto && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setActivePhoto(null)}>
           <div className="relative max-w-3xl w-full max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
