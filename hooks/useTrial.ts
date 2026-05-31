@@ -1,60 +1,60 @@
-'use client';
+// hooks/useTrial.ts
+// ✅ Fix: verifică is_admin, subscription_tier, trial_ends_at corect
 
 import { useEffect, useState } from 'react';
-import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export function useTrial() {
   const [trialDays, setTrialDays] = useState<number | null>(null);
   const [isPro, setIsPro] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const pathname = usePathname();
 
   useEffect(() => {
-    async function fetchTrial() {
+    const fetch = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) {
-          setLoading(false);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data } = await supabase
+          .from('profiles')
+          .select('subscription_tier, trial_ends_at, created_at, is_admin, subscription_status, is_subscribed')
+          .eq('id', user.id)
+          .single();
+
+        if (!data) return;
+
+        // ✅ Admin = mereu PRO
+        const admin = data.is_admin === true;
+        setIsAdmin(admin);
+
+        // ✅ Pro dacă: tier=pro SAU is_subscribed=true SAU admin
+        const pro = admin
+          || data.subscription_tier === 'pro'
+          || data.is_subscribed === true
+          || data.subscription_status === 'ACTIVE';
+        setIsPro(pro);
+
+        if (pro) {
+          setTrialDays(null); // nu arată trial countdown dacă e pro
           return;
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_tier, trial_ends_at, created_at')
-          .eq('id', session.user.id)
-          .maybeSingle();
+        // ✅ Calculează zilele rămase din trial
+        const trialEnd = data.trial_ends_at
+          ? new Date(data.trial_ends_at)
+          : new Date(new Date(data.created_at || Date.now()).getTime() + 7 * 86400000);
 
-        if (profile) {
-          const pro = profile.subscription_tier === 'pro';
-          setIsPro(pro);
-
-          if (!pro) {
-            let endDate: Date;
-
-            if (profile.trial_ends_at) {
-              endDate = new Date(profile.trial_ends_at);
-            } else if (profile.created_at) {
-              endDate = new Date(new Date(profile.created_at).getTime() + 7 * 24 * 60 * 60 * 1000);
-            } else {
-              endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-            }
-
-            const remaining = Math.max(0, Math.floor((endDate.getTime() - Date.now()) / (1000 * 3600 * 24)));
-            setTrialDays(remaining);
-          } else {
-            setTrialDays(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching trial:', error);
+        const daysLeft = Math.ceil((trialEnd.getTime() - Date.now()) / 86400000);
+        setTrialDays(daysLeft > 0 ? daysLeft : 0);
+      } catch (e) {
+        console.error('useTrial error:', e);
       } finally {
         setLoading(false);
       }
-    }
+    };
+    fetch();
+  }, []);
 
-    fetchTrial();
-  }, [pathname]);
-
-  return { trialDays, isPro, loading };
+  return { trialDays, isPro, isAdmin, loading };
 }
