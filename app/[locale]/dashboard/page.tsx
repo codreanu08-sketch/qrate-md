@@ -138,11 +138,27 @@ export default function AdminDashboardPage() {
       try {
         const {data:{user}} = await supabase.auth.getUser();
         if (!user) { router.push(`/${locale}/auth/login`); return; }
-        const {data:profile} = await supabase.from('profiles').select('subscription_tier,trial_ends_at,created_at').eq('id',user.id).single();
-        const trialEnd = profile?.trial_ends_at ? new Date(profile.trial_ends_at) : new Date(new Date(profile?.created_at||Date.now()).getTime()+7*86400000);
-        const isPro = profile?.subscription_tier==='pro';
-        setHasAccess(isPro||trialEnd.getTime()>Date.now());
-        setLimits(isPro?{maxLocations:99,maxEmployees:99}:{maxLocations:1,maxEmployees:4});
+
+        // ✅ FIX: citim toate câmpurile relevante inclusiv is_admin
+        const {data:profile} = await supabase
+          .from('profiles')
+          .select('subscription_tier,trial_ends_at,created_at,is_admin,is_subscribed,subscription_status')
+          .eq('id',user.id)
+          .single();
+
+        const trialEnd = profile?.trial_ends_at
+          ? new Date(profile.trial_ends_at)
+          : new Date(new Date(profile?.created_at||Date.now()).getTime()+7*86400000);
+
+        // ✅ FIX: admin are mereu acces + toate celelalte condiții
+        const isPro = profile?.is_admin === true
+          || profile?.subscription_tier === 'pro'
+          || profile?.is_subscribed === true
+          || profile?.subscription_status === 'ACTIVE';
+
+        setHasAccess(isPro || trialEnd.getTime() > Date.now());
+        setLimits(isPro ? {maxLocations:99,maxEmployees:99} : {maxLocations:1,maxEmployees:4});
+
         const {data:company} = await supabase.from('companies').select('id,name').eq('owner_id',user.id).maybeSingle();
         if (company) {
           setCompanyId(company.id); setCompanyName(company.name||'');
@@ -184,7 +200,6 @@ export default function AdminDashboardPage() {
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`QRate_${new Date().toISOString().split('T')[0]}.csv`; a.click();
   };
 
-  // ✅ Today fix — timezone local
   const todayStr = useMemo(()=>{ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; },[]);
 
   const analytics = useMemo(()=>{
@@ -245,7 +260,6 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-[#F0F2F8] p-3 md:p-5 pb-28 font-sans text-slate-900">
       <div className="max-w-7xl mx-auto space-y-4">
 
-        {/* ACCES BLOCAT */}
         {!hasAccess && (
           <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-200 p-8 shadow-xl text-center max-w-sm mx-auto mt-10">
             <div className="p-5 bg-amber-50 text-amber-500 rounded-2xl mb-5"><Lock size={38}/></div>
@@ -255,7 +269,6 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* CREARE COMPANIE */}
         {hasAccess && !companyId && (
           <div className="min-h-[60vh] flex flex-col items-center justify-center bg-white rounded-3xl border border-slate-200 p-6 shadow-xl text-center max-w-sm mx-auto mt-10">
             <div className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl mb-5"><Building size={34}/></div>
@@ -269,11 +282,8 @@ export default function AdminDashboardPage() {
         )}
 
         {hasAccess && companyId && (<>
-
-          {/* WELCOME */}
           {showWelcome && <WelcomeCard locale={locale} companyId={companyId} onDismiss={()=>{ localStorage.setItem(`qrate_welcome_${companyId}`,'1'); setShowWelcome(false); }}/>}
 
-          {/* CRISIS */}
           {crisisCount>=3 && (
             <div className="bg-rose-600 rounded-3xl p-4 text-white flex items-center gap-3 shadow-lg shadow-rose-200 animate-pulse">
               <div className="p-2.5 bg-white/20 rounded-xl shrink-0"><Flame size={20}/></div>
@@ -281,22 +291,14 @@ export default function AdminDashboardPage() {
                 <p className="font-black text-sm">🚨 Crisis Mode! — {crisisCount} {locale==='ru'?'негативных за 2 часа':'recenzii negative în 2 ore'}</p>
                 <p className="text-rose-200 text-xs">{locale==='ru'?'Проверь немедленно.':'Verifică imediat situația.'}</p>
               </div>
-              <a href={`/${locale}/dashboard/reviews`} className="bg-white text-rose-600 px-3 py-2 rounded-xl text-xs font-black uppercase shrink-0">
-                {locale==='ru'?'Смотреть':'Vezi'}
-              </a>
+              <a href={`/${locale}/dashboard/reviews`} className="bg-white text-rose-600 px-3 py-2 rounded-xl text-xs font-black uppercase shrink-0">{locale==='ru'?'Смотреть':'Vezi'}</a>
             </div>
           )}
 
-          {/* ═══════════════════════════════════════════ */}
-          {/*  HERO DARK HEADER                          */}
-          {/* ═══════════════════════════════════════════ */}
           <div className="bg-gradient-to-br from-slate-900 via-[#0f172a] to-indigo-950 rounded-3xl overflow-hidden relative">
-            {/* decorative circles */}
             <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-500/10 rounded-full -mr-24 -mt-24 pointer-events-none"/>
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/10 rounded-full -ml-16 -mb-16 pointer-events-none"/>
-
             <div className="relative z-10 p-5 md:p-8">
-              {/* Greeting row */}
               <div className="flex items-center gap-2 mb-3">
                 {greeting.icon}
                 <span className="text-slate-400 text-sm font-bold">{greeting.text}{companyName?`, ${companyName}`:''}</span>
@@ -306,13 +308,9 @@ export default function AdminDashboardPage() {
                   </span>
                 )}
               </div>
-
-              {/* Title */}
               <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white mb-5">
                 {locale==='ru'?'Панель управления':t('headerTitle')}
               </h1>
-
-              {/* KPI pills */}
               <div className="flex flex-wrap gap-3 mb-6">
                 {[
                   { icon:<Star size={14} className="text-amber-400 fill-amber-400"/>, label:t('cardGlobalScore'), val:analytics.avg+'★', bg:'bg-amber-500/10 border-amber-500/20 text-amber-200' },
@@ -328,8 +326,6 @@ export default function AdminDashboardPage() {
                   </div>
                 ))}
               </div>
-
-              {/* Action buttons */}
               <div className="flex flex-wrap gap-2">
                 <button onClick={()=>fetchReviews(companyId,selPeriod)} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white px-3.5 py-2 rounded-xl text-xs font-black uppercase transition-all border border-white/10">
                   <RefreshCw size={13} className={reviewsLoading?'animate-spin':''}/> Sync
@@ -350,12 +346,9 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════ */}
-          {/*  QUICK ACTIONS                             */}
-          {/* ═══════════════════════════════════════════ */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { icon:<MapPin size={20}/>, label:locale==='ru'?'Локации':'Locații', sub:`${rawLocations.length} ${locale==='ru'?'active':'active'}`, href:`/${locale}/dashboard/locations`, iconBg:'bg-emerald-100 text-emerald-600', border:'hover:border-emerald-200' },
+              { icon:<MapPin size={20}/>, label:locale==='ru'?'Локации':'Locații', sub:`${rawLocations.length} active`, href:`/${locale}/dashboard/locations`, iconBg:'bg-emerald-100 text-emerald-600', border:'hover:border-emerald-200' },
               { icon:<Users size={20}/>, label:locale==='ru'?'Сотрудники':'Angajați', sub:`${rawEmployees.length} ${locale==='ru'?'в системе':'în sistem'}`, href:`/${locale}/dashboard/employees`, iconBg:'bg-blue-100 text-blue-600', border:'hover:border-blue-200' },
               { icon:<Eye size={20}/>, label:locale==='ru'?'Все отзывы':'Recenzii', sub:`${filteredReviews.length} total`, href:`/${locale}/dashboard/reviews`, iconBg:'bg-violet-100 text-violet-600', border:'hover:border-violet-200' },
               { icon:<Target size={20}/>, label:'Analytics', sub:'AI · Heatmap', href:`/${locale}/dashboard/analytics`, iconBg:'bg-amber-100 text-amber-600', border:'hover:border-amber-200' },
@@ -371,9 +364,6 @@ export default function AdminDashboardPage() {
             ))}
           </div>
 
-          {/* ═══════════════════════════════════════════ */}
-          {/*  FILTRE                                    */}
-          {/* ═══════════════════════════════════════════ */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm">
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-2"><Shield size={15} className="text-indigo-500"/><span className="font-black text-sm uppercase tracking-tight">{locale==='ru'?'Фильтры':'Filtre date'}</span></div>
@@ -402,9 +392,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════ */}
-          {/*  WEEKLY ACTIVITY BAR                      */}
-          {/* ═══════════════════════════════════════════ */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-black text-sm uppercase tracking-tight flex items-center gap-2"><Activity size={15} className="text-indigo-500"/>{locale==='ru'?'Активность недели':'Activitate săptămânală'}</h3>
@@ -428,12 +415,7 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════ */}
-          {/*  ANALYTICS GRID                           */}
-          {/* ═══════════════════════════════════════════ */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            {/* Distribuție + MVP */}
             <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm">
               <h3 className="font-black text-sm uppercase tracking-tight text-slate-800 mb-4 flex items-center gap-2"><BarChart3 size={15} className="text-indigo-500"/>{t('chartTitle')}</h3>
               <div className="space-y-3">
@@ -457,9 +439,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* AI Insight + Prediction stacked */}
             <div className="lg:col-span-2 space-y-4">
-              {/* AI Insight */}
               <div className="bg-gradient-to-br from-indigo-950 to-slate-900 p-5 rounded-3xl border border-indigo-800/50 shadow-lg text-white relative overflow-hidden">
                 <div className="absolute -right-10 -bottom-10 opacity-5"><BrainCircuit size={110}/></div>
                 <h3 className="font-black text-sm uppercase tracking-tight text-indigo-300 mb-3 flex items-center gap-2 relative z-10"><BrainCircuit size={15}/>{t('aiTitle')}</h3>
@@ -468,8 +448,6 @@ export default function AdminDashboardPage() {
                   {analytics.topWords.slice(0,5).map(w=><span key={w} className="bg-indigo-500/25 border border-indigo-400/25 px-2.5 py-0.5 rounded-lg text-[10px] font-bold capitalize text-indigo-200">{w}</span>)}
                 </div>
               </div>
-
-              {/* AI Prediction */}
               {aiPrediction&&(
                 <div className="bg-gradient-to-br from-violet-950 to-indigo-950 p-5 rounded-3xl border border-violet-700/40 shadow-lg text-white relative overflow-hidden">
                   <div className="absolute -right-8 -top-8 opacity-5"><Sparkles size={90}/></div>
@@ -486,7 +464,6 @@ export default function AdminDashboardPage() {
                       {aiPrediction.dir==='up'?(locale==='ru'?'Рост':'Creștere'):aiPrediction.dir==='down'?(locale==='ru'?'Спад':'Scădere'):'Stabil'}
                     </div>
                   </div>
-                  {/* mini bars */}
                   <div className="flex items-end gap-1.5 h-10 mt-3 relative z-10">
                     {aiPrediction.weeks.map((w,i)=><div key={i} className="flex-1 rounded-t bg-violet-400/40" style={{height:`${w.avg?Math.max(((w.avg-1)/4)*100,5):2}%`,minHeight:w.avg?'5px':'2px'}}/>)}
                     <div className="flex-1 rounded-t bg-violet-300" style={{height:`${Math.max(((parseFloat(aiPrediction.predicted)-1)/4)*100,10)}%`,minHeight:'10px'}}/>
@@ -496,9 +473,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* ═══════════════════════════════════════════ */}
-          {/*  FLUX RECENZII                            */}
-          {/* ═══════════════════════════════════════════ */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
@@ -510,7 +484,6 @@ export default function AdminDashboardPage() {
                 {locale==='ru'?'Все':'Toate'} <ArrowUpRight size={13}/>
               </a>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
               {filteredReviews.length>0 ? filteredReviews.slice(0,9).map(rev=>{
                 const isPos=rev.rating>=4,isNeg=rev.rating<=2;
@@ -528,17 +501,14 @@ export default function AdminDashboardPage() {
                         <span className="text-[10px] font-bold text-slate-400">{new Date(rev.created_at).toLocaleDateString('ro-RO')}</span>
                       </div>
                     </div>
-
                     <p className={`text-sm leading-relaxed flex-1 mb-3 ${rev.comment?'text-slate-700 italic font-medium':'text-slate-300 italic'}`}>
                       {rev.comment?`"${rev.comment}"`:t('feedNoComment')}
                     </p>
-
                     <div className="flex flex-wrap gap-1.5 mb-3">
                       {rev.full_name&&<span className="flex items-center gap-1 text-[10px] font-black bg-slate-100 text-slate-600 px-2 py-0.5 rounded-lg"><User size={9}/>{rev.full_name}</span>}
                       {rev.employees?.name&&<span className="flex items-center gap-1 text-[10px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100"><Award size={9}/>{rev.employees.name}</span>}
                       {rev.locations?.name&&<span className="flex items-center gap-1 text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg border border-emerald-100"><MapPin size={9}/>{rev.locations.name}</span>}
                     </div>
-
                     {activeReplyId===rev.id?(
                       <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
                         <p className="text-xs text-slate-600 italic leading-snug">"{generateSmartReply(rev)}"</p>
@@ -567,7 +537,6 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
-
             {filteredReviews.length>9&&(
               <div className="mt-4 text-center">
                 <a href={`/${locale}/dashboard/reviews`} className="inline-flex items-center gap-2 bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-slate-600 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-sm">
@@ -576,7 +545,6 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
-
         </>)}
       </div>
     </div>
