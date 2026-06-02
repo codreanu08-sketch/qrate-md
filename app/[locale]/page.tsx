@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Zap, Check, Mail, QrCode, Send, BarChart3, Globe, Cookie,
-  LogOut, LayoutDashboard, ShieldAlert, BellRing,
-  Star, Trophy, Sparkles, Building, ChevronRight, Flame,
-  Target, Award, Bot, Smartphone, Shield, Users, Phone,
-  TrendingUp, Utensils, ShoppingBag, Car,
-  Scissors, Package, ChevronDown, ArrowRight, Play
+  LogOut, LayoutDashboard, BellRing,
+  Star, Building, ChevronRight,
+  Bot, Smartphone, Shield, Users, Phone,
+  Utensils, ShoppingBag, Car,
+  Scissors, Package, ChevronDown, ArrowRight, Play,
+  Flame, Trophy, Target
 } from 'lucide-react';
-import { Link, usePathname, useRouter, locales } from '@/i18n/config'; 
+import { Link, usePathname, useRouter, locales } from '@/i18n/config';
 import { useLocale } from 'next-intl';
 import { supabase } from '@/lib/supabase';
 
@@ -22,68 +23,11 @@ const PRICING_PLANS = [
   { id: 'ENTERPRISE', locations: 6, maxEmployees: 999, price: 1700, label: 'ENTERPRISE' },
 ];
 
-function ROICalculator({ locale }: { locale: string }) {
-  const [reviews, setReviews] = useState(50);
-  const [avgBill, setAvgBill] = useState(200);
-  const newClients = Math.round(reviews * 0.15);
-  const revenue = newClients * avgBill;
-
-  return (
-    <div className="bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl p-6 md:p-8 text-white border border-white/10">
-      <div className="flex items-center gap-2 mb-6">
-        <div className="p-2 bg-blue-500/20 rounded-xl"><TrendingUp size={18} className="text-blue-400"/></div>
-        <h3 className="font-black text-base uppercase tracking-tight">
-          {locale === 'ru' ? 'Калькулятор ROI' : 'Calculator ROI'}
-        </h3>
-      </div>
-      <div className="space-y-5">
-        <div>
-          <div className="flex justify-between mb-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-              {locale === 'ru' ? 'Отзывы / месяц' : 'Recenzii / lună'}
-            </label>
-            <span className="text-blue-300 font-black text-sm">{reviews}</span>
-          </div>
-          <input type="range" min={10} max={500} value={reviews} onChange={e => setReviews(+e.target.value)}
-            className="w-full accent-blue-500 h-1.5 rounded-full cursor-pointer"/>
-        </div>
-        <div>
-          <div className="flex justify-between mb-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-              {locale === 'ru' ? 'Средний чек (MDL)' : 'Bon mediu (MDL)'}
-            </label>
-            <span className="text-blue-300 font-black text-sm">{avgBill} MDL</span>
-          </div>
-          <input type="range" min={50} max={2000} step={50} value={avgBill} onChange={e => setAvgBill(+e.target.value)}
-            className="w-full accent-blue-500 h-1.5 rounded-full cursor-pointer"/>
-        </div>
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
-          <div className="bg-white/5 rounded-2xl p-3 text-center">
-            <p className="text-[9px] text-slate-400 uppercase font-black tracking-wider mb-1">
-              {locale === 'ru' ? 'Новых клиентов / мес' : 'Clienți noi / lună'}
-            </p>
-            <p className="text-2xl font-black text-emerald-400">+{newClients}</p>
-          </div>
-          <div className="bg-white/5 rounded-2xl p-3 text-center">
-            <p className="text-[9px] text-slate-400 uppercase font-black tracking-wider mb-1">
-              {locale === 'ru' ? 'Доп. доход / мес' : 'Venit extra / lună'}
-            </p>
-            <p className="text-2xl font-black text-emerald-400">+{revenue.toLocaleString()} MDL</p>
-          </div>
-        </div>
-        <p className="text-[10px] text-slate-500 text-center">
-          {locale === 'ru' ? '~15% позитивных отзывов = новый клиент' : '~15% din recenzii pozitive = client nou'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  
+
   const [showNotification, setShowNotification] = useState(false);
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -95,19 +39,40 @@ export default function LandingPage() {
   const industries = [
     { icon: <Utensils size={18}/>, label: locale === 'ru' ? 'Ресторан' : 'Restaurant',
       pain: locale === 'ru' ? 'Клиент ушёл недоволен — ты узнал только из негативного отзыва на Google.' : 'Clientul a plecat nemulțumit — ai aflat doar după recenzia negativă pe Google.',
-      solution: locale === 'ru' ? 'QRate перехватывает отзыв ДО того, как он попадёт на Google, и отправляет его прямо в Telegram.' : 'QRate prinde recenzia negativă ÎNAINTE să ajungă pe Google și o trimite direct la tine pe Telegram.' },
+      solution: locale === 'ru' ? 'QRate перехватывает отзыв до того, как он попадёт на Google, и отправляет его прямо в Telegram.' : 'QRate prinde recenzia negativă înainte să ajungă pe Google și o trimite direct la tine pe Telegram.' },
     { icon: <ShoppingBag size={18}/>, label: locale === 'ru' ? 'Магазин' : 'Magazin',
       pain: locale === 'ru' ? 'Не знаешь, у какого сотрудника проблемы с клиентами.' : 'Nu știi ce angajat are probleme cu clienții.',
       solution: locale === 'ru' ? 'Индивидуальный QR на каждого сотрудника. Автоматический рейтинг. Знаешь точно, кто работает лучше.' : 'QR individual per angajat. Leaderboard automat. Știi exact cine performează.' },
     { icon: <Car size={18}/>, label: 'Auto-service',
       pain: locale === 'ru' ? 'Клиенты не оставляют отзывы на Google, даже если довольны.' : 'Clienții nu lasă recenzii pe Google deși sunt mulțumiți.',
-      solution: locale === 'ru' ? 'QRate автоматически перенаправляет клиентов с оценкой 4-5 звёзд на Google Reviews. Стань заметнее.' : 'QRate redirectează automat clienții cu 4-5 stele spre Google Reviews. Fii mai vizibil.' },
+      solution: locale === 'ru' ? 'QRate автоматически перенаправляет клиентов с оценкой 4–5 звёзд на Google Reviews. Стань заметнее.' : 'QRate redirectează automat clienții cu 4–5 stele spre Google Reviews. Fii mai vizibil.' },
     { icon: <Scissors size={18}/>, label: 'Salon / Spa',
       pain: locale === 'ru' ? 'Несколько точек — и непонятно, какая работает лучше.' : 'Ai mai multe locații dar nu știi care performează cel mai bine.',
       solution: locale === 'ru' ? 'Единая панель управления. Сравнение локаций в реальном времени. Реагируешь быстро.' : 'Dashboard central. Comparativ locații în timp real. Acționezi rapid.' },
     { icon: <Package size={18}/>, label: locale === 'ru' ? 'Доставка' : 'Livrare',
       pain: locale === 'ru' ? 'Курьер создаёт проблемы, но клиенты молчат.' : 'Curierul are probleme dar clienții nu spun direct.',
       solution: locale === 'ru' ? 'QR для каждого курьера. Анонимные отзывы. Знаешь точно, кто виноват.' : 'QR per curier. Recenzii anonime. Știi exact cine creează probleme.' },
+  ];
+
+  const features6 = [
+    { icon: <QrCode size={20}/>, color: 'bg-blue-100 text-blue-600',
+      title: locale === 'ru' ? 'QR pentru fiecare punct' : 'QR pentru fiecare punct',
+      desc: locale === 'ru' ? 'Отдельный код на каждую точку или сотрудника. Клиент сканирует за 2 секунды.' : 'Cod separat per locație sau angajat. Toate locațiile dintr-un singur panou.' },
+    { icon: <Send size={20}/>, color: 'bg-indigo-100 text-indigo-600',
+      title: locale === 'ru' ? 'Alerte Telegram instant' : 'Alerte Telegram instant',
+      desc: locale === 'ru' ? 'Мгновенное уведомление при каждом отзыве. Crisis Mode la 3+ negative în 30 de minute.' : 'Notificare la fiecare recenzie. Crisis Mode la 3+ negative în 30 de minute.' },
+    { icon: <BarChart3 size={20}/>, color: 'bg-violet-100 text-violet-600',
+      title: locale === 'ru' ? 'Analiza completa' : 'Analiza completa',
+      desc: locale === 'ru' ? 'Тепловая карта, рейтинг команды, QRate Score 0–100. Tendințe și evoluție rating.' : 'Heatmap orar, leaderboard angajați, QRate Score 0–100. Tendințe și evoluție rating.' },
+    { icon: <Star size={20}/>, color: 'bg-emerald-100 text-emerald-600',
+      title: locale === 'ru' ? 'Reputatie Google' : 'Reputatie Google',
+      desc: locale === 'ru' ? 'Клиенты с 4–5 звёздами автоматически перенаправляются на Google Reviews.' : 'Clienții cu 4–5 stele sunt redirecționați automat spre Google Reviews.' },
+    { icon: <Bot size={20}/>, color: 'bg-blue-100 text-blue-700',
+      title: locale === 'ru' ? 'Contact direct client' : 'Contact direct client',
+      desc: locale === 'ru' ? 'Готовые ответы для отправки + прямая кнопка WhatsApp одним кликом.' : 'Răspunsuri gata de trimis + buton WhatsApp direct pentru contact imediat.' },
+    { icon: <Shield size={20}/>, color: 'bg-slate-100 text-slate-600',
+      title: locale === 'ru' ? 'Monitorizare reputatie' : 'Monitorizare reputatie',
+      desc: locale === 'ru' ? 'Виджет для вашего сайта. Система замечает проблемные слова и сразу оповещает.' : 'Widget embed pentru site. Sistemul detectează cuvinte problemă și alertează imediat.' },
   ];
 
   const switchLanguage = (newLocale: typeof locales[number]) => {
@@ -161,7 +126,6 @@ export default function LandingPage() {
           <span className="text-white font-black text-sm italic uppercase">QRate<span className="text-blue-500">.MD</span></span>
         </div>
         <div className="flex items-center gap-1.5">
-          {/* ✅ RO/RU switcher pe mobile */}
           <div className="flex items-center bg-white/10 p-0.5 rounded-lg gap-0.5">
             <button onClick={() => switchLanguage('ro')}
               className={`px-2 py-1 rounded-md text-[9px] font-black transition-all ${locale === 'ro' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
@@ -221,7 +185,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-1">
             {[
               { id: 'functii', label: locale === 'ru' ? 'Функции' : 'Funcții' },
-              { id: 'industrii', label: locale === 'ru' ? 'Industrii' : 'Industrii' },
+              { id: 'industrii', label: locale === 'ru' ? 'Отрасли' : 'Industrii' },
               { id: 'demo', label: 'Demo' },
               { id: 'preturi', label: locale === 'ru' ? 'Цены' : 'Prețuri' },
             ].map(item => (
@@ -289,14 +253,14 @@ export default function LandingPage() {
 
             <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed mb-10">
               {locale === 'ru'
-                ? 'QR → Отзыв → Telegram. Недовольные клиенты не попадают на Google. Довольные — да.'
-                : 'QR → Recenzie → Telegram. Clienții nemulțumiți nu ajung pe Google. Cei fericiți — da.'}
+                ? 'QR — Отзыв — Telegram. Недовольные клиенты не попадают на Google. Довольные — да.'
+                : 'QR — Recenzie — Telegram. Clienții nemulțumiți nu ajung pe Google. Cei fericiți — da.'}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href={isLoggedIn ? "/dashboard" : "/auth/register"}
                 className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.3em] shadow-2xl shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all text-center flex items-center justify-center gap-2">
-                {isLoggedIn ? (locale === 'ru' ? 'Dashboard' : 'Dashboard') : (locale === 'ru' ? 'Начать бесплатно — 7 дней' : 'Încearcă Gratuit — 7 zile')}
+                {isLoggedIn ? 'Dashboard' : (locale === 'ru' ? 'Начать бесплатно — 7 дней' : 'Încearcă Gratuit — 7 zile')}
                 <ArrowRight size={14}/>
               </Link>
               <button onClick={() => scrollTo('demo-qr')}
@@ -306,24 +270,24 @@ export default function LandingPage() {
               </button>
             </div>
 
-            {/* TRUST BAR */}
-            <div className="mt-14 flex flex-wrap items-center justify-center gap-6 md:gap-10">
+            {/* VALUE PROPS */}
+            <div className="mt-14 flex flex-wrap items-center justify-center gap-3 md:gap-4">
               {[
-                { value: locale === 'ru' ? '200+' : '200+', label: locale === 'ru' ? 'Afaceri active' : 'Afaceri active' },
-                { value: '12 000+', label: locale === 'ru' ? 'Отзывов собрано' : 'Recenzii colectate' },
-                { value: locale === 'ru' ? '7 zile' : '7 zile', label: locale === 'ru' ? 'Gratis · Fără card' : 'Gratuit · Fără card' },
-                { value: '068 688 484', label: locale === 'ru' ? 'Suport în Moldova' : 'Suport în Moldova' },
-              ].map((stat, i) => (
-                <div key={i} className="text-center">
-                  <p className="text-xl font-black text-slate-900">{stat.value}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{stat.label}</p>
-                </div>
+                locale === 'ru' ? '7 дней бесплатно' : '7 zile gratuit',
+                locale === 'ru' ? 'Без банковской карты' : 'Fără card bancar',
+                locale === 'ru' ? 'Настройка за 5 минут' : 'Configurare în 5 minute',
+                locale === 'ru' ? 'Поддержка в Молдове' : 'Suport local în Moldova',
+              ].map((prop, i) => (
+                <span key={i} className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-500 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full shrink-0"/>
+                  {prop}
+                </span>
               ))}
             </div>
           </div>
         </section>
 
-        {/* CUM FUNCȚIONEAZĂ */}
+        {/* CUM FUNCTIONEAZA */}
         <section id="demo" className="py-20 px-6 scroll-mt-24 bg-[#F8FAFC]">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-14">
@@ -335,9 +299,15 @@ export default function LandingPage() {
 
             <div className="grid md:grid-cols-3 gap-6 mb-16">
               {[
-                { step: '01', icon: <QrCode size={28}/>, color: 'bg-blue-600', title: locale === 'ru' ? 'Client scanează QR' : 'Clientul scanează QR', desc: locale === 'ru' ? 'QR pe masă, la casă sau pe bon. Clientul scanează în 2 secunde.' : 'QR pe masă, la casă, pe bon sau pe perete. Clientul scanează în 2 secunde.' },
-                { step: '02', icon: <Star size={28}/>, color: 'bg-amber-500', title: locale === 'ru' ? 'Lasă recenzia' : 'Lasă recenzia', desc: locale === 'ru' ? '5 stele → redirect automat pe Google. 1-3 stele → mesaj privat pe Telegram.' : '5 stele → redirect automat pe Google. 1-3 stele → mesaj privat direct pe Telegram.' },
-                { step: '03', icon: <BellRing size={28}/>, color: 'bg-emerald-600', title: locale === 'ru' ? 'Tu acționezi instant' : 'Tu acționezi instant', desc: locale === 'ru' ? 'Primești notificare pe Telegram. Răspunzi cu un click. Google Reviews cresc.' : 'Notificare pe Telegram. Răspunzi cu un click. Clienți fideli. Google cresc.' },
+                { step: '01', icon: <QrCode size={28}/>, color: 'bg-blue-600',
+                  title: locale === 'ru' ? 'Клиент сканирует QR' : 'Clientul scanează QR',
+                  desc: locale === 'ru' ? 'QR pe masă, la casă sau pe bon. Clientul îl scanează în 2 secunde.' : 'QR pe masă, la casă, pe bon sau pe perete. Clientul scanează în 2 secunde.' },
+                { step: '02', icon: <Star size={28}/>, color: 'bg-amber-500',
+                  title: locale === 'ru' ? 'Оставляет отзыв' : 'Lasă recenzia',
+                  desc: locale === 'ru' ? '5 stele — redirect automat pe Google. 1–3 stele — mesaj privat pe Telegram.' : '5 stele — redirect automat pe Google. 1–3 stele — mesaj privat pe Telegram.' },
+                { step: '03', icon: <BellRing size={28}/>, color: 'bg-emerald-600',
+                  title: locale === 'ru' ? 'Ты реагируешь сразу' : 'Tu acționezi instant',
+                  desc: locale === 'ru' ? 'Primești notificare pe Telegram. Răspunzi cu un click. Ratingul pe Google crește.' : 'Notificare pe Telegram. Răspunzi cu un click. Clienți fideli. Google cresc.' },
               ].map((item, i) => (
                 <div key={i} className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
                   <div className="absolute top-4 right-4 text-slate-100 font-black text-5xl leading-none">{item.step}</div>
@@ -348,7 +318,7 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* Phone + ROI */}
+            {/* Phone + 6 Features */}
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               <div className="flex justify-center">
                 <div className="relative w-[260px] h-[520px] bg-slate-900 rounded-[2.5rem] border-[10px] border-slate-800 shadow-2xl overflow-hidden">
@@ -357,14 +327,16 @@ export default function LandingPage() {
                       <div className="bg-slate-950 text-white p-3.5 rounded-2xl shadow-2xl border border-white/10">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="bg-red-500 p-1 rounded-lg animate-pulse"><BellRing size={10} className="text-white"/></div>
-                          <p className="text-red-400 text-[9px] font-black uppercase">Telegram Alert!</p>
+                          <p className="text-red-400 text-[9px] font-black uppercase">Telegram Alert</p>
                         </div>
-                        <p className="text-slate-300 text-[10px]">{locale === 'ru' ? '2★ — Ion M. @ Central. "Așteptare prea lungă"' : '2★ — Ion M. @ Central. "Așteptare prea lungă"'}</p>
+                        <p className="text-slate-300 text-[10px]">
+                          {locale === 'ru' ? '2 — Ion M. @ Central. "Asteptare prea lunga"' : '2 — Ion M. @ Central. "Așteptare prea lungă"'}
+                        </p>
                       </div>
                     </div>
                     <div className="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white font-black italic text-xl mt-12 shadow-xl">Q</div>
                     <h4 className="font-black text-slate-950 text-lg uppercase tracking-tighter">
-                      {locale === 'ru' ? 'Experiența ta?' : 'Experiența ta?'}
+                      {locale === 'ru' ? 'Ваш отзыв?' : 'Experiența ta?'}
                     </h4>
                     <div className="flex gap-2">
                       {[1,2,3,4,5].map(star => (
@@ -375,12 +347,22 @@ export default function LandingPage() {
                       {locale === 'ru' ? 'Serviciu rapid, recomand!' : 'Serviciu rapid, recomand!'}
                     </div>
                     <button className="w-full py-3.5 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider">
-                      {locale === 'ru' ? 'Trimite Recenzia' : 'Trimite Recenzia'}
+                      {locale === 'ru' ? 'Отправить отзыв' : 'Trimite Recenzia'}
                     </button>
                   </div>
                 </div>
               </div>
-              <ROICalculator locale={locale}/>
+
+              {/* 6 Feature cards */}
+              <div id="functii" className="grid grid-cols-2 gap-3 scroll-mt-24">
+                {features6.map((f, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-4 group">
+                    <div className={`w-9 h-9 ${f.color} rounded-xl flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform`}>{f.icon}</div>
+                    <h3 className="font-black text-xs uppercase tracking-tight text-slate-900 mb-1">{f.title}</h3>
+                    <p className="text-slate-400 text-[10px] leading-relaxed">{f.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -406,54 +388,22 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               <div className="bg-rose-500/10 border border-rose-500/20 rounded-3xl p-6">
-                <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-3">😤 {locale === 'ru' ? 'Fără QRate' : 'Fără QRate'}</p>
+                <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-3">
+                  {locale === 'ru' ? 'Fara QRate' : 'Fara QRate'}
+                </p>
                 <p className="text-white font-bold text-base leading-relaxed">{industries[selectedIndustry].pain}</p>
               </div>
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6">
-                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-3">✅ {locale === 'ru' ? 'Cu QRate' : 'Cu QRate'}</p>
+                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest mb-3">
+                  {locale === 'ru' ? 'Cu QRate' : 'Cu QRate'}
+                </p>
                 <p className="text-white font-bold text-base leading-relaxed">{industries[selectedIndustry].solution}</p>
               </div>
             </div>
             <div className="text-center mt-8">
               <Link href="/auth/register" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-wider transition-all">
-                {locale === 'ru' ? 'Testează gratuit' : 'Testează gratuit — 7 zile'} <ArrowRight size={14}/>
+                {locale === 'ru' ? 'Testează gratuit — 7 zile' : 'Testează gratuit — 7 zile'} <ArrowRight size={14}/>
               </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* FUNCȚII */}
-        <section id="functii" className="py-20 px-6 scroll-mt-24">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-14">
-              <div className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.3em] mb-4">
-                <Award size={12}/> 12 {locale === 'ru' ? 'instrumente incluse' : 'Instrumente Incluse'}
-              </div>
-              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-slate-950">
-                {locale === 'ru' ? 'Всё, что входит в QRate' : 'Tot ce include QRate'}
-              </h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[
-                { icon: <QrCode size={22}/>, color: 'bg-blue-100 text-blue-600', title: locale==='ru'?'QR Уникальные':'QR Unici', desc: locale==='ru'?'Отдельный код для каждой точки или сотрудника. Клиент сканирует за 2 секунды.':'Cod separat per locație sau angajat. Clientul scanează în 2 secunde.' },
-                { icon: <Send size={22}/>, color: 'bg-indigo-100 text-indigo-600', title: locale==='ru'?'Алерты в Telegram':'Alerte Telegram', desc: locale==='ru'?'Мгновенное уведомление при каждом новом отзыве — прямо в телефон.':'Notificare instant la fiecare recenzie nouă — direct pe telefon.' },
-                { icon: <BarChart3 size={22}/>, color: 'bg-violet-100 text-violet-600', title: locale==='ru'?'Аналитика':'Panou Analitic', desc: locale==='ru'?'Тепловая карта по часам, рейтинг команды, QRate Score 0–100.':'Heatmap orar, leaderboard angajați, QRate Score 0–100.' },
-                { icon: <Sparkles size={22}/>, color: 'bg-amber-100 text-amber-600', title: locale==='ru'?'Прогнозы':'Predicții', desc: locale==='ru'?'Система оценивает тренды и показывает вероятную динамику рейтинга.':'Sistemul evaluează tendințele și estimează evoluția ratingului.' },
-                { icon: <Flame size={22}/>, color: 'bg-rose-100 text-rose-600', title: 'Crisis Mode', desc: locale==='ru'?'Красный сигнал при 3 и более негативных отзывах за 30 минут.':'Alertă roșie la 3+ recenzii negative în 30 de minute.' },
-                { icon: <Trophy size={22}/>, color: 'bg-amber-100 text-amber-700', title: 'Recovery Win', desc: locale==='ru'?'Уведомление, когда недовольный клиент возвращается и ставит 5★.':'Notificare când un client nemulțumit revine și lasă 5★.' },
-                { icon: <Star size={22}/>, color: 'bg-emerald-100 text-emerald-600', title: 'Google Reviews', desc: locale==='ru'?'Клиенты с оценкой 4–5★ автоматически попадают на страницу Google.':'Clienții cu 4–5★ sunt redirecționați automat spre Google Reviews.' },
-                { icon: <Bot size={22}/>, color: 'bg-blue-100 text-blue-700', title: locale==='ru'?'Шаблоны ответов':'Răspunsuri Rapide', desc: locale==='ru'?'Готовые персонализированные ответы + кнопка WhatsApp в один клик.':'Răspunsuri personalizate gata de trimis + buton WhatsApp direct.' },
-                { icon: <Smartphone size={22}/>, color: 'bg-green-100 text-green-600', title: locale==='ru'?'WhatsApp Follow-up':'WhatsApp Follow-up', desc: locale==='ru'?'Прямой выход на недовольного клиента через WhatsApp.':'Contact direct cu clientul nemulțumit prin WhatsApp.' },
-                { icon: <Shield size={22}/>, color: 'bg-slate-100 text-slate-600', title: locale==='ru'?'Виджет рейтинга':'Widget Rating', desc: locale==='ru'?'Встраиваемый виджет для вашего сайта — как значок доверия.':'Badge embed pentru site-ul tău — semn de încredere pentru clienți.' },
-                { icon: <Users size={22}/>, color: 'bg-purple-100 text-purple-600', title: locale==='ru'?'Несколько точек':'Multi-Locații', desc: locale==='ru'?'Все локации — в одной панели. Сравнение и контроль без лишних усилий.':'Toate locațiile dintr-un singur panou. Compari și controlezi ușor.' },
-                { icon: <Target size={22}/>, color: 'bg-orange-100 text-orange-600', title: locale==='ru'?'Контроль слов':'Cuvinte Cheie', desc: locale==='ru'?'Система замечает проблемные слова в отзывах и сразу оповещает.':'Sistemul detectează cuvinte problemă în recenzii și alertează imediat.' },
-              ].map((f, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 p-5 group">
-                  <div className={`w-10 h-10 ${f.color} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>{f.icon}</div>
-                  <h3 className="font-black text-sm uppercase tracking-tight text-slate-900 mb-1">{f.title}</h3>
-                  <p className="text-slate-400 text-xs leading-relaxed">{f.desc}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>
@@ -471,24 +421,24 @@ export default function LandingPage() {
                 </h2>
                 <p className="text-slate-500 text-sm leading-relaxed mb-6">
                   {locale === 'ru'
-                    ? 'Acesta e exact ce vede clientul tău când scanează QR-ul. Încearcă pe telefon acum.'
+                    ? 'Asta e exact ce vede clientul tău când scanează QR-ul. Încearcă pe telefon acum.'
                     : 'Acesta e exact ce vede clientul tău când scanează QR-ul din locație. Încearcă pe telefon acum.'}
                 </p>
                 <div className="space-y-3">
                   {[
-                    { icon: '📱', text: locale === 'ru' ? 'Открой камеру телефона' : 'Deschide camera telefonului' },
-                    { icon: '🎯', text: locale === 'ru' ? 'Отсканируй QR-код рядом' : 'Scanează codul QR alăturat' },
-                    { icon: '⭐', text: locale === 'ru' ? 'Оставь тестовый отзыв — 10 секунд' : 'Lasă o recenzie demo — 10 secunde' },
+                    { num: '1', text: locale === 'ru' ? 'Открой камеру телефона' : 'Deschide camera telefonului' },
+                    { num: '2', text: locale === 'ru' ? 'Отсканируй QR-код рядом' : 'Scanează codul QR alăturat' },
+                    { num: '3', text: locale === 'ru' ? 'Оставь тестовый отзыв — 10 секунд' : 'Lasă o recenzie demo — 10 secunde' },
                   ].map((s, i) => (
                     <div key={i} className="flex items-center gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                      <span className="text-xl">{s.icon}</span>
+                      <span className="w-6 h-6 bg-blue-600 text-white rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">{s.num}</span>
                       <span className="text-sm font-bold text-slate-700">{s.text}</span>
                     </div>
                   ))}
                 </div>
                 <a href="/rate/demo" target="_blank" rel="noreferrer"
                   className="inline-flex items-center gap-1.5 mt-5 text-blue-600 hover:text-blue-700 font-black text-xs uppercase tracking-wider transition-colors">
-                  {locale === 'ru' ? 'Или открой прямо на компьютере →' : 'Sau deschide direct pe desktop →'}
+                  {locale === 'ru' ? 'Sau deschide direct pe calculator' : 'Sau deschide direct pe desktop'} <ArrowRight size={12}/>
                 </a>
               </div>
               <div className="flex flex-col items-center gap-4">
@@ -507,74 +457,69 @@ export default function LandingPage() {
                   <div className="mt-3 flex items-center justify-center gap-1.5">
                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"/>
                     <p className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">
-                      {locale === 'ru' ? 'Демо активно · Сканируй сейчас' : 'Demo activ · Scanează acum'}
+                      {locale === 'ru' ? 'Demo activ — Scaneaza acum' : 'Demo activ — Scanează acum'}
                     </p>
                   </div>
                 </div>
                 <p className="text-[10px] text-slate-400 font-bold text-center uppercase tracking-wider">
-                  {locale === 'ru' ? 'Funcționează pe orice telefon' : 'Funcționează pe orice telefon cu cameră'}
+                  {locale === 'ru' ? 'Functioneaza pe orice telefon' : 'Funcționează pe orice telefon cu cameră'}
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* TABEL COMPARATIV */}
-        <section className="py-20 px-6 bg-[#F8FAFC]">
-          <div className="max-w-5xl mx-auto">
+        {/* PRETURI */}
+        <section id="preturi" className="py-20 px-6 scroll-mt-24 bg-[#F8FAFC]">
+          <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
               <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-3">
-                {locale === 'ru' ? 'Почему QRate?' : 'De ce QRate?'}
+                {locale === 'ru' ? 'Тарифы' : 'Planuri si Preturi'}
               </p>
-              <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-slate-950">
-                QRate vs {locale === 'ru' ? 'другие решения' : 'alte soluții'}
+              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic text-slate-950">
+                {locale === 'ru' ? 'Прозрачные цены' : 'Preturi Transparente'}
               </h2>
+              <p className="text-slate-400 mt-2 text-sm">
+                {locale === 'ru' ? '7 дней бесплатно · Без банковской карты · Отмена в любой момент' : '7 zile gratuit · Fara card bancar · Anulezi oricand'}
+              </p>
+              <p className="text-slate-500 mt-3 text-xs max-w-xl mx-auto">
+                {locale === 'ru'
+                  ? 'Toate planurile includ: QR-коды, уведомления Telegram, панель управления, Google Reviews, Crisis Mode si WhatsApp. Diferenta — doar numarul de locatii si angajati.'
+                  : 'Toate planurile includ: coduri QR, alerte Telegram, panou de control, Google Reviews, Crisis Mode si WhatsApp. Diferenta — doar numarul de locatii si angajati.'}
+              </p>
             </div>
-            <div className="overflow-x-auto rounded-3xl border border-slate-200 shadow-sm bg-white">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="text-left p-5 text-[10px] font-black text-slate-400 uppercase tracking-wider w-[38%]">{locale === 'ru' ? 'Функциональность' : 'Funcționalitate'}</th>
-                    <th className="p-4 text-center">
-                      <span className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase">
-                        <Zap size={11}/> QRate
-                      </span>
-                    </th>
-                    <th className="p-4 text-center text-[10px] font-black text-slate-400 uppercase">Google Forms</th>
-                    <th className="p-4 text-center text-[10px] font-black text-slate-400 uppercase hidden sm:table-cell">Fișe hârtie</th>
-                    <th className="p-4 text-center text-[10px] font-black text-slate-400 uppercase hidden md:table-cell">{locale === 'ru' ? 'Ничего' : 'Nimic'}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { feature: locale==='ru'?'Уведомления Telegram instant':'Notificări instant Telegram', q: true, f: false, p: false, n: false },
-                    { feature: locale==='ru'?'Негативные отзывы не попадают на Google':'Recenzii negative nu ajung pe Google', q: true, f: false, p: false, n: false },
-                    { feature: locale==='ru'?'Авторедирект на Google (4-5★)':'Redirect automat Google (4-5★)', q: true, f: false, p: false, n: false },
-                    { feature: locale==='ru'?'AI ответы + WhatsApp':'AI răspunsuri + WhatsApp', q: true, f: false, p: false, n: false },
-                    { feature: locale==='ru'?'Аналитика + Рейтинг сотрудников':'Analytics + Leaderboard angajați', q: true, f: '⚠️', p: false, n: false },
-                    { feature: locale==='ru'?'Crisis Mode (3+ отзыва за 30 мин)':'Crisis Mode (3+ recenzii negative)', q: true, f: false, p: false, n: false },
-                    { feature: locale==='ru'?'QR индивидуальный для каждого':'QR individualizat per angajat', q: true, f: false, p: false, n: false },
-                    { feature: locale==='ru'?'Настройка за 5 минут':'Setup în 5 minute', q: true, f: true, p: true, n: true },
-                    { feature: locale==='ru'?'Цена в месяц':'Preț lunar', q: locale==='ru'?'от 450 MDL':'de la 450 MDL', f: locale==='ru'?'Бесплатно':'Gratuit', p: '~500 MDL', n: '0 MDL 😬' },
-                  ].map((row, i) => (
-                    <tr key={i} className={`border-b border-slate-50 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'} hover:bg-blue-50/20 transition-colors`}>
-                      <td className="p-4 text-xs font-bold text-slate-700">{row.feature}</td>
-                      {[row.q, row.f, row.p, row.n].map((val, j) => (
-                        <td key={j} className={`p-4 text-center ${j >= 2 ? (j === 2 ? 'hidden sm:table-cell' : 'hidden md:table-cell') : ''}`}>
-                          {val === true ? <span className="text-emerald-500 text-lg font-black">✓</span>
-                            : val === false ? <span className="text-rose-400 text-lg">✗</span>
-                            : <span className="text-[11px] font-black text-slate-600 bg-slate-100 px-2 py-0.5 rounded-lg">{val}</span>}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="text-center mt-8">
-              <Link href="/auth/register" className="inline-flex items-center gap-2 bg-slate-950 hover:bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-wider transition-all shadow-xl">
-                {locale === 'ru' ? 'Încearcă QRate gratuit' : 'Încearcă QRate gratuit — 7 zile'} <ChevronRight size={14}/>
-              </Link>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {PRICING_PLANS.map((plan, index) => {
+                const isSelected = selectedPlanIndex === index;
+                return (
+                  <article key={plan.id} onClick={() => setSelectedPlanIndex(index)}
+                    className={`p-6 rounded-3xl bg-white border-2 cursor-pointer transition-all flex flex-col ${isSelected ? 'border-blue-600 shadow-xl shadow-blue-100 scale-[1.02]' : 'border-slate-100 opacity-75 hover:opacity-100 hover:border-blue-200'}`}>
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="p-2 bg-slate-100 rounded-xl"><Building size={16} className="text-slate-600"/></div>
+                      {isSelected && <span className="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase">{locale === 'ru' ? 'Выбран' : 'Selectat'}</span>}
+                    </div>
+                    <h3 className="text-lg font-black italic uppercase text-slate-900">{plan.label}</h3>
+                    <div className="flex items-baseline gap-1 my-2">
+                      <span className="text-2xl font-black">{plan.price}</span>
+                      <span className="text-slate-400 text-xs font-bold">MDL/{locale === 'ru' ? 'мес' : 'luna'}</span>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-slate-500 border-t border-slate-100 pt-3 mb-4 flex-1">
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{plan.locations} {locale === 'ru' ? (plan.locations === 1 ? 'локация' : 'локации') : (plan.locations === 1 ? 'locatie' : 'locatii')}</li>
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{plan.maxEmployees === 999 ? 'Nelimitat' : plan.maxEmployees} {locale === 'ru' ? 'сотрудников' : 'angajati'}</li>
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>QR + Telegram + {locale === 'ru' ? 'Аналитика' : 'Analytics'}</li>
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>Google Reviews + {locale === 'ru' ? 'Виджет' : 'Widget'}</li>
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>Crisis Mode + {locale === 'ru' ? 'Cuvinte cheie' : 'Cuvinte cheie'}</li>
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>WhatsApp Follow-up</li>
+                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{locale === 'ru' ? '7 дней бесплатно' : '7 zile gratuit'}</li>
+                    </ul>
+                    <Link href={isLoggedIn ? "/dashboard" : "/auth/register"}
+                      className={`block w-full py-3 rounded-2xl font-black uppercase text-xs tracking-wider text-center transition-all ${isSelected ? 'bg-blue-600 text-white hover:bg-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white'}`}
+                      onClick={e => e.stopPropagation()}>
+                      {isLoggedIn ? (locale === 'ru' ? 'Активировать' : 'Activeaza') : (locale === 'ru' ? 'Выбрать план' : 'Alege Planul')}
+                    </Link>
+                  </article>
+                );
+              })}
             </div>
 
             {/* WhatsApp CTA */}
@@ -593,121 +538,10 @@ export default function LandingPage() {
                     {locale === 'ru' ? 'Напишите нам в WhatsApp' : 'Scrie-ne pe WhatsApp'}
                   </p>
                   <p className="text-green-200 text-[10px] font-bold mt-0.5">
-                    {locale === 'ru' ? 'Ответим за несколько минут' : 'Răspundem în câteva minute'}
+                    {locale === 'ru' ? 'Ответим за несколько минут' : 'Raspundem in cateva minute'}
                   </p>
                 </div>
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse ml-1"/>
               </a>
-            </div>
-          </div>
-        </section>
-
-        {/* TESTIMONIALE */}
-        <section className="py-16 px-6 bg-slate-950">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-10">
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-3">
-                {locale === 'ru' ? 'Говорят клиенты' : 'Ce spun clienții'}
-              </p>
-              <h2 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tighter">
-                {locale === 'ru' ? 'Результаты говорят сами за себя' : 'Rezultatele vorbesc de la sine'}
-              </h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-5">
-              {[
-                {
-                  name: 'Andrei M.',
-                  role: locale === 'ru' ? 'Владелец ресторана, Кишинёв' : 'Proprietar restaurant, Chișinău',
-                  text: locale === 'ru'
-                    ? 'Înainte, aflam de problemele din bucătărie abia când apărea recenzia pe Google. Acum primesc mesajul pe Telegram în timp real și pot reacționa imediat.'
-                    : 'Înainte, aflam de problemele din bucătărie abia când apărea recenzia pe Google. Acum primesc mesajul pe Telegram în timp real și pot reacționa imediat.',
-                  stars: 5,
-                },
-                {
-                  name: 'Elena V.',
-                  role: locale === 'ru' ? 'Директор салона красоты, Бельцы' : 'Director salon, Bălți',
-                  text: locale === 'ru'
-                    ? 'Мы открыли три новые точки и боялись потерять контроль над качеством. Cu QRate văd totul dintr-un singur loc — cine performează, cine are nevoie de atenție.'
-                    : 'Am deschis trei puncte noi și ne temeam să nu pierdem controlul. Cu QRate văd totul dintr-un singur loc — cine performează, cine are nevoie de atenție.',
-                  stars: 5,
-                },
-                {
-                  name: 'Victor T.',
-                  role: locale === 'ru' ? 'Сеть магазинов, Орхей' : 'Rețea magazine, Orhei',
-                  text: locale === 'ru'
-                    ? 'În prima lună am crescut cu 23 de recenzii pozitive pe Google. Clienții mulțumiți acum lasă recenzia direct — nu mai trebuie să-i rugăm.'
-                    : 'În prima lună am crescut cu 23 de recenzii pozitive pe Google. Clienții mulțumiți acum lasă recenzia direct — nu mai trebuie să-i rugăm.',
-                  stars: 5,
-                },
-              ].map((t, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col gap-4">
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: t.stars }).map((_, s) => (
-                      <span key={s} className="text-amber-400 text-base">★</span>
-                    ))}
-                  </div>
-                  <p className="text-slate-300 text-sm leading-relaxed italic">"{t.text}"</p>
-                  <div className="mt-auto pt-3 border-t border-white/10">
-                    <p className="text-white font-black text-sm">{t.name}</p>
-                    <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mt-0.5">{t.role}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* PREȚURI */}
-        <section id="preturi" className="py-20 px-6 scroll-mt-24 bg-white">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-3">
-                {locale === 'ru' ? 'Тарифы' : 'Planuri și Prețuri'}
-              </p>
-              <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter italic text-slate-950">
-                {locale === 'ru' ? 'Прозрачные цены' : 'Prețuri Transparente'}
-              </h2>
-              <p className="text-slate-400 mt-2 text-sm">
-                {locale === 'ru' ? '7 дней бесплатно · Без банковской карты · Отмена в любой момент' : '7 zile gratuit · Fără card bancar · Anulezi oricând'}
-              </p>
-              <p className="text-slate-500 mt-3 text-xs max-w-xl mx-auto">
-                {locale === 'ru'
-                  ? 'Все планы включают: QR-коды, уведомления Telegram, панель управления, Google Reviews, Crisis Mode и WhatsApp. Разница — только в количестве точек и сотрудников.'
-                  : 'Toate planurile includ: coduri QR, alerte Telegram, panou de control, Google Reviews, Crisis Mode și WhatsApp. Diferența — doar numărul de locații și angajați.'}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {PRICING_PLANS.map((plan, index) => {
-                const isSelected = selectedPlanIndex === index;
-                return (
-                  <article key={plan.id} onClick={() => setSelectedPlanIndex(index)}
-                    className={`p-6 rounded-3xl bg-white border-2 cursor-pointer transition-all flex flex-col ${isSelected ? 'border-blue-600 shadow-xl shadow-blue-100 scale-[1.02]' : 'border-slate-100 opacity-75 hover:opacity-100 hover:border-blue-200'}`}>
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="p-2 bg-slate-100 rounded-xl"><Building size={16} className="text-slate-600"/></div>
-                      {isSelected && <span className="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded-full uppercase">{locale === 'ru' ? 'Выбран' : 'Selectat'}</span>}
-                    </div>
-                    <h3 className="text-lg font-black italic uppercase text-slate-900">{plan.label}</h3>
-                    <div className="flex items-baseline gap-1 my-2">
-                      <span className="text-2xl font-black">{plan.price}</span>
-                      <span className="text-slate-400 text-xs font-bold">MDL/{locale === 'ru' ? 'мес' : 'lună'}</span>
-                    </div>
-                    <ul className="space-y-1.5 text-xs text-slate-500 border-t border-slate-100 pt-3 mb-4 flex-1">
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{plan.locations} {locale === 'ru' ? (plan.locations === 1 ? 'локация' : 'локации') : (plan.locations === 1 ? 'locație' : 'locații')}</li>
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{plan.maxEmployees === 999 ? '∞' : plan.maxEmployees} {locale === 'ru' ? 'сотрудников' : 'angajați'}</li>
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>QR + Telegram + {locale === 'ru' ? 'Аналитика' : 'Analytics'}</li>
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>Google Reviews + {locale === 'ru' ? 'Виджет' : 'Badge'}</li>
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>Crisis Mode + {locale === 'ru' ? 'Keywords' : 'Keywords'}</li>
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{locale === 'ru' ? 'WhatsApp Follow-up' : 'WhatsApp Follow-up'}</li>
-                      <li className="flex items-center gap-1.5"><Check size={11} className="text-blue-500 shrink-0"/>{locale === 'ru' ? '7 дней бесплатно' : '7 zile gratuit'}</li>
-                    </ul>
-                    <Link href={isLoggedIn ? "/dashboard" : "/auth/register"}
-                      className={`block w-full py-3 rounded-2xl font-black uppercase text-xs tracking-wider text-center transition-all ${isSelected ? 'bg-blue-600 text-white hover:bg-slate-900' : 'bg-slate-100 text-slate-600 hover:bg-blue-600 hover:text-white'}`}
-                      onClick={e => e.stopPropagation()}>
-                      {isLoggedIn ? (locale === 'ru' ? 'Активировать' : 'Activează') : (locale === 'ru' ? 'Выбрать план' : 'Alege Planul')}
-                    </Link>
-                  </article>
-                );
-              })}
             </div>
           </div>
         </section>
@@ -717,10 +551,10 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto text-center">
             <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em] mb-3">Contact</p>
             <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter mb-3">
-              {locale === 'ru' ? 'На расстоянии одного звонка' : 'Suntem la un apel distanță'}
+              {locale === 'ru' ? 'На расстоянии одного звонка' : 'Suntem la un apel distanta'}
             </h2>
             <p className="text-slate-400 text-sm mb-10 max-w-lg mx-auto">
-              {locale === 'ru' ? 'Помогаем настроить QRate для вашего бизнеса за 15 минут.' : 'Te ajutăm să configurezi QRate pentru afacerea ta în 15 minute.'}
+              {locale === 'ru' ? 'Помогаем настроить QRate для вашего бизнеса за 15 минут.' : 'Te ajutam sa configurezi QRate pentru afacerea ta in 15 minute.'}
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
               <a href="tel:+37368688484" className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-blue-600 border border-white/10 hover:border-blue-500 p-6 rounded-3xl transition-all duration-300">
@@ -770,15 +604,15 @@ export default function LandingPage() {
               <div className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.15em] leading-relaxed">
                 <p>QR RATING S.R.L.</p>
                 <p>IDNO: 1026023041245</p>
-                <p>mun. Orhei, str. Sălciilor 75</p>
+                <p>mun. Orhei, str. Salciilor 75</p>
                 <p>Republica Moldova</p>
               </div>
             </div>
             <div className="space-y-4">
               <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-950">{locale === 'ru' ? 'Документы' : 'Documente'}</h4>
               <ul className="space-y-2.5 text-xs font-black text-slate-400 uppercase tracking-widest">
-                <li><a href={`/${locale}/terms`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Условия использования' : 'Termeni și condiții'}</a></li>
-                <li><a href={`/${locale}/privacy`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Конфиденциальность' : 'Confidențialitate'}</a></li>
+                <li><a href={`/${locale}/terms`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Условия использования' : 'Termeni si conditii'}</a></li>
+                <li><a href={`/${locale}/privacy`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Конфиденциальность' : 'Confidentialitate'}</a></li>
                 <li><a href={`/${locale}/refund`} className="hover:text-blue-600 transition-colors">{locale === 'ru' ? 'Политика возврата' : 'Politica de rambursare'}</a></li>
               </ul>
             </div>
@@ -791,7 +625,7 @@ export default function LandingPage() {
               </ul>
             </div>
             <div className="space-y-4">
-              <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-950">{locale === 'ru' ? 'Безопасные платежи' : 'Plăți Securizate'}</h4>
+              <h4 className="font-black uppercase text-[10px] tracking-[0.3em] text-slate-950">{locale === 'ru' ? 'Безопасные платежи' : 'Plati Securizate'}</h4>
               <div className="space-y-2">
                 <p className="text-sm font-black text-slate-700">maib</p>
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Moldova Agroindbank S.A.</p>
@@ -810,8 +644,6 @@ export default function LandingPage() {
         </div>
       </footer>
 
-
-
       {/* COOKIE */}
       {showCookieBanner && (
         <aside className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-sm bg-slate-900 text-white p-5 rounded-3xl shadow-2xl border border-slate-800 z-50">
@@ -819,10 +651,10 @@ export default function LandingPage() {
             <div className="bg-blue-600/20 p-2 rounded-xl text-blue-400 shrink-0"><Cookie size={18}/></div>
             <div>
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 mb-1">
-                {locale === 'ru' ? 'Cookie' : 'Politica Cookie'}
+                {locale === 'ru' ? 'Politica Cookie' : 'Politica Cookie'}
               </h3>
               <p className="text-slate-400 text-[10px] leading-relaxed">
-                {locale === 'ru' ? 'Folosim cookie-uri tehnice obligatorii.' : 'Folosim cookie-uri tehnice obligatorii pentru sesiunea ta.'}
+                {locale === 'ru' ? 'Folosim cookie-uri tehnice obligatorii pentru sesiunea ta.' : 'Folosim cookie-uri tehnice obligatorii pentru sesiunea ta.'}
               </p>
               <button onClick={() => { localStorage.setItem('qrate_cookie_consent', 'accepted'); setShowCookieBanner(false); }}
                 className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">
