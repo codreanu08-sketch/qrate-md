@@ -81,8 +81,8 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
-      router.replace(`/${locale}/auth/confirm${window.location.hash}`);
+    if (window.location.hash.includes('access_token')) {
+      window.location.replace(`/${locale}/auth/confirm${window.location.hash}`);
     }
   }, []);
 
