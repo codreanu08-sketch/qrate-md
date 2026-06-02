@@ -9,14 +9,48 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function sendWelcomeEmail(email: string, locale: string) {
-  const dashboardUrl = `https://www.qrate.md/${locale}/dashboard`;
+export async function registerWithConfirmation(email: string, password: string, locale: string, marketingConsent: boolean) {
   const isRu = locale === 'ru';
 
+  // 1. Crează userul fără a lăsa Supabase să trimită email (email_confirm: false = neconfirmat)
+  const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: false,
+    user_metadata: { marketing_consent: marketingConsent },
+  });
+
+  if (createError) {
+    if (createError.message?.toLowerCase().includes('already been registered') ||
+        createError.message?.toLowerCase().includes('already exists')) {
+      throw new Error(isRu ? 'Этот email уже зарегистрирован.' : 'Acest email este deja înregistrat.');
+    }
+    throw new Error(createError.message);
+  }
+
+  // 2. Generează link de confirmare
+  const redirectTo = `https://www.qrate.md/${locale}/auth/confirm`;
+  const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+    type: 'signup',
+    email,
+    options: { redirectTo },
+  });
+
+  if (linkError || !linkData?.properties?.action_link) {
+    // Userul e creat dar nu putem trimite emailul — ștergem userul ca să nu rămână blocat
+    if (created?.user?.id) {
+      await supabaseAdmin.auth.admin.deleteUser(created.user.id);
+    }
+    throw new Error(isRu ? 'Eroare la generarea linkului. Încearcă din nou.' : 'Eroare la generarea linkului. Încearcă din nou.');
+  }
+
+  const confirmLink = linkData.properties.action_link;
+
+  // 3. Trimite emailul via Resend
   await resend.emails.send({
     from: '"QRate.md" <hello@qrate.md>',
     to: [email],
-    subject: isRu ? 'Bun venit la QRate.md!' : 'Bun venit la QRate.md!',
+    subject: isRu ? 'Confirmă contul tău QRate.md' : 'Confirmă contul tău QRate.md',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
         <div style="background: #0f172a; padding: 32px; text-align: center; border-radius: 16px 16px 0 0;">
@@ -25,19 +59,20 @@ export async function sendWelcomeEmail(email: string, locale: string) {
           </h1>
         </div>
         <div style="padding: 40px 32px;">
-          <h2 style="color: #0f172a; font-size: 22px; font-weight: 900; margin: 0 0 16px;">
-            ${isRu ? 'Contul tău a fost creat!' : 'Contul tău a fost creat!'}
+          <h2 style="color: #0f172a; font-size: 22px; font-weight: 900; margin: 0 0 12px;">
+            ${isRu ? 'Confirmă adresa de email' : 'Confirmă adresa de email'}
           </h2>
-          <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-            ${isRu
-              ? 'Bun venit pe platforma QRate.md. Contul tău este activ și poți începe să colectezi recenzii.'
-              : 'Bun venit pe platforma QRate.md. Contul tău este activ și poți începe să colectezi recenzii.'}
+          <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">
+            ${isRu ? 'Ai creat un cont pe QRate.md. Apasă butonul de mai jos pentru a-l activa.' : 'Ai creat un cont pe QRate.md. Apasă butonul de mai jos pentru a-l activa.'}
           </p>
-          <a href="${dashboardUrl}" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 14px; letter-spacing: 0.5px;">
-            ${isRu ? 'Mergi la Dashboard' : 'Mergi la Dashboard'}
-          </a>
-          <p style="color: #94a3b8; font-size: 12px; margin: 32px 0 0;">
+          <p style="color: #94a3b8; font-size: 13px; margin: 0 0 28px;">
             ${isRu ? 'Dacă nu ai creat acest cont, ignoră acest email.' : 'Dacă nu ai creat acest cont, ignoră acest email.'}
+          </p>
+          <a href="${confirmLink}" style="display: inline-block; background: #2563eb; color: #ffffff; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 900; font-size: 14px; letter-spacing: 0.5px;">
+            ${isRu ? 'Activează contul' : 'Activează contul'}
+          </a>
+          <p style="color: #cbd5e1; font-size: 12px; margin: 28px 0 0;">
+            ${isRu ? 'Link-ul este valabil 24 de ore.' : 'Link-ul este valabil 24 de ore.'}
           </p>
         </div>
         <div style="background: #f8fafc; padding: 20px 32px; border-radius: 0 0 16px 16px; text-align: center;">
