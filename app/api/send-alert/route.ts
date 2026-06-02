@@ -26,24 +26,28 @@ export async function POST(request: Request) {
       }
     }
 
-    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '8169972917:AAGgxHB7vi26JTjCFQx2s0ulxPbbAJO2GCA';
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    if (!BOT_TOKEN) {
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
 
     const ratingValue = Number(reviewData.rating) || 5;
-    const stars = '⭐️'.repeat(ratingValue);
+    const stars = '*'.repeat(ratingValue);
     const hasPhoto = !!reviewData.photo_url;
     const companyName = (reviewData.company_slug || 'QRATE').toUpperCase();
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-    const messageContent = `
-⚠️ <b>REVIEW NOU - QRate.md</b>
-==========================
-🏢 <b>Afacere:</b> ${companyName}
-⭐ <b>Rating:</b> ${stars} (${ratingValue}/5)
-👤 <b>Client:</b> ${reviewData.full_name || 'Client Anonim'}
-${reviewData.phone ? `📞 <b>Tel:</b> ${reviewData.phone}` : ''}
-💬 <b>Comentariu:</b> "${reviewData.comment || 'Fără comentariu'}"
-==========================
-${hasPhoto ? '🖼️ <i>Imagine atașată mai jos</i>' : ''}
-    `.trim();
+    const messageContent = [
+      `<b>REVIEW NOU - QRate.md</b>`,
+      `==========================`,
+      `<b>Afacere:</b> ${esc(companyName)}`,
+      `<b>Rating:</b> ${stars} (${ratingValue}/5)`,
+      `<b>Client:</b> ${esc(reviewData.full_name || 'Client Anonim')}`,
+      reviewData.phone ? `<b>Tel:</b> ${esc(String(reviewData.phone))}` : '',
+      `<b>Comentariu:</b> "${esc(String(reviewData.comment || 'Fara comentariu'))}"`,
+      `==========================`,
+      hasPhoto ? '<i>Imagine atasata mai jos</i>' : '',
+    ].filter(Boolean).join('\n');
 
     const telegramMethod = hasPhoto ? 'sendPhoto' : 'sendMessage';
     

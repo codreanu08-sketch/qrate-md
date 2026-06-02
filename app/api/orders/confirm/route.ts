@@ -55,12 +55,18 @@ export async function POST(request: Request) {
 💳 <b>Tarif Lunar:</b> ${futureMonthlyAmount} MDL
 `;
 
-    let telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN || "8494478065:AAHAS1icJCUe5q-Te5KsWraC2-o4BcYbrbw"}/sendMessage`;
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    if (!BOT_TOKEN) {
+      console.error('TELEGRAM_BOT_TOKEN not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
+    let telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
     let telegramBody: any = '';
     let headers: HeadersInit = { 'Content-Type': 'application/json' };
 
     if (qrCodeImage && qrCodeImage.size > 0) {
-      telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN || "8494478065:AAHAS1icJCUe5q-Te5KsWraC2-o4BcYbrbw"}/sendPhoto`;
+      telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
       
       const telegramForm = new FormData();
       telegramForm.append('chat_id', CHAT_ID);

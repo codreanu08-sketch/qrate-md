@@ -78,15 +78,16 @@ export async function POST(request: Request) {
     const CHAT_ID = mergeIds(companyTelegramId, locationTelegramIds);
 
     const rating = Number(review.rating) || 5;
-    const stars = '⭐️'.repeat(rating);
+    const stars = '*'.repeat(rating);
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
     // 4. Mesaj principal — prin queue (comportament existent păstrat)
-    let message = `⚠️ <b>REVIEW NOU - QRate.md</b>\n==========================\n`;
-    message += `🏢 <b>Companie:</b> ${companyName}\n`;
-    message += `⭐ <b>Rating:</b> ${stars} (${rating}/5)\n`;
-    message += `👤 <b>Client:</b> ${review.full_name || 'Client Anonim'}\n`;
-    if (review.phone) message += `📞 <b>Telefon:</b> ${review.phone}\n`;
-    if (review.comment) message += `💬 <b>Comentariu:</b> "${review.comment}"\n`;
+    let message = `<b>REVIEW NOU - QRate.md</b>\n==========================\n`;
+    message += `<b>Companie:</b> ${esc(companyName)}\n`;
+    message += `<b>Rating:</b> ${stars} (${rating}/5)\n`;
+    message += `<b>Client:</b> ${esc(review.full_name || 'Client Anonim')}\n`;
+    if (review.phone) message += `<b>Telefon:</b> ${esc(String(review.phone))}\n`;
+    if (review.comment) message += `<b>Comentariu:</b> "${esc(String(review.comment))}"\n`;
     message += `==========================`;
 
     await supabase.from('telegram_messages_queue').insert({

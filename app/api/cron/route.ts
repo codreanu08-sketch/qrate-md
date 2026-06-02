@@ -10,8 +10,7 @@ const supabase = createClient(
 
 export async function GET(request: Request) {
   try {
-    const auth = (request as any).headers?.get?.('authorization') ?? new URL(request.url).searchParams.get('secret');
-    const secret = auth?.replace('Bearer ', '');
+    const secret = (request as any).headers?.get?.('authorization')?.replace('Bearer ', '');
     if (!secret || secret !== process.env.CRON_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
