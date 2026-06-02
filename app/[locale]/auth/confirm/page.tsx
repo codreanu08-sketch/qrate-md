@@ -31,7 +31,8 @@ export default function ConfirmPage() {
     });
 
     // Verifică dacă există deja sesiune (link deja confirmat)
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }: { data: any }) => {
+      const session = data.session;
       if (session) {
         setStatus('success');
         setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
