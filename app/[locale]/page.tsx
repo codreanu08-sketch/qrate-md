@@ -81,6 +81,12 @@ export default function LandingPage() {
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+      router.replace(`/${locale}/auth/confirm${window.location.hash}`);
+    }
+  }, []);
+
+  useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
