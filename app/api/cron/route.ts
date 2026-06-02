@@ -47,17 +47,21 @@ export async function GET(request: Request) {
         if (msg.chat_id) {
           const { data: company } = await supabase
             .from('companies')
-            .select('subscription_status, subscription_ends_at')
+            .select('subscription_status, subscription_expires_at, trial_ends_at, is_subscribed')
             .eq('telegram_chat_id', msg.chat_id)
-            .maybeSingle();   // ← changed to maybeSingle
+            .maybeSingle();
 
           if (company) {
-            const isActive = company.subscription_status === 'active' && 
-                            (!company.subscription_ends_at || new Date(company.subscription_ends_at) > new Date());
-            
-            if (!isActive) {
+            const now = new Date();
+            const isSubscribed =
+              company.is_subscribed === true ||
+              (company.subscription_status === 'ACTIVE' || company.subscription_status === 'active') &&
+              (!company.subscription_expires_at || new Date(company.subscription_expires_at) > now);
+            const isInTrial = company.trial_ends_at && new Date(company.trial_ends_at) > now;
+
+            if (!isSubscribed && !isInTrial) {
               canSend = false;
-              console.log(`⛔ Notificare blocată pentru chat_id ${msg.chat_id} (abonament expirat)`);
+              console.log(`⛔ Notificare blocată pentru chat_id ${msg.chat_id} (abonament expirat, trial inactiv)`);
             }
           }
         }

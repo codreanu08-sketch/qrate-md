@@ -289,13 +289,12 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
       // ✅ Salvează ID-ul recenziei pentru tracking Google
       if (insertedReview?.id) setReviewId(insertedReview.id);
 
-      if (rating <= 3) {
-        await fetch('/api/send-review', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reviewData }),
-        });
-      }
+      // Trimite notificare Telegram pentru toate recenziile
+      await fetch('/api/send-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reviewData }),
+      });
 
       // ✅ Dacă rating 4-5 și există URL Google → afișează prompt Google
       if (rating >= 4 && googleReviewUrl) {
