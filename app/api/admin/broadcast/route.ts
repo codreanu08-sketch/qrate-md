@@ -6,6 +6,11 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function POST(req: NextRequest) {
   try {
+    const secret = req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!secret || secret !== process.env.ADMIN_API_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { message, onlyActive } = await req.json();
     if (!message?.trim()) return NextResponse.json({ error: 'Mesaj gol' }, { status: 400 });
 
@@ -14,9 +19,6 @@ export async function POST(req: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { cookies: { getAll: () => [], setAll: () => {} } }
     );
-
-    // Verifică că userul e admin
-    // (în producție adaugă verificare auth)
 
     let query = supabase.from('companies').select('id, name, telegram_chat_id').not('telegram_chat_id', 'is', null);
     if (onlyActive) query = query.eq('is_active', true);

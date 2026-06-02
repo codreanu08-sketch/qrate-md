@@ -6,6 +6,11 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function POST(req: NextRequest) {
   try {
+    const secret = req.headers.get('authorization')?.replace('Bearer ', '');
+    if (!secret || secret !== process.env.ADMIN_API_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { days = 3 } = await req.json().catch(() => ({}));
 
     const supabase = createServerClient(
