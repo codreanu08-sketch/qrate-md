@@ -149,7 +149,7 @@ export default function SettingsPage() {
           {locations.length > 0 && (
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider ml-1 block mb-2">
-                {locale==='ru'?'ID per локация':'ID-uri per locație'}
+                {locale==='ru'?'ID для каждой локации':'ID-uri per locație'}
               </label>
               <div className="space-y-2.5">
                 {locations.map(loc => (

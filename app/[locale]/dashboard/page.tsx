@@ -47,10 +47,10 @@ function WelcomeCard({ locale, companyId, onDismiss }: { locale: string; company
     })();
   }, [companyId]);
   const steps = [
-    { done: states.loc, label: locale==='ru'?'Добавь первую локацию':'Adaugă prima locație și generează QR', link:`/${locale}/dashboard/locations`, linkLabel:'Locații →' },
-    { done: states.emp, label: locale==='ru'?'Добавь сотрудников':'Adaugă angajații echipei', link:`/${locale}/dashboard/employees`, linkLabel:'Angajați →' },
-    { done: states.tg,  label: locale==='ru'?'Настрой Telegram уведомления':'Setează notificările Telegram', link:`/${locale}/dashboard/settings`, linkLabel:'Setări →' },
-    { done: states.google, label: locale==='ru'?'Добавь ссылку Google Reviews':'Adaugă link Google Reviews (clienții fericiți vor fi redirecționați)', link:`/${locale}/dashboard/settings`, linkLabel:'Adaugă →', highlight: true },
+    { done: states.loc, label: locale==='ru'?'Добавь первую локацию':'Adaugă prima locație și generează QR', link:`/${locale}/dashboard/locations`, linkLabel: locale==='ru'?'Локации →':'Locații →' },
+    { done: states.emp, label: locale==='ru'?'Добавь сотрудников':'Adaugă angajații echipei', link:`/${locale}/dashboard/employees`, linkLabel: locale==='ru'?'Сотрудники →':'Angajați →' },
+    { done: states.tg,  label: locale==='ru'?'Настрой Telegram уведомления':'Setează notificările Telegram', link:`/${locale}/dashboard/settings`, linkLabel: locale==='ru'?'Настройки →':'Setări →' },
+    { done: states.google, label: locale==='ru'?'Добавь ссылку Google Reviews':'Adaugă link Google Reviews (clienții fericiți vor fi redirecționați)', link:`/${locale}/dashboard/settings`, linkLabel: locale==='ru'?'Добавить →':'Adaugă →', highlight: true },
     { done: states.rev, label: locale==='ru'?'Получи первый отзыв':'Primește prima recenzie prin QR', link:null, linkLabel:null },
   ];
   const done = steps.filter(s=>s.done).length;
@@ -60,8 +60,8 @@ function WelcomeCard({ locale, companyId, onDismiss }: { locale: string; company
       <div className="absolute -right-8 -top-8 w-40 h-40 bg-white/5 rounded-full" />
       <div className="flex items-start justify-between gap-3 relative z-10">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1"><Sparkles size={13} className="text-yellow-300"/><span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-200">Ghid de start</span></div>
-          <p className="font-black text-lg">{done}/{steps.length} {locale==='ru'?'шагов':'pași completați'}</p>
+          <div className="flex items-center gap-2 mb-1"><Sparkles size={13} className="text-yellow-300"/><span className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-200">{locale==='ru'?'Начало работы':'Ghid de start'}</span></div>
+          <p className="font-black text-lg">{done}/{steps.length} {locale==='ru'?'шагов выполнено':'pași completați'}</p>
           <div className="mt-2 h-1.5 bg-white/20 rounded-full w-44 overflow-hidden"><div className="h-full bg-white rounded-full" style={{width:`${(done/steps.length)*100}%`}}/></div>
         </div>
         <button onClick={()=>setExpanded(!expanded)} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl">{expanded?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button>
@@ -75,7 +75,7 @@ function WelcomeCard({ locale, companyId, onDismiss }: { locale: string; company
           </div>
         </div>
       ))}</div>}
-      <button onClick={onDismiss} className="mt-3 w-full text-[10px] text-white/40 hover:text-white/60 font-bold uppercase tracking-wider relative z-10">Nu mai afișa</button>
+      <button onClick={onDismiss} className="mt-3 w-full text-[10px] text-white/40 hover:text-white/60 font-bold uppercase tracking-wider relative z-10">{locale==='ru'?'Не показывать':'Nu mai afișa'}</button>
     </div>
   );
 }
@@ -348,9 +348,9 @@ export default function AdminDashboardPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { icon:<MapPin size={20}/>, label:locale==='ru'?'Локации':'Locații', sub:`${rawLocations.length} active`, href:`/${locale}/dashboard/locations`, iconBg:'bg-emerald-100 text-emerald-600', border:'hover:border-emerald-200' },
+              { icon:<MapPin size={20}/>, label:locale==='ru'?'Локации':'Locații', sub:`${rawLocations.length} ${locale==='ru'?'активных':'active'}`, href:`/${locale}/dashboard/locations`, iconBg:'bg-emerald-100 text-emerald-600', border:'hover:border-emerald-200' },
               { icon:<Users size={20}/>, label:locale==='ru'?'Сотрудники':'Angajați', sub:`${rawEmployees.length} ${locale==='ru'?'в системе':'în sistem'}`, href:`/${locale}/dashboard/employees`, iconBg:'bg-blue-100 text-blue-600', border:'hover:border-blue-200' },
-              { icon:<Eye size={20}/>, label:locale==='ru'?'Все отзывы':'Recenzii', sub:`${filteredReviews.length} total`, href:`/${locale}/dashboard/reviews`, iconBg:'bg-violet-100 text-violet-600', border:'hover:border-violet-200' },
+              { icon:<Eye size={20}/>, label:locale==='ru'?'Все отзывы':'Recenzii', sub:`${filteredReviews.length} ${locale==='ru'?'всего':'total'}`, href:`/${locale}/dashboard/reviews`, iconBg:'bg-violet-100 text-violet-600', border:'hover:border-violet-200' },
               { icon:<Target size={20}/>, label:'Analytics', sub:'AI · Heatmap', href:`/${locale}/dashboard/analytics`, iconBg:'bg-amber-100 text-amber-600', border:'hover:border-amber-200' },
             ].map((item,i)=>(
               <a key={i} href={item.href} className={`bg-white rounded-2xl p-4 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all group flex items-center gap-3 ${item.border}`}>

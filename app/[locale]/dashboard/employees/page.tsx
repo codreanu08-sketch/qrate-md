@@ -89,7 +89,7 @@ export default function EmployeesPage() {
             reviews: sortedReviews,
             avgRating: avg.toFixed(1), 
             totalReviews,
-            location_name: locationData ? locationData.name : 'Fără locație'
+            location_name: locationData ? locationData.name : (locale === 'ru' ? 'Без локации' : 'Fără locație')
           };
         });
         

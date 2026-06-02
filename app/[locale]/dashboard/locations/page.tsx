@@ -251,8 +251,8 @@ export default function LocationsPage() {
                 <select value={type} onChange={(e) => setType(e.target.value)}
                   className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm">
                   {/* ✅ Texte scurte pentru mobile */}
-                  <option value="Physical">{locale === 'ru' ? 'Fizică' : 'Fizică'}</option>
-                  <option value="Delivery">{locale === 'ru' ? 'Livrare' : 'Livrare'}</option>
+                  <option value="Physical">{locale === 'ru' ? 'Физическая' : 'Fizică'}</option>
+                  <option value="Delivery">{locale === 'ru' ? 'Доставка' : 'Livrare'}</option>
                 </select>
               </div>
               <div>
@@ -310,8 +310,8 @@ export default function LocationsPage() {
               
               // ✅ Badge tip scurt pentru mobile
               const typeLabel = loc.type === 'Delivery'
-                ? (locale === 'ru' ? 'Livrare' : 'Livrare')
-                : (locale === 'ru' ? 'Fizică' : 'Fizică');
+                ? (locale === 'ru' ? 'Доставка' : 'Livrare')
+                : (locale === 'ru' ? 'Физическая' : 'Fizică');
 
               return (
                 <div key={loc.id} onClick={() => setSelectedLocationId(isSelected ? null : loc.id)}

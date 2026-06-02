@@ -307,7 +307,7 @@ export default function LandingPage() {
               {[
                 { step: '01', icon: <QrCode size={28}/>, color: 'bg-blue-600',
                   title: locale === 'ru' ? 'Клиент сканирует QR' : 'Clientul scanează QR',
-                  desc: locale === 'ru' ? 'QR pe masă, la casă sau pe bon. Clientul îl scanează în 2 secunde.' : 'QR pe masă, la casă, pe bon sau pe perete. Clientul scanează în 2 secunde.' },
+                  desc: locale === 'ru' ? 'QR на столе, у кассы или на чеке. Клиент сканирует за 2 секунды.' : 'QR pe masă, la casă, pe bon sau pe perete. Clientul scanează în 2 secunde.' },
                 { step: '02', icon: <Star size={28}/>, color: 'bg-amber-500',
                   title: locale === 'ru' ? 'Оставляет отзыв' : 'Lasă recenzia',
                   desc: locale === 'ru' ? '5 звёзд — автоматический редирект на Google. 1–3 звезды — личное сообщение в Telegram.' : '5 stele — redirect automat pe Google. 1–3 stele — mesaj privat pe Telegram.' },
@@ -490,7 +490,7 @@ export default function LandingPage() {
               </p>
               <p className="text-slate-500 mt-3 text-xs max-w-xl mx-auto">
                 {locale === 'ru'
-                  ? 'Toate planurile includ: QR-коды, уведомления Telegram, панель управления, Google Reviews, Crisis Mode si WhatsApp. Diferenta — doar numarul de locatii si angajati.'
+                  ? 'Все планы включают: QR-коды, уведомления Telegram, панель управления, Google Reviews, Crisis Mode и WhatsApp. Разница — только в количестве локаций и сотрудников.'
                   : 'Toate planurile includ: coduri QR, alerte Telegram, panou de control, Google Reviews, Crisis Mode si WhatsApp. Diferenta — doar numarul de locatii si angajati.'}
               </p>
             </div>
@@ -568,7 +568,7 @@ export default function LandingPage() {
                   <Phone size={20} className="text-white group-hover:text-blue-600 transition-colors"/>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 group-hover:text-blue-200 uppercase tracking-widest mb-0.5 transition-colors">Telefon</p>
+                  <p className="text-[9px] font-black text-slate-400 group-hover:text-blue-200 uppercase tracking-widest mb-0.5 transition-colors">{locale === 'ru' ? 'Телефон' : 'Telefon'}</p>
                   <p className="text-white font-black text-base">068 688 484</p>
                   <p className="text-slate-500 group-hover:text-blue-200 text-[10px] font-bold mt-0.5 transition-colors">Gheorghe</p>
                 </div>
@@ -580,7 +580,7 @@ export default function LandingPage() {
                 <div>
                   <p className="text-[9px] font-black text-slate-400 group-hover:text-indigo-200 uppercase tracking-widest mb-0.5 transition-colors">Email</p>
                   <p className="text-white font-black text-sm">suport@qrate.md</p>
-                  <p className="text-slate-500 group-hover:text-indigo-200 text-[10px] font-bold mt-0.5 transition-colors">Suport</p>
+                  <p className="text-slate-500 group-hover:text-indigo-200 text-[10px] font-bold mt-0.5 transition-colors">{locale === 'ru' ? 'Поддержка' : 'Suport'}</p>
                 </div>
               </a>
               <div className="group flex flex-col items-center gap-3 bg-white/5 hover:bg-emerald-600 border border-white/10 hover:border-emerald-500 p-6 rounded-3xl transition-all duration-300">
@@ -588,9 +588,9 @@ export default function LandingPage() {
                   <Globe size={20} className="text-white group-hover:text-emerald-600 transition-colors"/>
                 </div>
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 group-hover:text-emerald-200 uppercase tracking-widest mb-0.5 transition-colors">Web</p>
+                  <p className="text-[9px] font-black text-slate-400 group-hover:text-emerald-200 uppercase tracking-widest mb-0.5 transition-colors">{locale === 'ru' ? 'Сайт' : 'Web'}</p>
                   <p className="text-white font-black text-sm">www.qrate.md</p>
-                  <p className="text-slate-500 group-hover:text-emerald-200 text-[10px] font-bold mt-0.5 transition-colors">Republica Moldova</p>
+                  <p className="text-slate-500 group-hover:text-emerald-200 text-[10px] font-bold mt-0.5 transition-colors">{locale === 'ru' ? 'Республика Молдова' : 'Republica Moldova'}</p>
                 </div>
               </div>
             </div>

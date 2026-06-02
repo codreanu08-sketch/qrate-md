@@ -176,7 +176,7 @@ export default function SubscriptionPage() {
         <div className="flex bg-white border border-slate-200 rounded-2xl p-1.5 mb-8 gap-1 shadow-sm">
           {[
             { key: 'plan',    label: locale === 'ru' ? 'План' : 'Plan',                    icon: <CreditCard size={13}/> },
-            { key: 'billing', label: locale === 'ru' ? 'Facturare' : 'Facturare',         icon: <FileText size={13}/> },
+            { key: 'billing', label: locale === 'ru' ? 'Счета' : 'Facturare', icon: <FileText size={13}/> },
             { key: 'history', label: locale === 'ru' ? 'История' : 'Istoric Plăți',       icon: <Receipt size={13}/> },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
