@@ -12,6 +12,9 @@ const supabaseAdmin = createClient(
 export async function registerWithConfirmation(email: string, password: string, locale: string, marketingConsent: boolean) {
   const isRu = locale === 'ru';
 
+  if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY missing in environment');
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY missing in environment');
+
   // 1. Crează userul fără a lăsa Supabase să trimită email (email_confirm: false = neconfirmat)
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
