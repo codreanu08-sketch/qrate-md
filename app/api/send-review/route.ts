@@ -43,6 +43,20 @@ export async function POST(request: Request) {
     const body = await request.json();
     const review = body.reviewData || body;
 
+    // Rate limiting per companie — max 30 recenzii/oră (anti-spam)
+    if (review.company_id) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', review.company_id)
+        .gte('created_at', oneHourAgo);
+
+      if (count !== null && count >= 30) {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      }
+    }
+
     let companyTelegramId: string | null = null;
     let locationTelegramIds: string | null = null;
     let companyName = 'Compania';

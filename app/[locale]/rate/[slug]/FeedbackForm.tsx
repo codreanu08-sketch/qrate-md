@@ -67,8 +67,10 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
   const [rating, setRating] = useState<number>(0);
   const [hover, setHover] = useState<number>(0);
   const [submitted, setSubmitted] = useState(false);
-  const [showGooglePrompt, setShowGooglePrompt] = useState(false); // ✅ NOU
+  const [showGooglePrompt, setShowGooglePrompt] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const [cooldownActive, setCooldownActive] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -180,6 +182,15 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
     fetchIds();
   }, [slug, employeeId, locationIdProp, searchParams]);
 
+  // Cooldown: verifică dacă dispozitivul a trimis recent o recenzie pentru acest slug
+  useEffect(() => {
+    const key = `qrate_cooldown_${slug}`;
+    const ts = localStorage.getItem(key);
+    if (ts && Date.now() - Number(ts) < 60 * 60 * 1000) {
+      setCooldownActive(true);
+    }
+  }, [slug]);
+
   const handleSelectEmployee = (emp: Employee) => {
     if (selectedEmployee?.id === emp.id) {
       setSelectedEmployee(null);
@@ -242,6 +253,16 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 1. Honeypot — bot-urile completează câmpul ascuns
+    if (honeypot) return;
+
+    // 2. Cooldown — același dispozitiv, max 1 recenzie/oră per companie
+    if (cooldownActive) {
+      alert(locale === 'ro' ? 'Ai trimis deja o recenzie recent. Revino mai târziu.' : 'Вы уже отправили отзыв недавно. Попробуйте позже.');
+      return;
+    }
+
     if (rating === 0) {
       alert(t.alert_stars);
       return;
@@ -297,6 +318,9 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
           body: JSON.stringify({ reviewData }),
         });
       }
+
+      // Setează cooldown pentru 1 oră pe acest dispozitiv
+      localStorage.setItem(`qrate_cooldown_${slug}`, String(Date.now()));
 
       // ✅ Dacă rating 4-5 și există URL Google → afișează prompt Google
       if (rating >= 4 && googleReviewUrl) {
@@ -410,6 +434,16 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
 
       <div className="max-w-xl mx-auto px-5 pt-8 pb-16">
         <form onSubmit={handleSubmit} className="space-y-10">
+          {/* Honeypot — ascuns pentru useri, vizibil pentru boti */}
+          <input
+            type="text"
+            name="website"
+            value={honeypot}
+            onChange={e => setHoneypot(e.target.value)}
+            style={{ display: 'none' }}
+            tabIndex={-1}
+            autoComplete="off"
+          />
 
           {employees.length > 0 && !employeeId && !searchParams.get('employee') && (
             <section className="space-y-4">
