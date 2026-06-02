@@ -124,7 +124,7 @@ export default function SubscriptionPage() {
         .update({ billing_details: billingData })
         .eq('owner_id', user.id);
       if (error) throw error;
-      setBillingMessage(locale === 'ru' ? 'Salvat!' : 'Date salvate cu succes!');
+      setBillingMessage(locale === 'ru' ? 'Сохранено!' : 'Date salvate cu succes!');
       setTimeout(() => setBillingMessage(null), 3000);
     } catch (err: any) {
       setBillingMessage('Eroare: ' + err.message);
@@ -147,22 +147,22 @@ export default function SubscriptionPage() {
         <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase">
-              {locale === 'ru' ? 'Abonament' : 'Abonament'}
+              {locale === 'ru' ? 'Абонемент' : 'Abonament'}
             </h1>
             <p className="text-slate-400 font-medium text-sm mt-1">
-              {locale === 'ru' ? 'Gestionează planul și facturarea' : 'Gestionează planul și facturarea'}
+              {locale === 'ru' ? 'Управление планом и выставлением счетов' : 'Gestionează planul și facturarea'}
             </p>
           </div>
 
           {/* Status badge */}
           {isTrialExpired && !isSubscribed && (
             <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-2 rounded-2xl text-xs font-black uppercase">
-              <AlertCircle size={14} /> {locale === 'ru' ? 'Trial Expirat' : 'Trial Expirat'}
+              <AlertCircle size={14} /> {locale === 'ru' ? 'Trial истёк' : 'Trial Expirat'}
             </div>
           )}
           {!isTrialExpired && realDaysRemaining > 0 && (
             <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-2 rounded-2xl text-xs font-black uppercase">
-              <Clock size={14} /> Trial: {realDaysRemaining} {locale === 'ru' ? 'zile' : 'zile'}
+              <Clock size={14} /> Trial: {realDaysRemaining} {locale === 'ru' ? 'дн.' : 'zile'}
             </div>
           )}
           {isSubscribed && (
@@ -175,9 +175,9 @@ export default function SubscriptionPage() {
         {/* TABS */}
         <div className="flex bg-white border border-slate-200 rounded-2xl p-1.5 mb-8 gap-1 shadow-sm">
           {[
-            { key: 'plan',    label: locale === 'ru' ? 'Plan' : 'Plan',               icon: <CreditCard size={13}/> },
-            { key: 'billing', label: locale === 'ru' ? 'Facturare' : 'Facturare',     icon: <FileText size={13}/> },
-            { key: 'history', label: locale === 'ru' ? 'Plăți' : 'Istoric Plăți',    icon: <Receipt size={13}/> },
+            { key: 'plan',    label: locale === 'ru' ? 'План' : 'Plan',                    icon: <CreditCard size={13}/> },
+            { key: 'billing', label: locale === 'ru' ? 'Facturare' : 'Facturare',         icon: <FileText size={13}/> },
+            { key: 'history', label: locale === 'ru' ? 'История' : 'Istoric Plăți',       icon: <Receipt size={13}/> },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key as any)}
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -196,17 +196,17 @@ export default function SubscriptionPage() {
                 <div className="p-3 bg-white/20 rounded-2xl shrink-0"><Sparkles size={22} /></div>
                 <div className="flex-1">
                   <p className="font-black text-base">
-                    {locale === 'ru' ? 'Trial gratuit activ' : 'Trial gratuit activ'}
+                    {locale === 'ru' ? 'Пробный период активен' : 'Trial gratuit activ'}
                   </p>
                   <p className="text-blue-100 text-sm">
-                    {realDaysRemaining} {locale === 'ru' ? 'zile rămase — toate funcțiile disponibile' : 'zile rămase — toate funcțiile disponibile'}
+                    {realDaysRemaining} {locale === 'ru' ? 'дн. осталось — все функции доступны' : 'zile rămase — toate funcțiile disponibile'}
                   </p>
                 </div>
                 <div className="text-right shrink-0 hidden sm:block">
                   <div className="h-2 w-24 bg-white/20 rounded-full overflow-hidden">
                     <div className="h-full bg-white rounded-full transition-all" style={{ width: `${(realDaysRemaining/7)*100}%` }} />
                   </div>
-                  <p className="text-[10px] text-blue-200 mt-1 font-black uppercase">{realDaysRemaining}/7 zile</p>
+                  <p className="text-[10px] text-blue-200 mt-1 font-black uppercase">{realDaysRemaining}/7 {locale === 'ru' ? 'дн.' : 'zile'}</p>
                 </div>
               </div>
             )}
@@ -217,10 +217,10 @@ export default function SubscriptionPage() {
                 <AlertTriangle size={22} className="text-rose-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-black text-rose-800">
-                    {locale === 'ru' ? 'Trial-ul a expirat' : 'Trial-ul a expirat'}
+                    {locale === 'ru' ? 'Пробный период истёк' : 'Trial-ul a expirat'}
                   </p>
                   <p className="text-rose-600 text-sm">
-                    {locale === 'ru' ? 'Alege un plan pentru a continua.' : 'Alege un plan mai jos pentru a continua să folosești QRate.'}
+                    {locale === 'ru' ? 'Выберите план для продолжения использования QRate.' : 'Alege un plan mai jos pentru a continua să folosești QRate.'}
                   </p>
                 </div>
               </div>
@@ -232,16 +232,16 @@ export default function SubscriptionPage() {
                 <div className="p-3 bg-emerald-50 rounded-2xl shrink-0"><CheckCircle2 size={22} className="text-emerald-600" /></div>
                 <div className="flex-1">
                   <p className="font-black text-slate-900 text-sm">
-                    {locale === 'ru' ? 'Abonament activ' : 'Abonament activ'}
+                    {locale === 'ru' ? 'Подписка активна' : 'Abonament activ'}
                   </p>
                   <p className="text-slate-500 text-xs">
-                    {locale === 'ru' ? 'Următoarea plată:' : 'Următoarea plată:'}{' '}
+                    {locale === 'ru' ? 'Следующий платёж:' : 'Următoarea plată:'}{' '}
                     {new Date(nextBillingDate).toLocaleDateString('ro-RO')} — <strong>{currentMonthlyAmount} MDL</strong>
                   </p>
                 </div>
                 <button onClick={() => setShowCancelModal(true)}
                   className="text-[10px] text-rose-500 hover:text-rose-600 font-black uppercase tracking-wider shrink-0">
-                  {locale === 'ru' ? 'Anulează' : 'Anulează'}
+                  {locale === 'ru' ? 'Отменить' : 'Anulează'}
                 </button>
               </div>
             )}
@@ -249,7 +249,7 @@ export default function SubscriptionPage() {
             {/* GRID PLANURI */}
             <div>
               <h2 className="font-black text-lg uppercase tracking-tight mb-4">
-                {locale === 'ru' ? 'Alege planul' : 'Alege planul'}
+                {locale === 'ru' ? 'Выбери план' : 'Alege planul'}
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {PRICING_PLANS.map((plan, i) => {
@@ -260,25 +260,25 @@ export default function SubscriptionPage() {
                       className={`bg-white p-5 md:p-6 rounded-3xl border-2 cursor-pointer transition-all relative ${isSelected ? 'border-blue-600 shadow-xl shadow-blue-100 scale-[1.02]' : 'border-slate-100 hover:border-blue-200 opacity-70 hover:opacity-100'}`}>
                       {isCurrent && (
                         <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[9px] font-black px-3 py-0.5 rounded-full uppercase whitespace-nowrap">
-                          {locale === 'ru' ? 'Plan curent' : 'Plan curent'}
+                          {locale === 'ru' ? 'Текущий план' : 'Plan curent'}
                         </div>
                       )}
                       <div className="flex justify-between items-start mb-3">
                         <div className="p-2.5 bg-slate-100 rounded-xl"><Building size={16} className="text-slate-600" /></div>
                         {isSelected && !isCurrent && (
                           <span className="bg-blue-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase">
-                            {locale === 'ru' ? 'Selectat' : 'Selectat'}
+                            {locale === 'ru' ? 'Выбран' : 'Selectat'}
                           </span>
                         )}
                       </div>
                       <h3 className="text-lg font-black italic uppercase text-slate-900">{plan.label}</h3>
                       <div className="flex items-baseline gap-1 my-2">
                         <span className="text-2xl font-black text-slate-900">{plan.price}</span>
-                        <span className="text-xs font-bold text-slate-400">MDL/lună</span>
+                        <span className="text-xs font-bold text-slate-400">MDL/{locale === 'ru' ? 'мес' : 'lună'}</span>
                       </div>
                       <ul className="space-y-1.5 text-xs font-semibold text-slate-500 border-t border-slate-100 pt-3">
-                        <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />{plan.locations} locație{plan.locations > 1 ? 'i' : ''}</li>
-                        <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />{plan.maxEmployees === 999 ? '∞' : plan.maxEmployees} angajați</li>
+                        <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />{plan.locations} {locale === 'ru' ? (plan.locations === 1 ? 'локация' : 'локации') : (plan.locations === 1 ? 'locație' : 'locații')}</li>
+                        <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />{plan.maxEmployees === 999 ? '∞' : plan.maxEmployees} {locale === 'ru' ? 'сотрудников' : 'angajați'}</li>
                         <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />QR + Telegram + Analytics</li>
                         <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />Google Reviews redirect</li>
                         <li className="flex items-center gap-1.5"><Check size={12} className="text-blue-500 shrink-0" />WhatsApp Follow-up</li>
@@ -295,20 +295,20 @@ export default function SubscriptionPage() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                    {locale === 'ru' ? 'Plan selectat' : 'Plan selectat'}
+                    {locale === 'ru' ? 'Выбранный план' : 'Plan selectat'}
                   </p>
-                  <p className="text-xl md:text-2xl font-black">{currentPlan.label} — {currentPlan.price} MDL/lună</p>
+                  <p className="text-xl md:text-2xl font-black">{currentPlan.label} — {currentPlan.price} MDL/{locale === 'ru' ? 'мес' : 'lună'}</p>
                   <p className="text-slate-400 text-xs mt-1">
                     {realDaysRemaining > 0 && !isTrialExpired
-                      ? (locale === 'ru' ? `Vei fi facturat după ${realDaysRemaining} zile` : `Vei fi facturat după ${realDaysRemaining} zile de trial`)
-                      : (locale === 'ru' ? 'Activare imediată' : 'Activare imediată — redirect spre MAIB')}
+                      ? (locale === 'ru' ? `Счёт выставят через ${realDaysRemaining} дн. после пробного периода` : `Vei fi facturat după ${realDaysRemaining} zile de trial`)
+                      : (locale === 'ru' ? 'Активация немедленная' : 'Activare imediată — redirect spre MAIB')}
                   </p>
                 </div>
                 <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 md:px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-wider transition-all shadow-lg shadow-blue-900/50 flex items-center gap-2 w-full sm:w-auto justify-center">
                   <CreditCard size={16} />
                   {isSubscribed
-                    ? (locale === 'ru' ? 'Schimbă planul' : 'Schimbă planul')
-                    : (locale === 'ru' ? 'Activează' : 'Plătește cu cardul')}
+                    ? (locale === 'ru' ? 'Изменить план' : 'Schimbă planul')
+                    : (locale === 'ru' ? 'Активировать' : 'Plătește cu cardul')}
                 </button>
               </div>
             </div>
@@ -321,25 +321,25 @@ export default function SubscriptionPage() {
             <div className="bg-white rounded-3xl border border-slate-100 shadow-lg p-5 md:p-8">
               <h2 className="font-black text-lg uppercase tracking-tight mb-6 flex items-center gap-2">
                 <FileText size={18} className="text-blue-500" />
-                {locale === 'ru' ? 'Date de facturare' : 'Date de facturare'}
+                {locale === 'ru' ? 'Платёжные данные' : 'Date de facturare'}
               </h2>
 
               {/* Toggle fizică / juridică */}
               <div className="flex bg-slate-100 p-1 rounded-2xl mb-6 gap-1">
                 <button onClick={() => setBillingData(p => ({...p, is_legal_entity: false}))}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${!billingData.is_legal_entity ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>
-                  {locale === 'ru' ? 'Persoană fizică' : 'Persoană fizică'}
+                  {locale === 'ru' ? 'Физическое лицо' : 'Persoană fizică'}
                 </button>
                 <button onClick={() => setBillingData(p => ({...p, is_legal_entity: true}))}
                   className={`flex-1 py-2.5 rounded-xl text-xs font-black uppercase transition-all ${billingData.is_legal_entity ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>
-                  {locale === 'ru' ? 'SRL / SA' : 'Persoană juridică (SRL/SA)'}
+                  {locale === 'ru' ? 'Юридическое лицо' : 'Persoană juridică (SRL/SA)'}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                    {billingData.is_legal_entity ? (locale === 'ru' ? 'Denumirea companiei' : 'Denumirea companiei') : (locale === 'ru' ? 'Numele complet' : 'Numele complet')}
+                    {billingData.is_legal_entity ? (locale === 'ru' ? 'Название компании' : 'Denumirea companiei') : (locale === 'ru' ? 'Полное имя' : 'Numele complet')}
                   </label>
                   <input type="text" value={billingData.company_name} onChange={e => setBillingData(p => ({...p, company_name: e.target.value}))}
                     placeholder={billingData.is_legal_entity ? 'Ex: SRL EXAMPLE' : 'Ex: Ion Popescu'}
@@ -356,7 +356,7 @@ export default function SubscriptionPage() {
                     </div>
                     <div>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                        {locale === 'ru' ? 'Cod TVA (opțional)' : 'Cod TVA (opțional)'}
+                        {locale === 'ru' ? 'Код НДС (необязательно)' : 'Cod TVA (opțional)'}
                       </label>
                       <input type="text" value={billingData.vat_code} onChange={e => setBillingData(p => ({...p, vat_code: e.target.value}))}
                         placeholder="Ex: MD1234567"
@@ -364,7 +364,7 @@ export default function SubscriptionPage() {
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                        {locale === 'ru' ? 'Adresa juridică' : 'Adresa juridică'}
+                        {locale === 'ru' ? 'Юридический адрес' : 'Adresa juridică'}
                       </label>
                       <input type="text" value={billingData.company_address} onChange={e => setBillingData(p => ({...p, company_address: e.target.value}))}
                         placeholder="Ex: str. Ștefan cel Mare 1, Chișinău"
@@ -375,13 +375,13 @@ export default function SubscriptionPage() {
 
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                    {locale === 'ru' ? 'Email factură' : 'Email factură'}
+                    {locale === 'ru' ? 'Email для счетов' : 'Email factură'}
                   </label>
                   <input type="email" value={billingData.billing_email} onChange={e => setBillingData(p => ({...p, billing_email: e.target.value}))}
                     placeholder="email@compania.md"
                     className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
                   <p className="text-[10px] text-slate-400 mt-1 ml-1">
-                    {locale === 'ru' ? 'Facturile lunare vor fi trimise pe acest email.' : 'Facturile lunare vor fi trimise pe acest email.'}
+                    {locale === 'ru' ? 'Ежемесячные счета будут отправлены на этот email.' : 'Facturile lunare vor fi trimise pe acest email.'}
                   </p>
                 </div>
               </div>
@@ -396,7 +396,7 @@ export default function SubscriptionPage() {
                 <button onClick={handleSaveBilling} disabled={saving}
                   className="ml-auto flex items-center gap-2 bg-slate-900 hover:bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all">
                   {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                  {locale === 'ru' ? 'Salvează' : 'Salvează datele'}
+                  {locale === 'ru' ? 'Сохранить' : 'Salvează datele'}
                 </button>
               </div>
             </div>
@@ -405,11 +405,11 @@ export default function SubscriptionPage() {
               <Shield size={18} className="text-blue-500 shrink-0 mt-0.5" />
               <div>
                 <p className="font-black text-sm text-blue-800">
-                  {locale === 'ru' ? 'Cum funcționează facturarea' : 'Cum funcționează facturarea'}
+                  {locale === 'ru' ? 'Как работает выставление счетов' : 'Cum funcționează facturarea'}
                 </p>
                 <p className="text-blue-600 text-xs mt-1 leading-relaxed">
                   {locale === 'ru'
-                    ? 'Facturile se generează automat pe 1 ale lunii și se trimit pe emailul de mai sus. Dacă ești persoană juridică, factura va include IDNO-ul și codul TVA.'
+                    ? 'Счета генерируются автоматически 1-го числа каждого месяца и отправляются на указанный email. Для юридических лиц счёт будет включать IDNO и код НДС.'
                     : 'Facturile se generează automat pe 1 ale lunii și se trimit pe emailul de mai sus. Dacă ești persoană juridică, factura va include IDNO-ul și codul TVA.'}
                 </p>
               </div>
@@ -424,10 +424,10 @@ export default function SubscriptionPage() {
               <div className="p-5 border-b border-slate-100 flex items-center justify-between">
                 <h2 className="font-black text-lg uppercase tracking-tight flex items-center gap-2">
                   <Receipt size={18} className="text-blue-500" />
-                  {locale === 'ru' ? 'Istoric plăți' : 'Istoric plăți'}
+                  {locale === 'ru' ? 'История платежей' : 'Istoric plăți'}
                 </h2>
                 <span className="bg-slate-100 text-slate-600 text-[10px] font-black px-3 py-1 rounded-full uppercase">
-                  {MOCK_PAYMENTS.length} {locale === 'ru' ? 'tranzacții' : 'tranzacții'}
+                  {MOCK_PAYMENTS.length} {locale === 'ru' ? 'транз.' : 'tranzacții'}
                 </span>
               </div>
 
@@ -435,10 +435,10 @@ export default function SubscriptionPage() {
                 <div className="p-12 text-center">
                   <Receipt size={32} className="text-slate-200 mx-auto mb-3" />
                   <p className="text-slate-400 font-bold text-sm">
-                    {locale === 'ru' ? 'Nu există plăți înregistrate' : 'Nu există plăți înregistrate'}
+                    {locale === 'ru' ? 'Платежей пока нет' : 'Nu există plăți înregistrate'}
                   </p>
                   <p className="text-slate-300 text-xs mt-1">
-                    {locale === 'ru' ? 'Plățile vor apărea aici după activarea unui plan.' : 'Plățile vor apărea aici după activarea unui plan.'}
+                    {locale === 'ru' ? 'Платежи появятся здесь после активации плана.' : 'Plățile vor apărea aici după activarea unui plan.'}
                   </p>
                 </div>
               ) : (
