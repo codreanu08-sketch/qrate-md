@@ -9,18 +9,29 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function registerWithConfirmation(email: string, password: string, locale: string, marketingConsent: boolean) {
+export async function registerWithConfirmation(
+  email: string,
+  password: string,
+  locale: string,
+  marketingConsent: boolean,
+  fullName: string,
+  phone: string
+) {
   const isRu = locale === 'ru';
 
   if (!process.env.RESEND_API_KEY) throw new Error('RESEND_API_KEY missing in environment');
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) throw new Error('SUPABASE_SERVICE_ROLE_KEY missing in environment');
 
-  // 1. Crează userul fără a lăsa Supabase să trimită email (email_confirm: false = neconfirmat)
+  // 1. Crează userul cu datele în user_metadata
   const { data: created, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
     email_confirm: false,
-    user_metadata: { marketing_consent: marketingConsent },
+    user_metadata: {
+      marketing_consent: marketingConsent,
+      full_name: fullName.trim(),
+      phone: phone.trim(),
+    },
   });
 
   if (createError) {
@@ -29,6 +40,14 @@ export async function registerWithConfirmation(email: string, password: string, 
       throw new Error(isRu ? 'Этот email уже зарегистрирован.' : 'Acest email este deja înregistrat.');
     }
     throw new Error(createError.message);
+  }
+
+  // 1b. Salvează owner_name și owner_phone în companies (owner_id = user id)
+  if (created?.user?.id) {
+    await supabaseAdmin
+      .from('companies')
+      .update({ owner_name: fullName.trim(), owner_phone: phone.trim() })
+      .eq('owner_id', created.user.id);
   }
 
   // 2. Generează link de confirmare
@@ -63,7 +82,7 @@ export async function registerWithConfirmation(email: string, password: string, 
         </div>
         <div style="padding: 40px 32px;">
           <h2 style="color: #0f172a; font-size: 22px; font-weight: 900; margin: 0 0 12px;">
-            ${isRu ? 'Confirmă adresa de email' : 'Confirmă adresa de email'}
+            ${isRu ? `Buna, ${fullName.trim() || 'utilizator'}!` : `Bună, ${fullName.trim() || 'utilizator'}!`}
           </h2>
           <p style="color: #64748b; font-size: 15px; line-height: 1.6; margin: 0 0 8px;">
             ${isRu ? 'Ai creat un cont pe QRate.md. Apasă butonul de mai jos pentru a-l activa.' : 'Ai creat un cont pe QRate.md. Apasă butonul de mai jos pentru a-l activa.'}
