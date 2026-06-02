@@ -20,7 +20,7 @@ export default function ConfirmPage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session) => {
       if (event === 'SIGNED_IN' && session) {
         setStatus('success');
         setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
