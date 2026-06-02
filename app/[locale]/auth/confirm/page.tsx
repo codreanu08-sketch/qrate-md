@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
+import type { Session } from '@supabase/supabase-js';
 import { Zap, Loader2, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,7 +21,7 @@ export default function ConfirmPage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
       if (event === 'SIGNED_IN' && session) {
         setStatus('success');
         setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
