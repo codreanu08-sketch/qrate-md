@@ -20,33 +20,43 @@ export default function ConfirmPage() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-      if (event === 'SIGNED_IN' && session) {
-        setStatus('success');
-        setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
-      } else if (event === 'USER_UPDATED' && session) {
-        setStatus('success');
-        setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
-      }
-    });
+    const hash = window.location.hash;
 
-    // Verifică dacă există deja sesiune (link deja confirmat)
-    supabase.auth.getSession().then(({ data }: { data: any }) => {
-      const session = data.session;
-      if (session) {
-        setStatus('success');
-        setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
-      } else {
-        // Dacă nu e sesiune după 5 secunde → eroare
-        setTimeout(() => {
-          setStatus(prev => prev === 'loading' ? 'error' : prev);
-          setMessage(lang === 'ru' ? 'Link invalid sau expirat.' : 'Link invalid sau expirat.');
-        }, 5000);
-      }
-    });
+    if (!hash || !hash.includes('access_token')) {
+      setStatus('error');
+      setMessage(lang === 'ru' ? 'Link invalid sau expirat.' : 'Link invalid sau expirat.');
+      return;
+    }
 
-    return () => subscription.unsubscribe();
-  }, [router, lang]);
+    // Parsează tokenurile din hash
+    const params = new URLSearchParams(hash.slice(1));
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+
+    if (!access_token || !refresh_token) {
+      setStatus('error');
+      setMessage(lang === 'ru' ? 'Token lipsă în link.' : 'Token lipsă în link.');
+      return;
+    }
+
+    // Setează sesiunea explicit
+    supabase.auth.setSession({ access_token, refresh_token })
+      .then(({ data, error }) => {
+        if (error || !data.session) {
+          setStatus('error');
+          setMessage(lang === 'ru' ? 'Link expirat. Înregistrează-te din nou.' : 'Link expirat. Înregistrează-te din nou.');
+        } else {
+          setStatus('success');
+          // Curăță hash-ul din URL
+          window.history.replaceState(null, '', window.location.pathname);
+          setTimeout(() => router.push(`/${lang}/dashboard` as any), 1500);
+        }
+      })
+      .catch(() => {
+        setStatus('error');
+        setMessage(lang === 'ru' ? 'Eroare la confirmare.' : 'Eroare la confirmare.');
+      });
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-6">
@@ -65,7 +75,7 @@ export default function ConfirmPage() {
             <>
               <Loader2 className="animate-spin mx-auto mb-4 text-blue-600" size={40} />
               <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter">
-                {lang === 'ru' ? 'Confirmare...' : 'Se confirmă contul...'}
+                {lang === 'ru' ? 'Se activează contul...' : 'Se activează contul...'}
               </h2>
             </>
           )}
@@ -78,7 +88,7 @@ export default function ConfirmPage() {
                 {lang === 'ru' ? 'Cont activat!' : 'Cont activat!'}
               </h2>
               <p className="text-slate-400 text-sm">
-                {lang === 'ru' ? 'Te redirecționăm la dashboard...' : 'Te redirecționăm la dashboard...'}
+                {lang === 'ru' ? 'Te redirectionam la dashboard...' : 'Te redirecționăm la dashboard...'}
               </p>
             </>
           )}
@@ -93,7 +103,7 @@ export default function ConfirmPage() {
               <p className="text-slate-400 text-sm mb-6">{message}</p>
               <Link href={`/${lang}/auth/register`}
                 className="inline-block bg-blue-600 text-white px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider">
-                {lang === 'ru' ? 'Încearcă din nou' : 'Încearcă din nou'}
+                {lang === 'ru' ? 'Inregistrare noua' : 'Înregistrare nouă'}
               </Link>
             </>
           )}
