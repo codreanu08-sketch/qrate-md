@@ -8,6 +8,7 @@ import Link from 'next/link';
 
 import roTranslations from '@/messages/ro.json';
 import ruTranslations from '@/messages/ru.json';
+import { sendWelcomeEmail } from '@/app/actions/auth-actions';
 
 export default function Register() {
   const pathname = usePathname();
@@ -23,7 +24,6 @@ export default function Register() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false);
   const [acceptedMarketing, setAcceptedMarketing] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
 
   const localTexts = {
     ro: {
@@ -67,25 +67,33 @@ export default function Register() {
     setError('');
 
     try {
+      // 1. Creare cont
       const { error: authError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { marketing_consent: acceptedMarketing },
-          emailRedirectTo: `${window.location.origin}/${lang}/auth/confirm`,
-        }
+        options: { data: { marketing_consent: acceptedMarketing } },
       });
 
       if (authError) throw authError;
 
-      setEmailSent(true);
+      // 2. Login automat (funcționează când "Enable email confirmations" e dezactivat în Supabase)
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+
+      // 3. Trimite email de bun venit via Resend (non-blocking)
+      sendWelcomeEmail(email, lang).catch(() => {});
+
+      // 4. Redirect dashboard
+      window.location.href = `/${lang}/dashboard`;
     } catch (err: any) {
-      console.error("EROARE SUPABASE:", err);
-      const msg = err.message || '';
-      if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
-        setError(lang === 'ru' ? 'Acest email este deja înregistrat.' : 'Acest email este deja înregistrat.');
+      console.error('EROARE REGISTER:', err);
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('already registered') || msg.includes('already exists')) {
+        setError(lang === 'ru' ? 'Этот email уже зарегистрирован.' : 'Acest email este deja înregistrat.');
+      } else if (msg.includes('password')) {
+        setError(lang === 'ru' ? 'Parola trebuie să aibă cel puțin 6 caractere.' : 'Parola trebuie să aibă cel puțin 6 caractere.');
       } else {
-        setError(msg || 'Eroare la înregistrare. Încearcă din nou.');
+        setError(lang === 'ru' ? 'Ошибка регистрации. Попробуйте еще раз.' : 'Eroare la înregistrare. Încearcă din nou.');
       }
       setLoading(false);
     }
@@ -108,30 +116,6 @@ export default function Register() {
           </Link>
         </div>
 
-        {emailSent ? (
-          <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] shadow-2xl shadow-emerald-100/50 p-10 text-center">
-            <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <Mail className="text-emerald-600" size={32} />
-            </div>
-            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-3">
-              {lang === 'ru' ? 'Verificați emailul' : 'Verifică emailul'}
-            </h2>
-            <p className="text-slate-500 text-sm leading-relaxed mb-2">
-              {lang === 'ru'
-                ? 'Am trimis un link de confirmare la'
-                : 'Am trimis un link de confirmare la'}
-            </p>
-            <p className="font-black text-slate-900 text-sm mb-6">{email}</p>
-            <p className="text-slate-400 text-xs leading-relaxed">
-              {lang === 'ru'
-                ? 'Apasă pe link din email pentru a activa contul. Verifică și folderul Spam.'
-                : 'Apasă pe link-ul din email pentru a activa contul. Verifică și folderul Spam.'}
-            </p>
-            <Link href={`/${lang}/auth/login`} className="inline-block mt-8 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">
-              {lang === 'ru' ? 'Mergi la Login' : 'Mergi la Login'}
-            </Link>
-          </div>
-        ) : (
         <div className="bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] shadow-2xl shadow-emerald-100/50 p-8 md:p-10">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">{t.Auth.register_title}</h1>
@@ -173,7 +157,6 @@ export default function Register() {
             </button>
           </form>
         </div>
-        )}
       </div>
     </div>
   );
