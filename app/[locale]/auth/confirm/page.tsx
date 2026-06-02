@@ -41,7 +41,7 @@ export default function ConfirmPage() {
 
     // Setează sesiunea explicit
     supabase.auth.setSession({ access_token, refresh_token })
-      .then(({ data, error }) => {
+      .then(({ data, error }: { data: any; error: any }) => {
         if (error || !data.session) {
           setStatus('error');
           setMessage(lang === 'ru' ? 'Link expirat. Înregistrează-te din nou.' : 'Link expirat. Înregistrează-te din nou.');
