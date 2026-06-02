@@ -55,9 +55,9 @@ export async function POST(request: Request) {
 💳 <b>Tarif Lunar:</b> ${futureMonthlyAmount} MDL
 `;
 
-    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    const BOT_TOKEN = process.env.TELEGRAM_ADMIN_BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
     if (!BOT_TOKEN) {
-      console.error('TELEGRAM_BOT_TOKEN not set');
+      console.error('TELEGRAM_ADMIN_BOT_TOKEN not set');
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
