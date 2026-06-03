@@ -24,7 +24,8 @@ export default function DashboardLayout({
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      const session = data.session;
       if (!session) {
         router.push(`/${locale}/auth/login`);
         setLoading(false);
