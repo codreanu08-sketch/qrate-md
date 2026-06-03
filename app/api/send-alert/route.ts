@@ -10,9 +10,23 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const reviewData = body.reviewData || body;
-    
+
+    // Rate limiting per companie — max 30 alerte/oră
+    if (reviewData.company_id) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('reviews')
+        .select('id', { count: 'exact', head: true })
+        .eq('company_id', reviewData.company_id)
+        .gte('created_at', oneHourAgo);
+
+      if (count !== null && count >= 30) {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+      }
+    }
+
     // === LUĂM CHAT_ID DIN COMPANIE ===
-    let CHAT_ID = '890236835'; // fallback temporar
+    let CHAT_ID: string | null = null;
 
     if (reviewData.company_id) {
       const { data: company } = await supabase
@@ -24,6 +38,10 @@ export async function POST(request: Request) {
       if (company?.telegram_chat_id) {
         CHAT_ID = company.telegram_chat_id;
       }
+    }
+
+    if (!CHAT_ID) {
+      return NextResponse.json({ error: 'Telegram chat ID not configured for this company' }, { status: 400 });
     }
 
     const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;

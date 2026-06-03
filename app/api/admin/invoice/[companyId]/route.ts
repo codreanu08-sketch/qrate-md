@@ -7,6 +7,11 @@ import { createServerClient } from '@supabase/ssr';
 interface Props { params: Promise<{ companyId: string }> }
 
 export async function GET(req: NextRequest, { params }: Props) {
+  const authHeader = req.headers.get('authorization');
+  if (!process.env.ADMIN_API_SECRET || authHeader !== `Bearer ${process.env.ADMIN_API_SECRET}`) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
   const { companyId } = await params;
   const url = new URL(req.url);
   const paymentId = url.searchParams.get('payment');

@@ -1,12 +1,22 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 
-// 1. Împiedicăm Next.js să pre-randeze această rută la build
 export const dynamic = 'force-dynamic';
 
-// 2. Safe-guard pentru inițializare: dacă cheia nu există la build, punem un string placeholder temporar
 const apiKey = process.env.RESEND_API_KEY || 're_placeholder_key';
 const resend = new Resend(apiKey);
+
+const invoiceRateLimit = new Map<string, number[]>();
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000;
+  const timestamps = (invoiceRateLimit.get(key) || []).filter(t => now - t < windowMs);
+  if (timestamps.length >= 5) return true;
+  timestamps.push(now);
+  invoiceRateLimit.set(key, timestamps);
+  return false;
+}
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +25,12 @@ export async function POST(request: Request) {
     if (!email || !pdfBase64) {
       return NextResponse.json({ error: 'Emailul și conținutul PDF sunt obligatorii.' }, { status: 400 });
     }
+
+    if (isRateLimited(email)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
+    const safeInvoiceNumber = (invoiceNumber || '').replace(/[^\w\-\/\. ]/g, '');
 
     // Verificare la runtime pentru producție
     if (!process.env.RESEND_API_KEY) {
@@ -29,7 +45,7 @@ export async function POST(request: Request) {
     const data = await resend.emails.send({
       from: 'QRate <onboarding@resend.dev>', // Modifică după ce verifici domeniul qrate.md
       to: [email],
-      subject: `Factură Fiscală ${invoiceNumber || ''} - QRate.md`,
+      subject: `Factură Fiscală ${safeInvoiceNumber || ''} - QRate.md`,
       html: `
         <div style="font-family: sans-serif; color: #1e293b; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
           <h2 style="color: #0f172a; font-size: 20px; font-weight: 800; text-transform: uppercase;">Bună ziua,</h2>
@@ -42,7 +58,7 @@ export async function POST(request: Request) {
       `,
       attachments: [
         {
-          filename: `Factura_${invoiceNumber || 'Noua'}.pdf`,
+          filename: `Factura_${safeInvoiceNumber || 'Noua'}.pdf`,
           content: pdfBuffer,
         },
       ],

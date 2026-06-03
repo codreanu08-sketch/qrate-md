@@ -21,8 +21,7 @@ export default function DashboardLayout({
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   const [loading, setLoading] = useState(true);
-  // ✅ Default TRUE — nu bloca dacă query-ul întârzie sau eșuează
-  const [hasAccess, setHasAccess] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -39,10 +38,9 @@ export default function DashboardLayout({
           .eq('id', user.id)
           .maybeSingle();
 
-        // Dacă query eșuează sau nu există profil → acordă acces (fail-open)
         if (error || !profile) {
-          console.warn('Profile fetch failed, granting access by default', error);
-          setHasAccess(true);
+          console.warn('Profile fetch failed or missing, denying access', error);
+          setHasAccess(false);
           return;
         }
 
@@ -69,7 +67,7 @@ export default function DashboardLayout({
 
       } catch (error) {
         console.error('Layout access check error:', error);
-        setHasAccess(true); // ✅ Fail-open: dacă eroare → acordă acces
+        setHasAccess(false);
       } finally {
         setLoading(false);
       }

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     // === OBȚINEM USER-UL LOGAT ȘI CHAT_ID-UL DIN COMPANIE ===
     const { data: { user } } = await supabase.auth.getUser();
     
-    let CHAT_ID = "890236835"; // fallback temporar
+    let CHAT_ID: string | null = null;
 
     if (user) {
       const { data: company } = await supabase
@@ -38,6 +38,11 @@ export async function POST(request: Request) {
       if (company?.telegram_chat_id) {
         CHAT_ID = company.telegram_chat_id;
       }
+    }
+
+    if (!CHAT_ID) {
+      console.error('Telegram chat ID not configured for this user');
+      return NextResponse.json({ error: 'Telegram not configured' }, { status: 400 });
     }
 
     // === MESAJ TELEGRAM ===

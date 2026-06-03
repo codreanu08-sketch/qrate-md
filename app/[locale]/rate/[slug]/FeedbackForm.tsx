@@ -272,14 +272,16 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
     try {
       let finalPhotoUrl = null;
       if (imageFile) {
-        const fileName = `${slug}/${crypto.randomUUID()}.jpg`;
-        const { error: uploadError } = await supabase.storage
-          .from('review-photos')
-          .upload(fileName, imageFile);
-        if (uploadError) throw uploadError;
-        finalPhotoUrl = supabase.storage
-          .from('review-photos')
-          .getPublicUrl(fileName).data.publicUrl;
+        const uploadForm = new FormData();
+        uploadForm.append('file', imageFile);
+        uploadForm.append('slug', slug);
+        const uploadRes = await fetch('/api/upload-photo', { method: 'POST', body: uploadForm });
+        if (!uploadRes.ok) {
+          const { error } = await uploadRes.json();
+          throw new Error(error || 'Upload eșuat');
+        }
+        const { url } = await uploadRes.json();
+        finalPhotoUrl = url;
       }
 
       const reviewData = {
