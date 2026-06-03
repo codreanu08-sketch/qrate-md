@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Lock, RefreshCw } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({
@@ -23,11 +24,24 @@ export default function DashboardLayout({
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
-    fetch('/api/auth/profile')
-      .then(res => res.json())
-      .then(({ hasAccess }) => setHasAccess(!!hasAccess))
-      .catch(() => setHasAccess(false))
-      .finally(() => setLoading(false));
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) {
+        router.push(`/${locale}/auth/login`);
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/profile', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const { hasAccess } = await res.json();
+        setHasAccess(!!hasAccess);
+      } catch {
+        setHasAccess(false);
+      } finally {
+        setLoading(false);
+      }
+    });
   }, []);
 
   if (loading) {
