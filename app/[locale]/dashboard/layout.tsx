@@ -2,7 +2,6 @@
 
 import { useEffect, useState, use } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
 import { Lock, RefreshCw } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
@@ -24,57 +23,12 @@ export default function DashboardLayout({
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          router.push(`/${locale}/auth/login`);
-          return;
-        }
-
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('subscription_tier, trial_ends_at, created_at, is_admin, is_subscribed, subscription_status')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (error || !profile) {
-          console.warn('Profile fetch failed or missing, denying access', error);
-          setHasAccess(false);
-          return;
-        }
-
-        // ✅ Orice condiție satisfăcută = acces
-        const isPro =
-          profile.is_admin === true ||
-          profile.subscription_tier === 'pro' ||
-          profile.is_subscribed === true ||
-          profile.subscription_status === 'ACTIVE';
-
-        if (isPro) {
-          setHasAccess(true);
-          return;
-        }
-
-        // Verifică trial doar dacă nu e pro
-        const endDate = profile.trial_ends_at
-          ? new Date(profile.trial_ends_at)
-          : profile.created_at
-            ? new Date(new Date(profile.created_at).getTime() + 7 * 86400000)
-            : new Date(Date.now() + 86400000); // fallback: 1 zi
-
-        setHasAccess(endDate.getTime() > Date.now());
-
-      } catch (error) {
-        console.error('Layout access check error:', error);
-        setHasAccess(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAccess();
-  }, [router, locale]);
+    fetch('/api/auth/profile')
+      .then(res => res.json())
+      .then(({ hasAccess }) => setHasAccess(!!hasAccess))
+      .catch(() => setHasAccess(false))
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) {
     return (
