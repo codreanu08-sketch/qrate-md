@@ -24,7 +24,8 @@ export default function DashboardLayout({
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    const check = async () => {
+      const { data } = await supabase.auth.getSession();
       const session = data.session;
       if (!session) {
         router.push(`/${locale}/auth/login`);
@@ -35,14 +36,15 @@ export default function DashboardLayout({
         const res = await fetch('/api/auth/profile', {
           headers: { Authorization: `Bearer ${session.access_token}` },
         });
-        const { hasAccess } = await res.json();
-        setHasAccess(!!hasAccess);
+        const json = await res.json();
+        setHasAccess(!!json.hasAccess);
       } catch {
         setHasAccess(false);
       } finally {
         setLoading(false);
       }
-    });
+    };
+    check();
   }, []);
 
   if (loading) {
