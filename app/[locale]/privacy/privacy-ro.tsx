@@ -24,7 +24,7 @@ export function PrivacyRo() {
           <div className="bg-slate-50 p-6 rounded-2xl space-y-2 text-sm">
             <p><strong>QR RATING S.R.L.</strong>, IDNO 1026023041245</p>
             <p>mun. Orhei, str. Sălciilor 75, Republica Moldova</p>
-            <p>Email protecția datelor: hello@qrate.md</p>
+            <p>Email protecția datelor: suport@qrate.md</p>
           </div>
           <p className="text-sm">Prezenta politică se aplică în conformitate cu <strong>Legea nr. 133/2011 privind protecția datelor cu caracter personal</strong> din Republica Moldova.</p>
         </section>
@@ -146,7 +146,7 @@ export function PrivacyRo() {
             ))}
           </div>
           <p className="text-sm mt-4">
-            Exercitați-vă drepturile prin email la <strong>hello@qrate.md</strong>. Vom răspunde în termen de 30 de zile. Aveți și dreptul de a depune plângere la <strong>Centrul Național pentru Protecția Datelor cu Caracter Personal al Republicii Moldova</strong>.
+            Exercitați-vă drepturile prin email la <strong>suport@qrate.md</strong>. Vom răspunde în termen de 30 de zile. Aveți și dreptul de a depune plângere la <strong>Centrul Național pentru Protecția Datelor cu Caracter Personal al Republicii Moldova</strong>.
           </p>
         </section>
 

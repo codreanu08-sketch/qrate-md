@@ -23,8 +23,8 @@ export function PrivacyRu() {
           </h2>
           <div className="bg-slate-50 p-6 rounded-2xl space-y-2 text-sm">
             <p><strong>QR RATING S.R.L.</strong>, IDNO 1026023041245</p>
-            <p>мун. Орхей, ул. Сэлчиилор 75, Республика Молдова</p>
-            <p>Email по вопросам защиты данных: hello@qrate.md</p>
+            <p>mun. Orhei, str. Sălciilor 75, Republica Moldova</p>
+            <p>Email по вопросам защиты данных: suport@qrate.md</p>
           </div>
           <p className="text-sm">Настоящая политика применяется в соответствии с <strong>Законом № 133/2011 о защите персональных данных</strong> Республики Молдова.</p>
         </section>
@@ -145,7 +145,7 @@ export function PrivacyRu() {
             ))}
           </div>
           <p className="text-sm mt-4">
-            Реализуйте свои права по email: <strong>hello@qrate.md</strong>. Ответим в течение 30 дней. Вы также вправе подать жалобу в <strong>Национальный центр защиты персональных данных Республики Молдова</strong>.
+            Реализуйте свои права по email: <strong>suport@qrate.md</strong>. Ответим в течение 30 дней. Вы также вправе подать жалобу в <strong>Национальный центр защиты персональных данных Республики Молдова</strong>.
           </p>
         </section>
 

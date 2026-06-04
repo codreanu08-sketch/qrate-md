@@ -28,7 +28,7 @@ export function TermsRo() {
             <p><strong>Denumire:</strong> QR RATING S.R.L.</p>
             <p><strong>IDNO:</strong> 1026023041245</p>
             <p><strong>Adresa juridică:</strong> Republica Moldova, mun. Orhei, str. Sălciilor 75</p>
-            <p><strong>Email contact:</strong> hello@qrate.md</p>
+            <p><strong>Email contact:</strong> suport@qrate.md</p>
             <p><strong>Site web:</strong> www.qrate.md</p>
             <p className="text-xs text-slate-400 pt-2">Societate înregistrată conform legislației Republicii Moldova</p>
           </div>
@@ -131,7 +131,7 @@ export function TermsRo() {
             Prezentul contract este guvernat de legea Republicii Moldova. Orice litigiu se va soluționa pe cale amiabilă în termen de 30 de zile, iar în cazul eșecului, prin instanțele judecătorești competente din Republica Moldova, conform procedurii stabilite de <strong>Codul de Procedură Civilă al Republicii Moldova</strong>.
           </p>
           <p className="text-slate-400 text-sm">
-            <strong className="text-white">Contact litigii:</strong> hello@qrate.md · QR RATING S.R.L., mun. Orhei, str. Sălciilor 75
+            <strong className="text-white">Contact litigii:</strong> suport@qrate.md · QR RATING S.R.L., mun. Orhei, str. Sălciilor 75
           </p>
         </section>
 
