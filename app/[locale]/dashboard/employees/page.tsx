@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase';
 import {
   UserPlus, Trash2, Download, Star,
   MapPin, AlertCircle, Loader2, Camera, User,
-  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone, Building2, Pencil, X
+  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone, Building2, Pencil, X, ExternalLink
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import Link from 'next/link';
@@ -559,13 +559,21 @@ export default function EmployeesPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex gap-3 pt-2 flex-wrap">
                     <Link
                       href={`/${locale}/dashboard/employees/${emp.id}`}
                       className="flex-1 bg-slate-900 text-white py-4 rounded-xl text-xs font-black uppercase tracking-[0.15em] hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                       {t('card.btn_profile') || 'Profil'} <ChevronRight size={16} />
                     </Link>
+                    <a
+                      href={`/${locale}/rate/${companyId}?employee=${emp.id}${emp.location_id ? `&location=${emp.location_id}` : ''}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="w-14 h-14 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent shadow-sm"
+                      title={locale === 'ru' ? 'Открыть страницу отзывов' : 'Deschide pagina recenzii'}
+                    >
+                      <ExternalLink size={20} />
+                    </a>
                     <button
                       onClick={() => openEditModal(emp)}
                       className="w-14 h-14 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent shadow-sm"

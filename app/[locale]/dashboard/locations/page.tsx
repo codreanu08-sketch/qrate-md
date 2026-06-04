@@ -524,6 +524,10 @@ export default function LocationsPage() {
                       className="w-full bg-slate-900 text-white py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors">
                       <Download size={15} /> {t('card.download_qr')}
                     </button>
+                    <a href={`/${locale}/rate/${companyId}?location=${loc.id}`} target="_blank" rel="noopener noreferrer"
+                      className="w-full border-2 border-slate-200 text-slate-500 py-2.5 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                      <Link2 size={13} /> {locale === 'ru' ? 'Открыть страницу' : 'Deschide pagina'}
+                    </a>
                     <button type="button" onClick={() => openEditModal(loc)}
                       className="w-full border-2 border-slate-200 text-slate-600 py-2.5 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:border-blue-400 hover:text-blue-600 transition-colors">
                       <Pencil size={13} /> {locale === 'ru' ? 'Редактировать' : 'Editează'}
