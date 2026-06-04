@@ -23,7 +23,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   
-  const [form, setForm] = useState({ name: '', position: '', location_id: '', image: null as File | null });
+  const [form, setForm] = useState({ name: '', position: '', location_ids: [] as string[], image: null as File | null });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState<any>(null);
   const [expandedEmployee, setExpandedEmployee] = useState<string | null>(null);
@@ -78,18 +78,23 @@ export default function EmployeesPage() {
             ? emp.reviews.reduce((acc: number, curr: any) => acc + curr.rating, 0) / totalReviews 
             : 0;
           
-          const locationData = emp.location_id ? currentLocs.find((l: any) => l.id === emp.location_id) : null;
+          const ids = emp.location_ids
+            ? emp.location_ids.split(',').map((s: string) => s.trim()).filter(Boolean)
+            : emp.location_id ? [emp.location_id] : [];
+          const locationNames = ids.length > 0
+            ? ids.map((id: string) => currentLocs.find((l: any) => l.id === id)?.name).filter(Boolean).join(', ')
+            : (locale === 'ru' ? 'Без локации' : 'Fără locație');
 
-          const sortedReviews = emp.reviews ? [...emp.reviews].sort((a: any, b: any) => 
+          const sortedReviews = emp.reviews ? [...emp.reviews].sort((a: any, b: any) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           ) : [];
 
-          return { 
-            ...emp, 
+          return {
+            ...emp,
             reviews: sortedReviews,
-            avgRating: avg.toFixed(1), 
+            avgRating: avg.toFixed(1),
             totalReviews,
-            location_name: locationData ? locationData.name : (locale === 'ru' ? 'Без локации' : 'Fără locație')
+            location_name: locationNames,
           };
         });
         
@@ -159,18 +164,20 @@ export default function EmployeesPage() {
         }
       }
 
+      const primaryLocationId = form.location_ids[0] || null;
       const { error: insertError } = await supabase.from('employees').insert([{
         name: form.name.trim(),
         position: form.position.trim(),
-        location_id: form.location_id || null, 
+        location_id: primaryLocationId,
+        location_ids: form.location_ids.length > 0 ? form.location_ids.join(',') : null,
         photo_url: photoUrl,
         company_id: companyId,
-        user_id: user.id 
+        user_id: user.id,
       }]);
 
       if (insertError) throw insertError;
 
-      setForm({ name: '', position: '', location_id: '', image: null });
+      setForm({ name: '', position: '', location_ids: [], image: null });
       await fetchInitialData();
     } catch (err: any) {
       alert("Eroare la adăugare: " + err.message);
@@ -294,14 +301,45 @@ export default function EmployeesPage() {
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">{t('form.label_location')}</label>
-                <select 
-                  value={form.location_id}
-                  onChange={e => setForm({...form, location_id: e.target.value})}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-2xl p-5 text-base font-bold outline-none transition-all appearance-none shadow-sm cursor-pointer"
-                >
-                  <option value="">Selectează locația</option>
-                  {locations.map(loc => <option key={loc.id} value={loc.id}>{loc.name}</option>)}
-                </select>
+                <div className="bg-slate-50 border-2 border-transparent focus-within:border-slate-900 rounded-2xl p-4 space-y-2 shadow-sm min-h-[64px]">
+                  {locations.length === 0 ? (
+                    <p className="text-sm text-slate-400 font-bold italic px-1">
+                      {locale === 'ru' ? 'Нет локаций' : 'Nicio locație adăugată'}
+                    </p>
+                  ) : (
+                    <>
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={form.location_ids.length === 0}
+                          onChange={() => setForm({ ...form, location_ids: [] })}
+                          className="w-4 h-4 rounded accent-slate-900"
+                        />
+                        <span className="text-sm font-bold text-slate-400 italic">
+                          {t('form.mobile_option')}
+                        </span>
+                      </label>
+                      {locations.map(loc => (
+                        <label key={loc.id} className="flex items-center gap-3 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={form.location_ids.includes(loc.id)}
+                            onChange={e => {
+                              const next = e.target.checked
+                                ? [...form.location_ids, loc.id]
+                                : form.location_ids.filter(id => id !== loc.id);
+                              setForm({ ...form, location_ids: next });
+                            }}
+                            className="w-4 h-4 rounded accent-blue-600"
+                          />
+                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
+                            {loc.name}
+                          </span>
+                        </label>
+                      ))}
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
