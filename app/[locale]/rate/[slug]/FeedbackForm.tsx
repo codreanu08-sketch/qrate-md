@@ -488,7 +488,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
               <img
                 src={selectedEmployee?.photo_url || locationLogo || ''}
                 alt={selectedEmployee?.name || ''}
-                className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg"
+                className="w-40 h-40 rounded-3xl object-cover border-4 border-white shadow-lg"
               />
               {selectedEmployee && (
                 <div className="text-center">
