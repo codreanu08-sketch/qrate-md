@@ -16,36 +16,61 @@ export default function DashboardLayout({
   const params = use(paramsPromise);
   const router = useRouter();
   const pathname = usePathname();
-  
+
   const locale = params?.locale || 'ro';
   const isSubscriptionPage = pathname?.endsWith('/dashboard/subscription');
 
   const [loading, setLoading] = useState(true);
-  const [hasAccess, setHasAccess] = useState(false);
+  const [hasAccess, setHasAccess] = useState(true);
 
   useEffect(() => {
-    const check = async () => {
-      const { data } = await supabase.auth.getSession();
-      const session = data.session;
-      if (!session) {
-        router.push(`/${locale}/auth/login`);
-        setLoading(false);
-        return;
-      }
+    const checkAccess = async () => {
       try {
-        const res = await fetch('/api/auth/profile', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const json = await res.json();
-        setHasAccess(!!json.hasAccess);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          router.push(`/${locale}/auth/login`);
+          return;
+        }
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('subscription_tier, trial_ends_at, created_at, is_admin, is_subscribed, subscription_status')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error || !profile) {
+          setHasAccess(true);
+          return;
+        }
+
+        const isPro =
+          profile.is_admin === true ||
+          profile.subscription_tier === 'pro' ||
+          profile.is_subscribed === true ||
+          profile.subscription_status === 'ACTIVE';
+
+        if (isPro) {
+          setHasAccess(true);
+          return;
+        }
+
+        const endDate = profile.trial_ends_at
+          ? new Date(profile.trial_ends_at)
+          : profile.created_at
+            ? new Date(new Date(profile.created_at).getTime() + 7 * 86400000)
+            : new Date(Date.now() + 86400000);
+
+        setHasAccess(endDate.getTime() > Date.now());
+
       } catch {
-        setHasAccess(false);
+        setHasAccess(true);
       } finally {
         setLoading(false);
       }
     };
-    check();
-  }, []);
+
+    checkAccess();
+  }, [router, locale]);
 
   if (loading) {
     return (
@@ -62,7 +87,7 @@ export default function DashboardLayout({
           <Lock className="mx-auto mb-4 text-amber-500" size={48} />
           <h2 className="text-2xl font-black mb-3">Trial Expirat</h2>
           <p className="text-slate-600 mb-6">Perioada de 7 zile gratuită s-a încheiat.</p>
-          <button 
+          <button
             onClick={() => router.push(`/${locale}/dashboard/subscription`)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-2xl font-black transition-colors"
           >
