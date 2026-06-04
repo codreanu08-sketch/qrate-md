@@ -483,6 +483,22 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             </section>
           )}
 
+          {(selectedEmployee?.photo_url || locationLogo) && (
+            <div className="flex flex-col items-center gap-3 pt-2">
+              <img
+                src={selectedEmployee?.photo_url || locationLogo || ''}
+                alt={selectedEmployee?.name || ''}
+                className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg"
+              />
+              {selectedEmployee && (
+                <div className="text-center">
+                  <p className="text-base font-black text-slate-900 uppercase tracking-tight">{selectedEmployee.name}</p>
+                  {selectedEmployee.position && <p className="text-xs font-bold text-slate-400">{selectedEmployee.position}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
           <section className="space-y-4">
             <label className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1">{t.label_step1}</label>
             <div className="flex justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
