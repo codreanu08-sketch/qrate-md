@@ -31,8 +31,9 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
   const [resolvedEmployeeId, setResolvedEmployeeId] = useState<string | null>(null);
   const [targetName, setTargetName] = useState<string>('');
   const [fetchingIds, setFetchingIds] = useState<boolean>(true);
-  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null); // ✅ NOU
-  const [reviewId, setReviewId] = useState<string | null>(null); // ✅ NOU - pentru tracking
+  const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
+  const [reviewId, setReviewId] = useState<string | null>(null);
+  const [locationLogo, setLocationLogo] = useState<string | null>(null);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -112,13 +113,12 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
           // ✅ Ia google_review_url din locație (prioritate față de companie)
           const { data: loc } = await supabase
             .from('locations')
-            .select('google_review_url')
+            .select('google_review_url, logo_url')
             .eq('id', finalLocationId)
             .single();
 
-          if (loc?.google_review_url) {
-            setGoogleReviewUrl(loc.google_review_url); // locația are prioritate
-          }
+          if (loc?.google_review_url) setGoogleReviewUrl(loc.google_review_url);
+          if (loc?.logo_url) setLocationLogo(loc.logo_url);
         }
 
         if (finalEmployeeId) {
@@ -134,15 +134,13 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             if (!finalLocationId && emp.location_id) {
               setLocationId(emp.location_id);
 
-              // ✅ Ia google_review_url din locația angajatului
               const { data: empLoc } = await supabase
                 .from('locations')
-                .select('google_review_url')
+                .select('google_review_url, logo_url')
                 .eq('id', emp.location_id)
                 .single();
-              if (empLoc?.google_review_url) {
-                setGoogleReviewUrl(empLoc.google_review_url);
-              }
+              if (empLoc?.google_review_url) setGoogleReviewUrl(empLoc.google_review_url);
+              if (empLoc?.logo_url) setLocationLogo(empLoc.logo_url);
             }
           }
         } else {
@@ -424,7 +422,15 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
       <header className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-100 z-50">
         <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="bg-blue-600 rounded-xl p-2"><Zap className="text-white fill-white" size={16} /></div>
+            {selectedEmployee?.photo_url ? (
+              <img src={selectedEmployee.photo_url} alt={selectedEmployee.name}
+                className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100 shadow-sm shrink-0" />
+            ) : locationLogo ? (
+              <img src={locationLogo} alt=""
+                className="w-10 h-10 rounded-xl object-cover border-2 border-slate-100 shadow-sm shrink-0" />
+            ) : (
+              <div className="bg-blue-600 rounded-xl p-2 shrink-0"><Zap className="text-white fill-white" size={16} /></div>
+            )}
             <div className="flex flex-col">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{t.heading_for}</span>
               <span className="text-sm font-black text-slate-950 uppercase tracking-widest truncate">{targetName || "Companie"}</span>
