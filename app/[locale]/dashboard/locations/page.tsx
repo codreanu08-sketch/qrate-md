@@ -356,6 +356,63 @@ export default function LocationsPage() {
           </button>
         </form>
 
+        {/* QR GENERAL */}
+        {companyId && locations.length > 1 && (
+          <div className="bg-white rounded-3xl shadow-sm border-2 border-blue-100 p-5 mb-8">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-inner shrink-0">
+                {typeof window !== 'undefined' && (
+                  <QRCodeCanvas
+                    id="qr-general"
+                    value={`${window.location.origin}/${locale}/rate/${companyId}`}
+                    size={110}
+                    level="H"
+                  />
+                )}
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2">
+                  {locale === 'ru' ? 'Общий QR-код' : 'QR General'}
+                </div>
+                <h3 className="font-black text-slate-900 text-base uppercase tracking-tight mb-1">
+                  {locale === 'ru' ? 'Все локации' : 'Toate locațiile'}
+                </h3>
+                <p className="text-xs text-slate-400 font-medium leading-relaxed">
+                  {locale === 'ru'
+                    ? 'Клиент сканирует и выбирает локацию, затем при желании — сотрудника.'
+                    : 'Clientul scanează, alege locația și dacă dorește, angajatul.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const canvas = document.getElementById('qr-general') as HTMLCanvasElement;
+                  if (!canvas) return;
+                  const master = document.createElement('canvas');
+                  master.width = 1200; master.height = 1400;
+                  const ctx = master.getContext('2d');
+                  if (!ctx) return;
+                  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, master.width, master.height);
+                  ctx.textAlign = 'center'; ctx.fillStyle = '#1e293b'; ctx.font = 'bold 70px sans-serif';
+                  ctx.fillText((locale === 'ru' ? 'Все локации' : 'Toate locațiile').toUpperCase(), master.width / 2, 120);
+                  ctx.drawImage(canvas, (master.width - 750) / 2, 200, 750, 750);
+                  ctx.fillStyle = '#64748b'; ctx.font = '500 42px sans-serif';
+                  ctx.fillText(locale === 'ru' ? 'Выберите вашу локацию' : 'Alege locația ta', master.width / 2, 1040);
+                  ctx.fillStyle = '#cbd5e1'; ctx.font = 'bold 32px sans-serif';
+                  ctx.fillText('QRate.md', master.width / 2, 1150);
+                  const link = document.createElement('a');
+                  link.href = master.toDataURL('image/png', 1.0);
+                  link.download = 'QR-General.png';
+                  link.click();
+                }}
+                className="shrink-0 bg-slate-900 hover:bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-colors flex items-center gap-2"
+              >
+                <Download size={15} /> {locale === 'ru' ? 'Скачать' : 'Descarcă'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* GRID LOCAȚII */}
         {locations.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-slate-200 text-slate-400 font-bold mb-8">

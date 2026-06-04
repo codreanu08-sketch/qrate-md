@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Zap, Star, CheckCircle2, Loader2, Camera, X, User, ExternalLink } from 'lucide-react';
+import { Zap, Star, CheckCircle2, Loader2, Camera, X, User, ExternalLink, MapPin, ChevronRight } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import ru from '@/messages/ru.json';
 import ro from '@/messages/ro.json';
@@ -34,6 +34,8 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
   const [googleReviewUrl, setGoogleReviewUrl] = useState<string | null>(null);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [locationLogo, setLocationLogo] = useState<string | null>(null);
+  const [allLocations, setAllLocations] = useState<any[]>([]);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -144,29 +146,38 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             }
           }
         } else {
-          let query = supabase
-            .from('employees')
-            .select('id, name, position, photo_url')
-            .eq('company_id', company.id)
-            .order('name');
-
           if (finalLocationId) {
-            query = query.eq('location_id', finalLocationId);
-          }
-
-          const { data: empList } = await query;
-          setEmployees(empList || []);
-
-          if (!finalLocationId) {
-            const { data: loc } = await supabase
-              .from('locations')
-              .select('id, google_review_url')
+            const { data: empList } = await supabase
+              .from('employees')
+              .select('id, name, position, photo_url')
               .eq('company_id', company.id)
-              .limit(1)
-              .single();
-            if (loc) {
-              setLocationId(loc.id);
-              if (loc.google_review_url) setGoogleReviewUrl(loc.google_review_url);
+              .eq('location_id', finalLocationId)
+              .order('name');
+            setEmployees(empList || []);
+          } else {
+            // Nicio locație specificată — arată picker dacă sunt mai multe
+            const { data: locs } = await supabase
+              .from('locations')
+              .select('id, name, logo_url, google_review_url')
+              .eq('company_id', company.id)
+              .order('name');
+            const locList = locs || [];
+            setAllLocations(locList);
+
+            if (locList.length === 1) {
+              // O singură locație — auto-selectează
+              setLocationId(locList[0].id);
+              if (locList[0].google_review_url) setGoogleReviewUrl(locList[0].google_review_url);
+              if (locList[0].logo_url) setLocationLogo(locList[0].logo_url);
+              const { data: empList } = await supabase
+                .from('employees')
+                .select('id, name, position, photo_url')
+                .eq('company_id', company.id)
+                .eq('location_id', locList[0].id)
+                .order('name');
+              setEmployees(empList || []);
+            } else if (locList.length > 1) {
+              setShowLocationPicker(true);
             }
           }
         }
@@ -197,6 +208,20 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
       setSelectedEmployee(emp);
       setResolvedEmployeeId(emp.id);
     }
+  };
+
+  const handleSelectLocation = async (loc: any) => {
+    setLocationId(loc.id);
+    if (loc.logo_url) setLocationLogo(loc.logo_url);
+    if (loc.google_review_url) setGoogleReviewUrl(loc.google_review_url);
+    setShowLocationPicker(false);
+    const { data: empList } = await supabase
+      .from('employees')
+      .select('id, name, position, photo_url')
+      .eq('company_id', companyId)
+      .eq('location_id', loc.id)
+      .order('name');
+    setEmployees(empList || []);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -389,6 +414,57 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             >
               {t.google_skip}
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (showLocationPicker) {
+    return (
+      <div className="min-h-screen bg-[#FDFDFD] text-slate-900">
+        <header className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-100 z-50">
+          <div className="max-w-xl mx-auto px-5 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="bg-blue-600 rounded-xl p-2 shrink-0"><Zap className="text-white fill-white" size={16} /></div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">{t.heading_for}</span>
+                <span className="text-sm font-black text-slate-950 uppercase tracking-widest truncate">{targetName || 'Companie'}</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-xl mx-auto px-5 pt-8 pb-16 space-y-6">
+          <div>
+            <p className="text-[11px] font-black text-blue-600 uppercase tracking-[0.2em] ml-1 mb-1">
+              {locale === 'ro' ? 'Pasul 1 / 2' : 'Шаг 1 / 2'}
+            </p>
+            <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">
+              {locale === 'ro' ? 'Alege locația' : 'Выберите локацию'}
+            </h2>
+            <p className="text-sm text-slate-400 font-medium mt-1">
+              {locale === 'ro' ? 'Unde ai fost astăzi?' : 'Где вы были сегодня?'}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {allLocations.map(loc => (
+              <button key={loc.id} type="button" onClick={() => handleSelectLocation(loc)}
+                className="w-full flex items-center gap-4 bg-white border-2 border-slate-100 hover:border-blue-400 hover:bg-blue-50/30 transition-all p-4 rounded-2xl text-left group">
+                {loc.logo_url ? (
+                  <img src={loc.logo_url} alt={loc.name} className="w-14 h-14 rounded-xl object-cover border-2 border-slate-100 shrink-0" />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-300">
+                    <MapPin size={22} />
+                  </div>
+                )}
+                <span className="font-black text-slate-800 text-base uppercase tracking-tight group-hover:text-blue-700 transition-colors">
+                  {loc.name}
+                </span>
+                <ChevronRight size={18} className="ml-auto text-slate-300 group-hover:text-blue-500 transition-colors shrink-0" />
+              </button>
+            ))}
           </div>
         </div>
       </div>
