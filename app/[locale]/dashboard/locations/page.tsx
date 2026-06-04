@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import {
   Trash2, Download, Star, AlertTriangle, Loader2,
-  Building2, Image as ImageIcon, X, MapPin, Truck, Phone, Link2, Pencil, MessageSquare, Send
+  Building2, Image as ImageIcon, X, MapPin, Truck, Phone, Link2, Pencil, MessageSquare, Send, User
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -30,6 +30,7 @@ export default function LocationsPage() {
 
   const [locations, setLocations] = useState<any[]>([]);
   const [lastReviews, setLastReviews] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -55,14 +56,16 @@ export default function LocationsPage() {
 
   const fetchData = useCallback(async (cId: string) => {
     try {
-      const [locsRes, revsRes] = await Promise.all([
+      const [locsRes, revsRes, empsRes] = await Promise.all([
         supabase.from('locations').select('*').eq('company_id', cId).order('created_at', { ascending: false }),
-        supabase.from('reviews').select('*, locations(name)').eq('company_id', cId).order('created_at', { ascending: false })
+        supabase.from('reviews').select('*, locations(name)').eq('company_id', cId).order('created_at', { ascending: false }),
+        supabase.from('employees').select('id, name, position, photo_url, location_id, location_ids').eq('company_id', cId)
       ]);
       if (locsRes.error) throw locsRes.error;
       if (revsRes.error) throw revsRes.error;
       setLocations(locsRes.data || []);
       setLastReviews(revsRes.data || []);
+      setEmployees(empsRes.data || []);
     } catch (err: any) {
       setErrorMessage(`Nu s-au putut încărca locațiile: ${err.message}`);
     } finally {
@@ -478,6 +481,42 @@ export default function LocationsPage() {
                     <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight truncate">{loc.name}</h3>
                     <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5">{t('card.reviews_count', { count: locReviews.length })}</p>
                   </div>
+
+                  {/* Angajați */}
+                  {(() => {
+                    const locEmps = employees.filter(emp => {
+                      if (emp.location_id === loc.id) return true;
+                      if (emp.location_ids) return emp.location_ids.split(',').map((s: string) => s.trim()).includes(loc.id);
+                      return false;
+                    });
+                    if (locEmps.length === 0) return null;
+                    return (
+                      <div className="px-4 pb-3" onClick={e => e.stopPropagation()}>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                          {locale === 'ru' ? 'Сотрудники' : 'Angajați'} ({locEmps.length})
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {locEmps.slice(0, 5).map(emp => (
+                            <div key={emp.id} className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1">
+                              {emp.photo_url ? (
+                                <img src={emp.photo_url} alt={emp.name} className="w-5 h-5 rounded-md object-cover shrink-0" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-md bg-slate-200 flex items-center justify-center shrink-0">
+                                  <User size={10} className="text-slate-400" />
+                                </div>
+                              )}
+                              <span className="text-[10px] font-bold text-slate-600 truncate max-w-[70px]">{emp.name}</span>
+                            </div>
+                          ))}
+                          {locEmps.length > 5 && (
+                            <div className="flex items-center bg-slate-100 rounded-xl px-2 py-1">
+                              <span className="text-[10px] font-black text-slate-400">+{locEmps.length - 5}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Butoane */}
                   <div className="px-4 pb-4 flex flex-col gap-2 mt-auto" onClick={(e) => e.stopPropagation()}>

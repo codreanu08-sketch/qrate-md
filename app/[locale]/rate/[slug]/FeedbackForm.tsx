@@ -151,7 +151,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
               .from('employees')
               .select('id, name, position, photo_url')
               .eq('company_id', company.id)
-              .eq('location_id', finalLocationId)
+              .or(`location_id.eq.${finalLocationId},location_ids.ilike.%${finalLocationId}%`)
               .order('name');
             setEmployees(empList || []);
           } else {
@@ -165,7 +165,6 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
             setAllLocations(locList);
 
             if (locList.length === 1) {
-              // O singură locație — auto-selectează
               setLocationId(locList[0].id);
               if (locList[0].google_review_url) setGoogleReviewUrl(locList[0].google_review_url);
               if (locList[0].logo_url) setLocationLogo(locList[0].logo_url);
@@ -173,7 +172,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
                 .from('employees')
                 .select('id, name, position, photo_url')
                 .eq('company_id', company.id)
-                .eq('location_id', locList[0].id)
+                .or(`location_id.eq.${locList[0].id},location_ids.ilike.%${locList[0].id}%`)
                 .order('name');
               setEmployees(empList || []);
             } else if (locList.length > 1) {
@@ -219,7 +218,7 @@ export default function FeedbackForm({ slug, locale, employeeId, locationId: loc
       .from('employees')
       .select('id, name, position, photo_url')
       .eq('company_id', companyId)
-      .eq('location_id', loc.id)
+      .or(`location_id.eq.${loc.id},location_ids.ilike.%${loc.id}%`)
       .order('name');
     setEmployees(empList || []);
   };
