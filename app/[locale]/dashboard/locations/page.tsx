@@ -4,9 +4,9 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { 
+import {
   Trash2, Download, Star, AlertTriangle, Loader2,
-  Building2, Image as ImageIcon, X, MapPin, Truck, Phone, Link2
+  Building2, Image as ImageIcon, X, MapPin, Truck, Phone, Link2, Pencil, MessageSquare, Send
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -48,6 +48,10 @@ export default function LocationsPage() {
   const [isAdding, setIsAdding] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+  const [editModal, setEditModal] = useState<any | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editUploading, setEditUploading] = useState(false);
+  const editLogoInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async (cId: string) => {
     try {
@@ -179,6 +183,60 @@ export default function LocationsPage() {
       setErrorMessage(`Eroare la salvare: ${error.message}`);
     }
     setIsAdding(false);
+  };
+
+  const openEditModal = (loc: any) => {
+    setEditModal({
+      id: loc.id,
+      name: loc.name || '',
+      address: loc.address || '',
+      type: loc.type || 'Physical',
+      logo_url: loc.logo_url || '',
+      welcome_message: loc.welcome_message || '',
+      google_review_url: loc.google_review_url || '',
+      telegram_chat_ids: loc.telegram_chat_ids || '',
+    });
+  };
+
+  const handleEditLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !companyId) return;
+    setEditUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${companyId}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('logos').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('logos').getPublicUrl(fileName);
+      setEditModal((prev: any) => ({ ...prev, logo_url: publicUrl }));
+    } catch (err: any) {
+      setErrorMessage('Eroare upload: ' + err.message);
+    } finally {
+      setEditUploading(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editModal || editSaving) return;
+    setEditSaving(true);
+    const { error } = await supabase.from('locations').update({
+      name: editModal.name.trim(),
+      address: editModal.address.trim() || null,
+      type: editModal.type,
+      logo_url: editModal.logo_url || null,
+      welcome_message: editModal.welcome_message || null,
+      google_review_url: editModal.google_review_url.trim() || null,
+      telegram_chat_ids: editModal.telegram_chat_ids.trim() || null,
+    }).eq('id', editModal.id);
+    if (!error) {
+      setEditModal(null);
+      setSuccessMessage(locale === 'ru' ? 'Локация обновлена!' : 'Locație actualizată!');
+      setTimeout(() => setSuccessMessage(null), 3000);
+      if (companyId) await fetchData(companyId);
+    } else {
+      setErrorMessage('Eroare la salvare: ' + error.message);
+    }
+    setEditSaving(false);
   };
 
   const deleteLocation = async (id: string) => {
@@ -368,6 +426,10 @@ export default function LocationsPage() {
                       className="w-full bg-slate-900 text-white py-3 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors">
                       <Download size={15} /> {t('card.download_qr')}
                     </button>
+                    <button type="button" onClick={() => openEditModal(loc)}
+                      className="w-full border-2 border-slate-200 text-slate-600 py-2.5 rounded-2xl font-black text-xs flex items-center justify-center gap-2 hover:border-blue-400 hover:text-blue-600 transition-colors">
+                      <Pencil size={13} /> {locale === 'ru' ? 'Редактировать' : 'Editează'}
+                    </button>
                     <button type="button" onClick={() => setShowDeleteModal({id: loc.id, name: loc.name})}
                       className="text-slate-300 text-[10px] font-black uppercase hover:text-red-500 transition-colors py-1 text-center">
                       {t('card.delete_loc')}
@@ -432,6 +494,127 @@ export default function LocationsPage() {
           )}
         </div>
       </div>
+
+      {/* MODAL EDITARE */}
+      {editModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                {locale === 'ru' ? 'Редактировать локацию' : 'Editează locația'}
+              </h3>
+              <button onClick={() => setEditModal(null)} className="text-slate-400 hover:text-slate-700 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Nume */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                  {locale === 'ru' ? 'Название' : 'Nume locație'} *
+                </label>
+                <input type="text" value={editModal.name}
+                  onChange={e => setEditModal((p: any) => ({ ...p, name: e.target.value }))}
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+              </div>
+
+              {/* Tip */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                  {locale === 'ru' ? 'Тип' : 'Tip'}
+                </label>
+                <select value={editModal.type}
+                  onChange={e => setEditModal((p: any) => ({ ...p, type: e.target.value }))}
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm">
+                  <option value="Physical">{locale === 'ru' ? 'Физическая' : 'Fizică'}</option>
+                  <option value="Delivery">{locale === 'ru' ? 'Доставка' : 'Livrare'}</option>
+                </select>
+              </div>
+
+              {/* Adresă */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <MapPin size={10} /> {locale === 'ru' ? 'Адрес' : 'Adresă'}
+                </label>
+                <input type="text" value={editModal.address}
+                  onChange={e => setEditModal((p: any) => ({ ...p, address: e.target.value }))}
+                  placeholder={locale === 'ru' ? 'ул. Штефана чел Маре 45' : 'Str. Ștefan cel Mare 45'}
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+              </div>
+
+              {/* Google Reviews URL */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Link2 size={10} className="text-blue-500" /> Google Reviews URL
+                </label>
+                <input type="url" value={editModal.google_review_url}
+                  onChange={e => setEditModal((p: any) => ({ ...p, google_review_url: e.target.value }))}
+                  placeholder="https://g.page/r/..."
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+              </div>
+
+              {/* Telegram Chat IDs */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Send size={10} className="text-blue-500" /> Telegram Chat IDs
+                </label>
+                <input type="text" value={editModal.telegram_chat_ids}
+                  onChange={e => setEditModal((p: any) => ({ ...p, telegram_chat_ids: e.target.value }))}
+                  placeholder={locale === 'ru' ? 'напр. -100123456,890236835' : 'ex. -100123456,890236835'}
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+                <p className="text-[9px] text-slate-400 mt-1 font-bold">
+                  {locale === 'ru' ? 'Несколько ID — через запятую' : 'Mai multe ID-uri — separate prin virgulă'}
+                </p>
+              </div>
+
+              {/* Mesaj bun venit */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <MessageSquare size={10} /> {locale === 'ru' ? 'Приветственное сообщение' : 'Mesaj de bun venit'}
+                </label>
+                <textarea value={editModal.welcome_message}
+                  onChange={e => setEditModal((p: any) => ({ ...p, welcome_message: e.target.value }))}
+                  placeholder={locale === 'ru' ? 'Помогите нам стать лучше!' : 'Ajutați-ne să ne îmbunătățim!'}
+                  rows={3}
+                  className="w-full bg-slate-50 rounded-2xl p-3 font-bold text-slate-800 outline-none resize-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+              </div>
+
+              {/* Logo */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <ImageIcon size={10} /> Logo
+                </label>
+                <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-dashed border-slate-200">
+                  <div className="w-12 h-12 rounded-xl bg-white overflow-hidden flex items-center justify-center border shadow-sm shrink-0">
+                    {editModal.logo_url
+                      ? <img src={editModal.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                      : <ImageIcon className="text-slate-300" size={18} />}
+                  </div>
+                  <input type="file" ref={editLogoInputRef} onChange={handleEditLogoUpload} className="hidden" accept="image/*" />
+                  <button type="button" onClick={() => editLogoInputRef.current?.click()}
+                    disabled={editUploading}
+                    className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-slate-800 disabled:opacity-50 transition-colors flex-1">
+                    {editUploading ? (locale === 'ru' ? 'Загрузка...' : 'Se încarcă...') : (locale === 'ru' ? 'Загрузить' : 'Încarcă logo')}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 pt-0 flex gap-3">
+              <button onClick={() => setEditModal(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-2xl uppercase text-xs transition-colors">
+                {locale === 'ru' ? 'Отмена' : 'Anulează'}
+              </button>
+              <button onClick={handleSaveEdit} disabled={editSaving || !editModal.name.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-3 rounded-2xl uppercase text-xs transition-colors flex items-center justify-center gap-2">
+                {editSaving ? <Loader2 size={14} className="animate-spin" /> : null}
+                {locale === 'ru' ? 'Сохранить' : 'Salvează'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL ȘTERGERE */}
       {showDeleteModal && (
