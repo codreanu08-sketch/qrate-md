@@ -116,7 +116,7 @@ export default function LocationsPage() {
     const masterCanvas = document.createElement("canvas");
     const ctx = masterCanvas.getContext("2d");
     if (!ctx) return;
-    masterCanvas.width = 1200; masterCanvas.height = 1800;
+    masterCanvas.width = 1200; masterCanvas.height = 1900;
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, masterCanvas.width, masterCanvas.height);
     const logoImg = new Image();
     logoImg.crossOrigin = "anonymous";
@@ -129,8 +129,10 @@ export default function LocationsPage() {
         ctx.textAlign = "center"; ctx.fillStyle = "#1e293b"; ctx.font = "bold 70px sans-serif";
         ctx.fillText(name.toUpperCase(), masterCanvas.width / 2, 650);
         ctx.drawImage(qrCanvas, (masterCanvas.width - 750) / 2, 880, 750, 750);
-        ctx.fillStyle = "#cbd5e1"; ctx.font = "bold 35px sans-serif";
-        ctx.fillText("QRate.md", masterCanvas.width / 2, 1720);
+        ctx.fillStyle = "#475569"; ctx.font = "500 42px sans-serif";
+        ctx.fillText(name, masterCanvas.width / 2, 1690);
+        ctx.fillStyle = "#cbd5e1"; ctx.font = "bold 32px sans-serif";
+        ctx.fillText("QRate.md", masterCanvas.width / 2, 1810);
         const link = document.createElement("a");
         link.href = masterCanvas.toDataURL("image/png", 1.0);
         link.download = `QR-${name.replace(/\s+/g, '-')}.png`;
