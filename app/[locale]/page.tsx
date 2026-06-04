@@ -42,10 +42,10 @@ export default function LandingPage() {
     { icon: <ShoppingBag size={18}/>, label: locale === 'ru' ? 'Магазин' : 'Magazin',
       pain: locale === 'ru' ? 'Не знаешь, у какого сотрудника проблемы с клиентами.' : 'Nu știi ce angajat are probleme cu clienții.',
       solution: locale === 'ru' ? 'Индивидуальный QR на каждого сотрудника. Автоматический рейтинг. Знаешь точно, кто работает лучше.' : 'QR individual per angajat. Leaderboard automat. Știi exact cine performează.' },
-    { icon: <Car size={18}/>, label: 'Auto-service',
+    { icon: <Car size={18}/>, label: locale === 'ru' ? 'Авто-сервис' : 'Auto-service',
       pain: locale === 'ru' ? 'Клиенты не оставляют отзывы на Google, даже если довольны.' : 'Clienții nu lasă recenzii pe Google deși sunt mulțumiți.',
       solution: locale === 'ru' ? 'QRate автоматически перенаправляет клиентов с оценкой 4–5 звёзд на Google Reviews. Стань заметнее.' : 'QRate redirectează automat clienții cu 4–5 stele spre Google Reviews. Fii mai vizibil.' },
-    { icon: <Scissors size={18}/>, label: 'Salon / Spa',
+    { icon: <Scissors size={18}/>, label: locale === 'ru' ? 'Салон / СПА' : 'Salon / Spa',
       pain: locale === 'ru' ? 'Несколько точек — и непонятно, какая работает лучше.' : 'Ai mai multe locații dar nu știi care performează cel mai bine.',
       solution: locale === 'ru' ? 'Единая панель управления. Сравнение локаций в реальном времени. Реагируешь быстро.' : 'Dashboard central. Comparativ locații în timp real. Acționezi rapid.' },
     { icon: <Package size={18}/>, label: locale === 'ru' ? 'Доставка' : 'Livrare',
@@ -406,34 +406,34 @@ export default function LandingPage() {
                   {
                     icon: <Send size={24}/>,
                     color: 'bg-blue-600',
-                    title: locale === 'ru' ? 'Notificări instant pe Telegram' : 'Notificări instant pe Telegram',
+                    title: locale === 'ru' ? 'Мгновенные уведомления в Telegram' : 'Notificări instant pe Telegram',
                     desc: locale === 'ru'
-                      ? 'Clientul scanează QR-ul și lasă recenzia în 10 secunde. Tu primești mesajul pe Telegram imediat — inclusiv Crisis Mode la 3+ negative în 30 de minute.'
+                      ? 'Клиент сканирует QR и оставляет отзыв за 10 секунд. Ты получаешь сообщение в Telegram сразу — включая Crisis Mode при 3+ негативных за 30 минут.'
                       : 'Clientul scanează QR-ul și lasă recenzia în 10 secunde. Tu primești mesajul pe Telegram imediat — inclusiv Crisis Mode la 3+ negative în 30 de minute.',
                     points: locale === 'ru'
-                      ? ['QR individual per angajat sau locație', 'Crisis Mode — alertă roșie la val de recenzii negative', 'Recenzii anonime fără fricțiune pentru client']
+                      ? ['Индивидуальный QR для каждого сотрудника или локации', 'Crisis Mode — красная тревога при волне негативных отзывов', 'Анонимные отзывы без лишних усилий для клиента']
                       : ['QR individual per angajat sau locație', 'Crisis Mode — alertă roșie la val de recenzii negative', 'Recenzii anonime fără fricțiune pentru client'],
                   },
                   {
                     icon: <BarChart3 size={24}/>,
                     color: 'bg-violet-600',
-                    title: locale === 'ru' ? 'Reputație Google în pilotaj automat' : 'Reputație Google în pilotaj automat',
+                    title: locale === 'ru' ? 'Репутация на Google в автопилоте' : 'Reputație Google în pilotaj automat',
                     desc: locale === 'ru'
-                      ? 'Clienții mulțumiți (4–5 stele) sunt redirecționați automat spre Google Reviews. Cei nemulțumiți rămân privați. Ratingul crește fără efort.'
+                      ? 'Довольные клиенты (4–5 звёзд) автоматически перенаправляются на Google Reviews. Недовольные остаются приватными. Рейтинг растёт без усилий.'
                       : 'Clienții mulțumiți (4–5 stele) sunt redirecționați automat spre Google Reviews. Cei nemulțumiți rămân privați. Ratingul crește fără efort.',
                     points: locale === 'ru'
-                      ? ['Dashboard cu heatmap orar și QRate Score 0–100', 'Leaderboard angajați — știi cine performează', 'Widget embed pentru site-ul tău']
+                      ? ['Dashboard с тепловой картой по часам и QRate Score 0–100', 'Рейтинг сотрудников — знаешь точно кто лучший', 'Виджет для вставки на твой сайт']
                       : ['Dashboard cu heatmap orar și QRate Score 0–100', 'Leaderboard angajați — știi cine performează', 'Widget embed pentru site-ul tău'],
                   },
                   {
                     icon: <Smartphone size={24}/>,
                     color: 'bg-emerald-600',
-                    title: locale === 'ru' ? 'Contact direct cu clientul nemulțumit' : 'Contact direct cu clientul nemulțumit',
+                    title: locale === 'ru' ? 'Прямой контакт с недовольным клиентом' : 'Contact direct cu clientul nemulțumit',
                     desc: locale === 'ru'
-                      ? 'Un buton WhatsApp direct în notificare. Răspuns personalizat gata de trimis. Recovery Win — alertă când un client nemulțumit revine cu 5 stele.'
+                      ? 'Кнопка WhatsApp прямо в уведомлении. Персонализированный ответ готов к отправке. Recovery Win — уведомление когда недовольный клиент возвращается с 5 звёздами.'
                       : 'Un buton WhatsApp direct în notificare. Răspuns personalizat gata de trimis. Recovery Win — alertă când un client nemulțumit revine cu 5 stele.',
                     points: locale === 'ru'
-                      ? ['WhatsApp Follow-up cu un singur click', 'Detectare cuvinte problemă în recenzii', 'Toate locațiile dintr-un singur panou']
+                      ? ['WhatsApp Follow-up в один клик', 'Обнаружение проблемных слов в отзывах', 'Все локации в одной панели управления']
                       : ['WhatsApp Follow-up cu un singur click', 'Detectare cuvinte problemă în recenzii', 'Toate locațiile dintr-un singur panou'],
                   },
                 ].map((f, i) => (
