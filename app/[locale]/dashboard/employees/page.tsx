@@ -4,10 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { 
-  UserPlus, Trash2, Download, Star, 
-  MapPin, AlertCircle, Loader2, Camera, User, 
-  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone, Building2
+import {
+  UserPlus, Trash2, Download, Star,
+  MapPin, AlertCircle, Loader2, Camera, User,
+  MessageSquare, ChevronRight, Briefcase, ChevronDown, ChevronUp, Phone, Building2, Pencil, X
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import Link from 'next/link';
@@ -30,6 +30,9 @@ export default function EmployeesPage() {
 
   const [newCompanyName, setNewCompanyName] = useState('');
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
+  const [editModal, setEditModal] = useState<any | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editUploading, setEditUploading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -213,6 +216,61 @@ export default function EmployeesPage() {
       alert("Eroare la ștergere: " + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditModal = (emp: any) => {
+    const ids = emp.location_ids
+      ? emp.location_ids.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : emp.location_id ? [emp.location_id] : [];
+    setEditModal({
+      id: emp.id,
+      name: emp.name || '',
+      position: emp.position || '',
+      location_ids: ids,
+      photo_url: emp.photo_url || '',
+    });
+  };
+
+  const handleEditPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEditUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Sesiune expirată.');
+      const ext = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from('employee-photos').upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: url } = supabase.storage.from('employee-photos').getPublicUrl(fileName);
+      setEditModal((prev: any) => ({ ...prev, photo_url: url.publicUrl }));
+    } catch (err: any) {
+      alert('Eroare upload: ' + err.message);
+    } finally {
+      setEditUploading(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editModal || editSaving) return;
+    setEditSaving(true);
+    try {
+      const primaryId = editModal.location_ids[0] || null;
+      const { error } = await supabase.from('employees').update({
+        name: editModal.name.trim(),
+        position: editModal.position.trim(),
+        location_id: primaryId,
+        location_ids: editModal.location_ids.length > 0 ? editModal.location_ids.join(',') : null,
+        photo_url: editModal.photo_url || null,
+      }).eq('id', editModal.id);
+      if (error) throw error;
+      setEditModal(null);
+      await fetchInitialData();
+    } catch (err: any) {
+      alert('Eroare la salvare: ' + err.message);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -502,13 +560,21 @@ export default function EmployeesPage() {
                   </div>
 
                   <div className="flex gap-3 pt-2">
-                    <Link 
+                    <Link
                       href={`/${locale}/dashboard/employees/${emp.id}`}
                       className="flex-1 bg-slate-900 text-white py-4 rounded-xl text-xs font-black uppercase tracking-[0.15em] hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                       {t('card.btn_profile') || 'Profil'} <ChevronRight size={16} />
                     </Link>
-                    <button 
+                    <button
+                      onClick={() => openEditModal(emp)}
+                      className="w-14 h-14 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent shadow-sm"
+                      type="button"
+                      title={locale === 'ru' ? 'Редактировать' : 'Editează'}
+                    >
+                      <Pencil size={20} />
+                    </button>
+                    <button
                       onClick={() => downloadQR(emp.id, emp.name)}
                       className="w-14 h-14 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center hover:bg-blue-50 hover:text-blue-600 transition-all border border-transparent shadow-sm"
                       type="button"
@@ -516,7 +582,7 @@ export default function EmployeesPage() {
                     >
                       <Download size={22} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setShowDeleteModal(emp)}
                       className="w-14 h-14 bg-red-50 text-red-400 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all shadow-sm"
                       type="button"
@@ -531,6 +597,104 @@ export default function EmployeesPage() {
           )}
         </div>
       </div>
+
+      {editModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+              <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                {locale === 'ru' ? 'Редактировать сотрудника' : 'Editează angajatul'}
+              </h3>
+              <button onClick={() => setEditModal(null)} className="text-slate-400 hover:text-slate-700 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Foto */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="relative">
+                  {editModal.photo_url ? (
+                    <img src={editModal.photo_url} alt="" className="w-24 h-24 rounded-2xl object-cover border-4 border-slate-100 shadow-md" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-300 border-4 border-slate-100">
+                      <User size={36} />
+                    </div>
+                  )}
+                </div>
+                <label className="cursor-pointer flex items-center gap-2 bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors border border-slate-200">
+                  <Camera size={14} />
+                  {editUploading ? (locale === 'ru' ? 'Загрузка...' : 'Se încarcă...') : (locale === 'ru' ? 'Schimba poza' : 'Schimbă poza')}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleEditPhotoUpload} disabled={editUploading} />
+                </label>
+              </div>
+
+              {/* Nume */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                  {locale === 'ru' ? 'Имя *' : 'Nume *'}
+                </label>
+                <input type="text" value={editModal.name}
+                  onChange={e => setEditModal((p: any) => ({ ...p, name: e.target.value }))}
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+              </div>
+
+              {/* Poziție */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                  {locale === 'ru' ? 'Должность' : 'Poziție / Rol'}
+                </label>
+                <input type="text" value={editModal.position}
+                  onChange={e => setEditModal((p: any) => ({ ...p, position: e.target.value }))}
+                  className="w-full bg-slate-50 rounded-2xl py-3 px-4 font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 border border-transparent text-sm" />
+              </div>
+
+              {/* Locații */}
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
+                  {locale === 'ru' ? 'Локации' : 'Locații'}
+                </label>
+                <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-transparent">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" checked={editModal.location_ids.length === 0}
+                      onChange={() => setEditModal((p: any) => ({ ...p, location_ids: [] }))}
+                      className="w-4 h-4 rounded accent-slate-900" />
+                    <span className="text-sm font-bold text-slate-400 italic">
+                      {locale === 'ru' ? 'Мобильная (все)' : 'Mobil (toate)'}
+                    </span>
+                  </label>
+                  {locations.map(loc => (
+                    <label key={loc.id} className="flex items-center gap-3 cursor-pointer group">
+                      <input type="checkbox"
+                        checked={editModal.location_ids.includes(loc.id)}
+                        onChange={e => {
+                          const next = e.target.checked
+                            ? [...editModal.location_ids, loc.id]
+                            : editModal.location_ids.filter((id: string) => id !== loc.id);
+                          setEditModal((p: any) => ({ ...p, location_ids: next }));
+                        }}
+                        className="w-4 h-4 rounded accent-blue-600" />
+                      <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{loc.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 pt-0 flex gap-3">
+              <button onClick={() => setEditModal(null)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-3 rounded-2xl uppercase text-xs transition-colors">
+                {locale === 'ru' ? 'Отмена' : 'Anulează'}
+              </button>
+              <button onClick={handleSaveEdit} disabled={editSaving || !editModal.name.trim()}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-3 rounded-2xl uppercase text-xs transition-colors flex items-center justify-center gap-2">
+                {editSaving && <Loader2 size={14} className="animate-spin" />}
+                {locale === 'ru' ? 'Сохранить' : 'Salvează'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showDeleteModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-6">
